@@ -48,6 +48,7 @@ class NotFound(MemorialException):
 
 class Driver:
     recoverable_errors: Dict[int, str] = {
+        429: "Too Many Requests",
         500: "Internal Server Error",
         502: "Bad Gateway",
         503: "Service Unavailable",
@@ -65,6 +66,7 @@ class Driver:
     def get(self, url: str, **kwargs) -> Response:
         retries = 0
         try:
+            backoff_sec = self.retry_ms/1000
             response = self.session.get(url, **kwargs)
             while (
                 response.status_code in Driver.recoverable_errors.keys()
@@ -76,7 +78,10 @@ class Driver:
                     f"{url} -- Retrying ({retries} of {self.max_retries}, "
                     f"timeout={self.retry_ms}ms)"
                 )
-                sleep(self.retry_ms / 1000)
+                if response.status_code == 429:
+                    backoff_sec = (2 * backoff_sec)
+
+                sleep(backoff_sec)
                 response = self.session.get(url, **kwargs)
             self.num_retries += retries
             return response
@@ -1043,3 +1048,66 @@ class ResultSet(list):
     def __init__(self, source, result=()) -> None:
         super(ResultSet, self).__init__(result)
         self.source = source
+
+
+@dataclass(frozen=True)
+class MemorialSummary:
+    """Class for keeping track of a Find A Grave memorial."""
+
+    memorial_id: int
+    findagrave_url: str
+    prefix: str
+    name: str
+    suffix: str
+    nickname: str
+    maiden_name: str
+    original_name: str
+    famous: bool
+    veteran: bool
+    birth: str
+    birth_place: str
+    death: str
+    death_place: str
+    memorial_type: str
+    burial_place: str
+    cemetery_id: int
+    plot: str
+    coords: str
+    has_bio: bool
+
+    def __eq__(self, other):
+        if self.__class__ != other.__class__:
+            return False
+        return (
+            self.memorial_id == other.memorial_id
+            and self.findagrave_url == other.findagrave_url
+            and self.prefix == other.prefix
+            and self.name == other.name
+            and self.suffix == other.suffix
+            and self.nickname == other.nickname
+            and self.maiden_name == other.maiden_name
+            and self.original_name == other.original_name
+            and self.famous == other.famous
+            and self.veteran == other.veteran
+            and self.birth == other.birth
+            and self.birth_place == other.birth_place
+            and self.death == other.death
+            and self.death_place == other.death_place
+            and self.memorial_type == other.memorial_type
+            and self.burial_place == other.burial_place
+            and self.cemetery_id == other.cemetery_id
+            and self.plot == other.plot
+            and self.coords == other.coords
+            and self.has_bio == other.has_bio
+        )
+
+    @classmethod
+    def from_dict(cls, d):
+        return cls(**d)
+
+    def to_dict(self):
+        d = asdict(self)
+        return d
+
+    def to_json(self, **kwargs):
+        return json.dumps(self.to_dict(), ensure_ascii=False, **kwargs)
