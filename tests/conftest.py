@@ -14,7 +14,7 @@ from graver.cli import app
 from tests.memorial_provider import MemorialProvider, ResultSetProvider
 
 
-pytest_plugins = ["helpers_namespace"]
+pytest_plugins = ["pytest_helpers_namespace"]
 
 
 def pytest_configure():
