@@ -51,6 +51,52 @@ class TestApi(Test):
 
 
 class TestDriver(TestApi):
+    @pytest.mark.parametrize(
+        "headers, expected_sleep",
+        [
+            ({"Retry-After": "2"}, [2.0]),
+            ({}, [0.02]),
+        ],
+    )
+    def test_driver_retries_rate_limit_with_retry_after_or_backoff(
+        self, requests_mock, monkeypatch, headers, expected_sleep
+    ):
+        url = "https://www.findagrave.com/memorial/429"
+        sleeps = []
+        monkeypatch.setattr(graver.api, "sleep", sleeps.append)
+        requests_mock.get(
+            url,
+            [
+                {"status_code": 429, "reason": "Too Many Requests", "headers": headers},
+                {"status_code": 200, "reason": "OK"},
+            ],
+        )
+
+        response = Driver(retry_ms=10, max_retries=1).get(url)
+
+        assert response.status_code == 200
+        assert sleeps == expected_sleep
+
+    def test_driver_uses_exponential_backoff_for_repeated_rate_limits(
+        self, requests_mock, monkeypatch
+    ):
+        url = "https://www.findagrave.com/memorial/429"
+        sleeps = []
+        monkeypatch.setattr(graver.api, "sleep", sleeps.append)
+        requests_mock.get(
+            url,
+            [
+                {"status_code": 429, "reason": "Too Many Requests"},
+                {"status_code": 429, "reason": "Too Many Requests"},
+                {"status_code": 200, "reason": "OK"},
+            ],
+        )
+
+        response = Driver(retry_ms=10, max_retries=2).get(url)
+
+        assert response.status_code == 200
+        assert sleeps == [0.02, 0.04]
+
     @pytest.mark.parametrize("url", ["https://www.findagrave.com/memorial/544"])
     @pytest.mark.parametrize(
         "status_code, reason",
@@ -108,6 +154,34 @@ class TestDriver(TestApi):
         )
         with pytest.raises(MemorialParseException, match="Max retries exceeded"):
             Memorial.parse(url)
+
+
+class TestMemorialParser(TestApi):
+    @pytest.mark.parametrize(
+        "name, memorial_link",
+        [
+            (
+                "John Q. Public-Citizen",
+                "/memorial/12345/john-q-public-citizen",
+            ),
+            (
+                "Mary E. Smith-Johnson",
+                "https://www.findagrave.com/memorial/101010101/mary-e-smith-johnson",
+            ),
+            (
+                    "Ann-Marie Smitherson",
+                    "https://www.findagrave.com/memorial/101010101/ann-marie-smitherson",
+            ),
+        ],
+    )
+    def test_get_prefix_suffix_with_compact_url_name(self, name, memorial_link):
+        prefix, suffix = graver.api._MemorialParser.get_prefix_suffix(
+            name,
+            memorial_link,
+        )
+
+        assert prefix is None
+        assert suffix is None
 
 
 class TestMemorial(TestApi):

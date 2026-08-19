@@ -8,12 +8,12 @@ from collections import namedtuple
 from dataclasses import asdict, dataclass
 from re import Match
 from time import sleep
-from typing import Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, cast
 from urllib.parse import parse_qsl, urlparse, urlunparse
 
-import requests
+import cloudscraper25
 from bs4 import BeautifulSoup, Tag
-from requests import RequestException, Response
+from requests.exceptions import RequestException
 
 from .constants import FINDAGRAVE_BASE_URL, FINDAGRAVE_ROWS_PER_PAGE
 
@@ -48,6 +48,7 @@ class NotFound(MemorialException):
 
 class Driver:
     recoverable_errors: Dict[int, str] = {
+        408: "Request Timeout",
         429: "Too Many Requests",
         500: "Internal Server Error",
         502: "Bad Gateway",
@@ -58,35 +59,44 @@ class Driver:
 
     def __init__(self, **kwargs) -> None:
         self.num_retries = 0
-        self.max_retries: int = int(kwargs.get("max_retries", 3))
+        self.max_retries: int = int(kwargs.get("max_retries", 5))
         self.retry_ms: int = int(kwargs.get("retry_ms", 500))
-        self.session = kwargs.get("session", requests.Session())
-        self.session.headers.update({"User-Agent": "Mozilla/5.0"})
+        self.session = kwargs.get("session", cloudscraper25.create_scraper())
 
-    def get(self, url: str, **kwargs) -> Response:
+    def get(self, url: str, **kwargs) -> Any:
         retries = 0
-        try:
-            backoff_sec = self.retry_ms/1000
-            response = self.session.get(url, **kwargs)
-            while (
-                response.status_code in Driver.recoverable_errors.keys()
-                and retries < self.max_retries
-            ):
-                retries += 1
-                log.warning(
-                    f"Driver: [{response.status_code}: {response.reason}] "
-                    f"{url} -- Retrying ({retries} of {self.max_retries}, "
-                    f"timeout={self.retry_ms}ms)"
-                )
-                if response.status_code == 429:
-                    backoff_sec = (2 * backoff_sec)
+        backoff_sec = self.retry_ms / 1000
+        response = self.session.get(url, **kwargs)
+        while (
+            response.status_code in Driver.recoverable_errors.keys()
+            and retries < self.max_retries
+        ):
+            retries += 1
+            timeout_sec = backoff_sec
+            if response.status_code == 429:
+                retry_after = response.headers.get("Retry-After")
+                if retry_after is not None:
+                    try:
+                        timeout_sec = float(retry_after)
+                    except ValueError:
+                        log.warning(
+                            "Driver: invalid Retry-After header %r; using "
+                            "exponential backoff",
+                            retry_after,
+                        )
+                else:
+                    backoff_sec *= 2
+                    timeout_sec = backoff_sec
+            log.warning(
+                f"Driver: [{response.status_code}: {response.reason}] "
+                f"{url} -- Retrying ({retries} of {self.max_retries}, "
+                f"timeout={timeout_sec}s)"
+            )
 
-                sleep(backoff_sec)
-                response = self.session.get(url, **kwargs)
-            self.num_retries += retries
-            return response
-        except requests.exceptions.RequestException as e:
-            raise e
+            sleep(timeout_sec)
+            response = self.session.get(url, **kwargs)
+        self.num_retries += retries
+        return response
 
 
 @dataclass
@@ -511,16 +521,18 @@ class _MemorialParser:
     def get_prefix_suffix(name: str, memorial_link: str):
         # simple name is derived from the final path component in a memorial link
         # e.g. /memorial/12345/john-q-smith (simple name is "john q smith")
+        log.debug(f"in get_prefix_suffix, name=[{name}] memorial_link=[{memorial_link}]")
         prefix = None
         suffix = None
 
         elements = memorial_link.split("/")
         simple_name = elements[len(elements) - 1]
-        simple_name_tokens = simple_name.split("-")
         full_name_tokens = name.split(" ")
+        normalized_simple_name = re.sub(r"[\W_]", "", simple_name).casefold()
 
         for idx in range(0, len(full_name_tokens)):
-            if full_name_tokens[idx].lower().replace(".", "") != simple_name_tokens[0]:
+            normalized_token = re.sub(r"[\W_]", "", full_name_tokens[idx]).casefold()
+            if not normalized_simple_name.startswith(normalized_token):
                 if prefix is None:
                     prefix = full_name_tokens[idx]
                 else:
@@ -528,8 +540,9 @@ class _MemorialParser:
             else:
                 break
 
-        tok = full_name_tokens[len(full_name_tokens) - 1].replace(".", "")
-        if tok.lower() != simple_name_tokens[len(simple_name_tokens) - 1]:
+        tok = full_name_tokens[len(full_name_tokens) - 1]
+        normalized_tok = re.sub(r"[\W_]", "", tok).casefold()
+        if not normalized_simple_name.endswith(normalized_tok):
             suffix = full_name_tokens[len(full_name_tokens) - 1]
         return prefix, suffix
 
@@ -561,7 +574,7 @@ class _MemorialParser:
         birth_info = cast(Tag, tag.find_next("dd"))
         self.birth = cast(Tag, birth_info.find("time", itemprop="birthDate")).get_text()
         if (birth_place := birth_info.find("div", itemprop="birthPlace")) is not None:
-            self.birth_place = birth_place.get_text()
+            self.birth_place = birth_place.get_text(strip=True)
 
     def scrape_death_info(self, tag: Tag):
         death_info = cast(Tag, tag.find_next("dd"))
@@ -572,7 +585,7 @@ class _MemorialParser:
             .strip()
         )
         if (death_place := death_info.find("div", itemprop="deathPlace")) is not None:
-            self.death_place = death_place.get_text()
+            self.death_place = death_place.get_text(strip=True)
 
     def scrape_coords(self, tag: Tag):
         """Returns Google Map coordinates, if any, as a string 'nn.nnnnnnn,nn.nnnnnn'"""
@@ -629,7 +642,10 @@ class _MemorialParser:
                 return div
 
     def scrape_has_bio(self):
-        if self.soup.find("meta", property="og:description") is not None:
+        element = self.soup.find("meta", property="og:description")
+        if element is not None and not element.get("content", "").startswith(
+            "Find a Grave memorial for"
+        ):
             self.has_bio = True
 
     def scrape_page(self):

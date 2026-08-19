@@ -4,6 +4,7 @@ import os
 import re
 import sys
 from logging.handlers import RotatingFileHandler
+from time import sleep
 from typing import List, Tuple
 from urllib.parse import urlparse
 
@@ -207,12 +208,14 @@ def scrape_file(
     # Collect and validate URLs
     try:
         urls, failed_urls = collect_and_validate_urls(input_filename)
-        log.info(f"URLS = {urls}")
+        log.info(f"Downloading {len(urls)} memorials")
+        log.debug(f"URLS = {urls}")
     except OSError as e:
         log.error(e)
         raise typer.Exit(1)
 
     # Process URLs
+    request_interval_ms = 2000
     scraped = 0
     disable = os.getenv("TQDM_DISABLE")
     os.environ["DATABASE_NAME"] = db
@@ -225,6 +228,7 @@ def scrape_file(
             parse_and_save_memorial(url)
             scraped += 1
             pbar.set_postfix_str("")
+            sleep(request_interval_ms/1000)
         except MemorialParseException as ex:
             log.error(ex)
             failed_urls.append(url)
@@ -450,7 +454,7 @@ def search(
     log.debug(f"Search terms = {search_terms}")
 
     if memorial_id is not None:
-        m = Memorial.parse(f"{FINDAGRAVE_BASE_URL}/memorial/{memorial_id}")
+        m = Memorial.parse(f"{FINDAGRAVE_BASE_URL}/memorial/{memorial_id}").save()
         log.info(m.to_json())
     else:
         cem = None
