@@ -20,4 +20,5 @@ graver.log.*
 bandit.yaml
 *.txt
 !require*.txt
+*.json
 dist/
