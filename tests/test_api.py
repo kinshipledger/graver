@@ -1,6 +1,9 @@
 import json
 import logging
 import re
+import sqlite3
+from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -8,6 +11,7 @@ import requests
 from urllib3 import exceptions
 
 import graver.api
+from bs4 import BeautifulSoup
 from graver import (
     Cemetery,
     Driver,
@@ -187,6 +191,29 @@ class TestMemorialParser(TestApi):
 class TestMemorial(TestApi):
     pass
 
+    @pytest.mark.parametrize(
+        "html, expected",
+        [
+            (
+                '<input type="hidden" id="addedDate" '
+                'value="Added: 2012-10-07T15:26:53.000Z">',
+                "2012-10-07T15:26:53.000Z",
+            ),
+            ("<html></html>", None),
+        ],
+    )
+    def test_scrape_date_added(self, html, expected):
+        parser = graver.api._MemorialParser(
+            "https://www.findagrave.com/memorial/1/example",
+            get=False,
+            scrape=False,
+        )
+        parser.soup = BeautifulSoup(html, "html.parser")
+
+        parser.scrape_date_added()
+
+        assert parser.date_added == expected
+
     def test_memorial_not_equal_different_class(self):
         m = Memorial.from_dict(Test.load_memorial_from_json("james-fenimore-cooper"))
         assert m != str("A string object")
@@ -226,6 +253,7 @@ class TestMemorial(TestApi):
         assert result.plot == expected["plot"]
         assert result.coords == expected["coords"]
         assert result.has_bio == expected["has_bio"]
+        assert result.date_added == expected["date_added"]
 
     @pytest.mark.parametrize("name", TestApi.memorials)
     def test_memorial_to_dict(self, name: str):
@@ -254,6 +282,7 @@ class TestMemorial(TestApi):
         assert result["plot"] == expected["plot"]
         assert result["coords"] == expected["coords"]
         assert result["has_bio"] == expected["has_bio"]
+        assert result["date_added"] == expected["date_added"]
 
     @pytest.mark.parametrize("name", TestApi.memorials)
     def test_memorial_to_json(self, name):
@@ -367,6 +396,20 @@ class TestCemetery(TestApi):
 
 
 class TestDatabaseOps(TestApi):
+    def test_create_table_migrates_date_added_column(self, tmp_path):
+        database_name = tmp_path / "legacy.db"
+        with sqlite3.connect(database_name) as connection:
+            connection.execute("CREATE TABLE graves (memorial_id INTEGER PRIMARY KEY)")
+
+        Memorial.create_table(str(database_name))
+
+        with sqlite3.connect(database_name) as connection:
+            columns = {
+                row[1]
+                for row in connection.execute("PRAGMA table_info(graves)").fetchall()
+            }
+        assert "date_added" in columns
+
     @pytest.mark.parametrize("name", TestApi.memorials)
     def test_memorial_save(self, name: str, database):
         expected = Test.load_memorial_from_json(name)
@@ -383,6 +426,7 @@ class TestDatabaseOps(TestApi):
         assert result.plot == expected["plot"]
         assert result.coords == expected["coords"]
         assert result.has_bio == expected["has_bio"]
+        assert result.date_added == expected["date_added"]
 
     @pytest.mark.parametrize("name", TestApi.memorials)
     def test_memorial_get_by_id(self, name: str, database):
@@ -399,6 +443,69 @@ class TestDatabaseOps(TestApi):
 
 
 class TestSearch(TestApi):
+    def test_search_reports_progress(self, monkeypatch):
+        progress_state = {"updates": []}
+
+        class RecordingProgress:
+            def __init__(self, **kwargs):
+                progress_state.update(kwargs)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return None
+
+            def update(self, amount):
+                progress_state["updates"].append(amount)
+
+        response = SimpleNamespace(
+            content=b"<html></html>",
+            request=SimpleNamespace(url="https://example.test/search"),
+        )
+        driver = SimpleNamespace(get=lambda *args, **kwargs: response)
+        worker = graver.api._SearchWorker(driver=driver)
+        pages = iter([[object()] * 20, [object()] * 5])
+        monkeypatch.setattr(worker, "scrape_count", lambda soup: 25)
+        monkeypatch.setattr(
+            worker, "scrape_results_page", lambda *args, **kwargs: next(pages)
+        )
+        monkeypatch.setattr(graver.api, "tqdm", RecordingProgress)
+
+        results = worker.search()
+
+        assert len(results) == 25
+        assert progress_state["total"] == 25
+        assert progress_state["desc"] == "Searching memorials"
+        assert progress_state["unit"] == "memorial"
+        assert progress_state["updates"] == [20, 5]
+
+    def test_worker_supports_current_live_search_fields(self):
+        fixture = Path(__file__).parent / "fixtures/live-search/search-form-fields.html"
+        soup = BeautifulSoup(fixture.read_text(), "html.parser")
+        field_names = {field["name"] for field in soup.select("[name]")}
+        worker = graver.api._SearchWorker(
+            fulltext="John Smith",
+            bio="married",
+            memorialid="123",
+            tags="american revolutionary war",
+        )
+
+        assert field_names == {
+            "fulltext",
+            "bio",
+            "memorialid",
+            "tags",
+            "birthyearfilter",
+            "datefilter",
+            "orderby",
+        }
+        assert field_names <= worker.params.keys()
+        assert worker.params["fulltext"] == "John Smith"
+        assert worker.params["bio"] == "married"
+        assert worker.params["memorialid"] == "123"
+        assert worker.params["tags"] == "american revolutionary war"
+
     @pytest.mark.parametrize(
         "person",
         [

@@ -14,6 +14,7 @@ from urllib.parse import parse_qsl, urlparse, urlunparse
 import cloudscraper25
 from bs4 import BeautifulSoup, Tag
 from requests.exceptions import RequestException
+from tqdm import tqdm
 
 from .constants import FINDAGRAVE_BASE_URL, FINDAGRAVE_ROWS_PER_PAGE
 
@@ -250,6 +251,7 @@ class Memorial:
     plot: str
     coords: str
     has_bio: bool
+    date_added: Optional[str] = None
 
     def __eq__(self, other):
         if self.__class__ != other.__class__:
@@ -275,6 +277,7 @@ class Memorial:
             and self.plot == other.plot
             and self.coords == other.coords
             and self.has_bio == other.has_bio
+            and self.date_added == other.date_added
         )
 
     @classmethod
@@ -317,15 +320,27 @@ class Memorial:
                 burial_place TEXT,
                 plot TEXT,
                 coords TEXT,
-                has_bio BOOL
+                has_bio BOOL,
+                date_added TEXT
             )"""
         )
+        columns = {
+            row[1] for row in conn.execute("PRAGMA table_info(graves)").fetchall()
+        }
+        if "date_added" not in columns:
+            conn.execute("ALTER TABLE graves ADD COLUMN date_added TEXT")
+        conn.commit()
         conn.close()
 
     def save(self) -> "Memorial":
         with sqlite3.connect(os.getenv("DATABASE_NAME", "graves.db")) as con:
             con.cursor().execute(
-                "INSERT OR REPLACE INTO graves VALUES ("
+                "INSERT OR REPLACE INTO graves ("
+                "memorial_id, findagrave_url, prefix, name, suffix, nickname, "
+                "maiden_name, original_name, famous, veteran, birth, birth_place, "
+                "death, death_place, memorial_type, cemetery_id, burial_place, plot, "
+                "coords, has_bio, date_added"
+                ") VALUES ("
                 ":memorial_id, "
                 ":findagrave_url, "
                 ":prefix, "
@@ -345,7 +360,8 @@ class Memorial:
                 ":burial_place, "
                 ":plot, "
                 ":coords, "
-                ":has_bio"
+                ":has_bio, "
+                ":date_added"
                 ")",
                 self.__dict__,
             )
@@ -400,6 +416,7 @@ class _MemorialParser:
         self.plot = kwargs.get("plot", None)
         self.coords = kwargs.get("coords", None)
         self.has_bio = kwargs.get("has_bio", None)
+        self.date_added = kwargs.get("date_added", None)
         # # behavior/instance args
         self.driver = kwargs.get("driver", Driver())
         self.get = kwargs.get("get", True)
@@ -464,6 +481,7 @@ class _MemorialParser:
             plot=self.plot,
             coords=self.coords,
             has_bio=self.has_bio,
+            date_added=self.date_added,
         )
 
     def check_removed(self):
@@ -648,8 +666,15 @@ class _MemorialParser:
         ):
             self.has_bio = True
 
+    def scrape_date_added(self):
+        element = self.soup.find("input", id="addedDate")
+        if element is not None:
+            value = element.get("value", "")
+            self.date_added = value.removeprefix("Added: ") or None
+
     def scrape_page(self):
         self.scrape_has_bio()
+        self.scrape_date_added()
 
         # Get vital statistics and burial info
         vitals = self.scrape_vitals()
@@ -696,6 +721,9 @@ class _SearchWorker:
             self.driver = kwargs.pop("driver", Driver())
             self.search_url = f"{FINDAGRAVE_BASE_URL}/memorial/search?"
             # query params
+            self.add_optional_text_params(
+                kwargs, "fulltext", "memorialid", "bio", "tags"
+            )
             self.params["firstname"] = kwargs.get("firstname", "")
             self.params["middlename"] = kwargs.get("middlename", "")
             self.params["lastname"] = kwargs.get("lastname", "")
@@ -703,7 +731,6 @@ class _SearchWorker:
             self.process_death_year(**kwargs)
             self.params["location"] = kwargs.get("location", "")
             self.params["locationId"] = kwargs.get("locationId", "")
-            kwargs["memorialid"] = kwargs.get("memorialid", "")
             self.params["mcid"] = kwargs.get("mcid", "")
             self.params["linkedToName"] = kwargs.get("linkedToName", "")
             # Date added. "all" or n (where n = last n days)
@@ -723,13 +750,15 @@ class _SearchWorker:
             self.driver = cemetery.driver
             self.search_url = cemetery.search_url
             # query params
+            self.add_optional_text_params(
+                kwargs, "fulltext", "memorialid", "bio", "tags"
+            )
             self.params["firstname"] = kwargs.get("firstname", "")
             self.params["middlename"] = kwargs.get("middlename", "")
             self.params["lastname"] = kwargs.get("lastname", "")
             self.params["cemeteryName"] = self.cemetery.name
             self.process_birth_year(**kwargs)
             self.process_death_year(**kwargs)
-            kwargs["memorialid"] = kwargs.get("memorialid", "")
             self.params["mcid"] = kwargs.get("mcid", "")
             self.params["linkedToName"] = kwargs.get("linkedToName", "")
             # Date added. "all" or n (where n = last n days)
@@ -761,6 +790,11 @@ class _SearchWorker:
 
         # get the page requested
         self.process_page(**kwargs)
+
+    def add_optional_text_params(self, kwargs, *names):
+        for name in names:
+            if value := kwargs.get(name, ""):
+                self.params[name] = value
 
     def process_birth_year(self, **kwargs):
         # date filters are:
@@ -907,18 +941,29 @@ class _SearchWorker:
 
         num_pages = math.ceil(count / FINDAGRAVE_ROWS_PER_PAGE)
 
-        # scrape the page we already have (page 1)
-        results = self.scrape_results_page(soup, max_results=(count - len(rs)))
-        rs.extend(results)
-
-        # scrape additional pages, if there are any left to get
-        for i in range(2, num_pages + 1):
-            self.params["page"] = i
-            response = self.driver.get(self.search_url, params=self.params)
-            soup = BeautifulSoup(response.content, "html.parser")
-
+        disable_progress = bool(os.getenv("TQDM_DISABLE"))
+        with tqdm(
+            total=count,
+            desc="Searching memorials",
+            unit="memorial",
+            disable=disable_progress,
+        ) as progress:
+            # scrape the page we already have (page 1)
             results = self.scrape_results_page(soup, max_results=(count - len(rs)))
             rs.extend(results)
+            progress.update(len(results))
+
+            # scrape additional pages, if there are any left to get
+            for i in range(2, num_pages + 1):
+                self.params["page"] = i
+                response = self.driver.get(self.search_url, params=self.params)
+                soup = BeautifulSoup(response.content, "html.parser")
+
+                results = self.scrape_results_page(
+                    soup, max_results=(count - len(rs))
+                )
+                rs.extend(results)
+                progress.update(len(results))
 
         return ResultSet(response.request.url, rs)
 

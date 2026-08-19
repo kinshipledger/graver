@@ -17,6 +17,21 @@ from tests.memorial_provider import MemorialProvider, ResultSetProvider
 pytest_plugins = ["pytest_helpers_namespace"]
 
 
+def sanitize_cassette_interaction(interaction, _cassette):
+    """Remove session- and location-identifying headers before recording."""
+    request_headers = interaction.data["request"]["headers"]
+    response_headers = interaction.data["response"]["headers"]
+
+    for name in list(request_headers):
+        if name.casefold() == "cookie":
+            request_headers.pop(name)
+
+    for name in list(response_headers):
+        normalized_name = name.casefold()
+        if normalized_name == "set-cookie" or normalized_name.startswith("cf-"):
+            response_headers.pop(name)
+
+
 def pytest_configure():
     pass
 
@@ -27,10 +42,16 @@ def customize_faker(faker: Faker):
     faker.add_provider(ResultSetProvider)
 
 
+@pytest.fixture(autouse=True)
+def disable_progress_bars(monkeypatch):
+    monkeypatch.setenv("TQDM_DISABLE", "1")
+
+
 # configure Betamax
 with Betamax.configure() as config:
     path = os.path.dirname(os.path.abspath(__file__))
     config.cassette_library_dir = os.path.join(path, "fixtures/cassettes")
+    config.before_record(callback=sanitize_cassette_interaction)
     # config.default_cassette_options["record_mode"] = "none"
 
 runner = CliRunner()

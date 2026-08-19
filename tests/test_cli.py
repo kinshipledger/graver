@@ -2,6 +2,7 @@ import importlib.metadata
 import logging
 import os
 import random
+import sqlite3
 from typing import Dict
 
 import pytest
@@ -290,15 +291,66 @@ class TestCliScrapeUrl(TestCli):
 
 
 class TestCliSearch(TestCli):
-    def test_search_by_id(self, helpers, caplog, fake_memorial, api_mock) -> None:
-        expected: Memorial = fake_memorial()
-        api_mock(expected.findagrave_url)
-        mid = expected.memorial_id
-        command = f"search --id={mid}"
-        result = helpers.graver_cli(command)
+    def test_saves_results_to_specified_database(
+        self, helpers, tmp_path, fake_memorial, monkeypatch
+    ) -> None:
+        expected = fake_memorial()
+        database = tmp_path / "search.db"
+        monkeypatch.setattr(
+            Memorial, "search", lambda *args, **kwargs: [expected]
+        )
+
+        result = helpers.graver_cli(f"search --db '{database}'")
+
         assert result.exit_code == 0
-        assert result.output == ""
-        assert f'"memorial_id": {mid}' in caplog.text
+        with sqlite3.connect(database) as connection:
+            row = connection.execute(
+                "SELECT memorial_id FROM graves WHERE memorial_id = ?",
+                (expected.memorial_id,),
+            ).fetchone()
+        assert row == (expected.memorial_id,)
+
+    def test_uses_specified_database(
+        self, helpers, tmp_path, monkeypatch
+    ) -> None:
+        database = tmp_path / "search.db"
+        created_databases = []
+
+        monkeypatch.setattr(
+            Memorial,
+            "create_table",
+            lambda database_name: created_databases.append(database_name),
+        )
+        monkeypatch.setattr(Memorial, "search", lambda *args, **kwargs: [])
+
+        result = helpers.graver_cli(f"search --db '{database}'")
+
+        assert result.exit_code == 0
+        assert created_databases == [str(database)]
+
+    def test_current_search_fields_are_forwarded(self, helpers, monkeypatch) -> None:
+        captured = {}
+
+        def mock_search(*args, **kwargs):
+            captured.update(kwargs)
+            return []
+
+        monkeypatch.setattr(Memorial, "search", mock_search)
+        result = helpers.graver_cli(
+            "search --id=123 --fulltext='John Smith' --bio=married "
+            "--tags='american revolutionary war' --birthyearfilter=unknown "
+            "--deathyearfilter=25 --datefilter=-90 --orderby=dc"
+        )
+
+        assert result.exit_code == 0
+        assert captured["memorialid"] == "123"
+        assert captured["fulltext"] == "John Smith"
+        assert captured["bio"] == "married"
+        assert captured["tags"] == "american revolutionary war"
+        assert captured["birthyearfilter"] == "unknown"
+        assert captured["deathyearfilter"] == "25"
+        assert captured["datefilter"] == -90
+        assert captured["orderby"] == "dc"
 
     @pytest.mark.parametrize(
         "cemetery_id, lastname, death_year", [(641417, "Jackson", 1828)]
@@ -319,6 +371,7 @@ class TestCliSearch(TestCli):
             )
 
         monkeypatch.setattr(Memorial, "search", mock_search)
+        monkeypatch.setattr("graver.cli.Cemetery", lambda url: object())
         command = (
             f"search --cemetery-id={cemetery_id} --lastname='{lastname}' "
             f"--deathyear={death_year} --max-results={max_results}"
@@ -348,6 +401,17 @@ class TestCliSearch(TestCli):
         assert result.exit_code == 2
         assert "Invalid value" in result.output
 
+    @pytest.mark.parametrize("value", [0, 14, -30])
+    def test_datefilter_callback(self, value, helpers):
+        result = helpers.graver_cli(f"search --datefilter={value}")
+        assert result.exit_code == 2
+        assert "Invalid value" in result.output
+
+    def test_orderby_callback(self, helpers):
+        result = helpers.graver_cli("search --orderby=invalid")
+        assert result.exit_code == 2
+        assert "Invalid value" in result.output
+
     @pytest.mark.parametrize(
         "param",
         [
@@ -355,7 +419,8 @@ class TestCliSearch(TestCli):
             "fuzzyNames",
         ],
     )
-    def test_name_filter_callback(self, param, helpers):
+    def test_name_filter_callback(self, param, helpers, monkeypatch):
+        monkeypatch.setattr(Memorial, "search", lambda *args, **kwargs: [])
         # Success case
         command = f"search --firstname=foo --{param} --max=5"
         result = helpers.graver_cli(command)

@@ -273,11 +273,38 @@ def photofilter_callback(value: str):
 
 def year_filter_callback(value: str):
     if value is not None and value != "":
-        if value not in ["before", "after", "exact"]:
-            if re.search(r"^\d{1,3}$", value) is None:
-                raise typer.BadParameter(
-                    "Only 'before', 'after', 'exact', or 0 < value < 999 is allowed"
-                )
+        allowed = [
+            "exact",
+            "before",
+            "after",
+            "1",
+            "3",
+            "5",
+            "10",
+            "25",
+            "unknown",
+        ]
+        if value not in allowed:
+            raise typer.BadParameter(f"Only {', '.join(allowed)} is allowed")
+    return value
+
+
+def date_filter_callback(value: int):
+    if value is not None and value not in [1, 7, 30, 90, -90]:
+        raise typer.BadParameter("Only 1, 7, 30, 90, or -90 is allowed")
+    return value
+
+
+def orderby_callback(value: str):
+    allowed = ["r", "n", "n-", "b", "b-", "d", "d-", "c", "c-", "dc", "dm", "pl"]
+    if value not in allowed:
+        raise typer.BadParameter(f"Only {', '.join(allowed)} is allowed")
+    return value
+
+
+def tags_callback(value: str):
+    if value not in ["", "american revolutionary war"]:
+        raise typer.BadParameter("Only 'american revolutionary war' is allowed")
     return value
 
 
@@ -297,6 +324,9 @@ def name_filter_callback(ctx: typer.Context, value: str):
 
 @app.command()
 def search(
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Database name (results will be stored here)"
+    ),
     cemetery_id: int = typer.Option(
         None,
         "--cid",
@@ -306,19 +336,22 @@ def search(
     firstname: str = typer.Option("", "--firstname"),
     middlename: str = typer.Option("", "--middlename"),
     lastname: str = typer.Option("", "--lastname"),
+    fulltext: str = typer.Option(
+        "", "--fulltext", help="Search names, dates, locations, and keywords"
+    ),
     birthyear: int = typer.Option(None, "--birthyear"),
     birthyearfilter: str = typer.Option(
         "",
         "--birthyearfilter",
         callback=year_filter_callback,
-        help="'before', 'after', or 'n' where 'n' is interpreted as +/- n years",
+        help="exact, before, after, unknown, or a supported +/- year range",
     ),
     deathyear: int = typer.Option(None, "--deathyear"),
     deathyearfilter: str = typer.Option(
         "",
         "--deathyearfilter",
         callback=year_filter_callback,
-        help="'before', 'after', or 'n' where 'n' is interpreted as +/- n years",
+        help="exact, before, after, unknown, or a supported +/- year range",
     ),
     location: str = typer.Option(
         "",
@@ -342,6 +375,9 @@ def search(
     mcid: int = typer.Option(
         None, "--mcid", help="The memorial contributor's FindAGrave ID"
     ),
+    bio: str = typer.Option(
+        "", "--bio", help="Keywords to find in memorial biographies"
+    ),
     linkedtoname: str = typer.Option(
         "",
         "--linkedToName",
@@ -349,12 +385,16 @@ def search(
         "e.g. 'Mary Jefferson' or 'Steve Mike Barry'.",
     ),
     datefilter: int = typer.Option(
-        None, "--datefilter", help="Memorials added in last n days"
+        None,
+        "--datefilter",
+        callback=date_filter_callback,
+        help="Date added: 1, 7, 30, or 90 days ago; -90 means older than 90 days",
     ),
     orderby: str = typer.Option(
         "r",
         "--orderby",
-        help="Order results by (ascending/descending): relevance(r/r-), name(n/n-), birth year(b/b-), "
+        callback=orderby_callback,
+        help="Order results by: relevance(r), name(n/n-), birth year(b/b-), "
         "death year(d/d-), cemetery(c/c-), date created(dc), date modified(dm), "
         "plot(pl)",
     ),
@@ -382,6 +422,12 @@ def search(
     cenotaph: bool = typer.Option(None, "--cenotaph", is_flag=False),
     monument: bool = typer.Option(None, "--monument", is_flag=False),
     veteran: bool = typer.Option(None, "--isVeteran", is_flag=False),
+    tags: str = typer.Option(
+        "",
+        "--tags",
+        callback=tags_callback,
+        help="Memorial tag (currently: 'american revolutionary war')",
+    ),
     include_nickname: bool = typer.Option(
         None, "--includeNickName", callback=name_filter_callback
     ),
@@ -410,11 +456,15 @@ def search(
     ),
 ):
     """Scrape memorial search results with specified search parameters"""
+    os.environ["DATABASE_NAME"] = db
+    Memorial.create_table(db)
+
     search_terms: dict = {
         "max_results": max_results,
         "firstname": firstname,
         "middlename": middlename,
         "lastname": lastname,
+        "fulltext": fulltext,
         "birthyear": str(birthyear) if birthyear is not None else "",
         "birthyearfilter": birthyearfilter,
         "deathyear": str(deathyear) if deathyear is not None else "",
@@ -423,10 +473,12 @@ def search(
         "locationId": location_id,
         "memorialid": str(memorial_id) if memorial_id is not None else "",
         "mcid": str(mcid) if mcid is not None else "",
+        "bio": bio,
         "linkedToName": linkedtoname,
         "datefilter": datefilter if datefilter is not None else "",
         "orderby": orderby,
         "plot": plot,
+        "tags": tags,
     }
     optional_terms: dict = {
         "noCemetery": no_cemetery,
@@ -453,24 +505,21 @@ def search(
 
     log.debug(f"Search terms = {search_terms}")
 
-    if memorial_id is not None:
-        m = Memorial.parse(f"{FINDAGRAVE_BASE_URL}/memorial/{memorial_id}").save()
-        log.info(m.to_json())
-    else:
-        cem = None
-        if cemetery_id is not None:
-            cem = Cemetery(f"{FINDAGRAVE_BASE_URL}/cemetery/{cemetery_id}")
+    cem = None
+    if cemetery_id is not None:
+        cem = Cemetery(f"{FINDAGRAVE_BASE_URL}/cemetery/{cemetery_id}")
 
-        results = Memorial.search(cem, **search_terms)
-        log.debug(f"Num results = {len(results)}")
-        if len(results) > 0:
-            for idx, m in enumerate(results):
-                if idx == 0:
-                    log.info("[" + m.to_json() + ",")
-                elif idx == len(results) - 1:
-                    log.info(m.to_json() + "]")
-                else:
-                    log.info(m.to_json() + ",")
+    results = Memorial.search(cem, **search_terms)
+    log.debug(f"Num results = {len(results)}")
+    if len(results) > 0:
+        for idx, m in enumerate(results):
+            m.save()
+            if idx == 0:
+                log.info("[" + m.to_json() + ",")
+            elif idx == len(results) - 1:
+                log.info(m.to_json() + "]")
+            else:
+                log.info(m.to_json() + ",")
 
 
 if __name__ == "__main__":  # pragma: no cover

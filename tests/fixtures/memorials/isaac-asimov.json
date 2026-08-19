@@ -18,5 +18,6 @@
     "cemetery_id": null,
     "plot": null,
     "coords": null,
-    "has_bio": true
+    "has_bio": true,
+    "date_added": "3 Jul 2000"
 }
