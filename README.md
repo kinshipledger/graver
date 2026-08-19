@@ -15,19 +15,56 @@ Scrape and Retrieve [FindAGrave](http://findagrave.com) memorial data and save t
 
 ## Requirements
 
-You are expected to have [Python3](https://www.python.org/downloads/). The main requirement is BeautifulSoup, but in case more are added in future, please install from the requirements.txt to be sure you have everything:
-```sh
-$ pip install -r requirements.txt
+[uv](https://docs.astral.sh/uv/getting-started/installation/) is required to
+install and run `graver`. A separate Python installation is optional: uv uses
+the version pinned in `.python-version` and downloads it when necessary. The
+project supports Python 3.10 or newer.
+
+Install uv on macOS or Linux:
+
+```shell
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
+
+On Windows PowerShell:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Other supported installation methods, including Homebrew and WinGet, are
+listed in the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
 
 ## Usage
 ### Install
+
+Clone the repository, enter its root directory, and synchronize the environment
+from the committed lockfile:
+
 ```shell
-$ pip install -e graver
-````
+git clone https://github.com/mcqueary/graver.git
+cd graver
+uv sync --locked
+```
+
+This creates a virtual environment at `.venv` and installs `graver` with its
+locked dependencies. Run the command-line application through uv; activating
+the virtual environment is not required:
+
+```shell
+uv run graver --help
+```
+
+For development, install every dependency group and run the test suite with:
+
+```shell
+uv sync --all-groups --locked
+uv run --group test pytest
+```
+
 ### Scrape
 ```sh
-$ graver scrape <input-file>
+uv run graver scrape-file <input-file>
 ```
 The memorial data will be saved in a SQL database (default: `graves.db`), where it can be viewed with any SQLite viewer, or exported to CSV. 
 
