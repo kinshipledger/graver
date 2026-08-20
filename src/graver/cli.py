@@ -40,6 +40,7 @@ from graver.constants import (
     FINDAGRAVE_BASE_URL,
     MEMORIAL_CANONICAL_URL_FORMAT,
 )
+from graver.database import DatabaseInitializationError, create_database
 
 
 log = logging.getLogger(__name__)
@@ -149,6 +150,31 @@ def graver(
 
 
 @app.command()
+def init(
+    database: Optional[str] = typer.Argument(
+        None,
+        help="New research database to create; omit to create ./graves.db.",
+    ),
+):
+    """Create and select a new database; omit DATABASE to create ./graves.db."""
+    try:
+        initialized = create_database(database)
+    except DatabaseInitializationError as ex:
+        typer.echo(str(ex), err=True)
+        raise typer.Exit(1)
+    try:
+        selected = graver_config.select_default_database(str(initialized))
+    except graver_config.GraverConfigurationError as ex:
+        typer.echo(
+            f"Database was initialized at {initialized}, but it could not be "
+            f"selected: {ex}",
+            err=True,
+        )
+        raise typer.Exit(1)
+    typer.echo(f"Initialized and selected research database: {selected}")
+
+
+@app.command()
 def use(
     database: Optional[str] = typer.Argument(
         None, help="Existing Graver database to use by default."
@@ -190,8 +216,6 @@ def use(
 
 
 # TODO: Add support for output CSV
-# TODO: Add init command
-
 # def get_urls_from_gedcom(gedfile: str):
 # TODO add gedcom input support
 # # read from gedcom

@@ -321,10 +321,9 @@ def _package_version() -> str:
         return "unknown"
 
 
-def _initialize_database(database_name="graves.db") -> None:
-    with _connect(database_name) as connection:
-        connection.execute(
-            """CREATE TABLE IF NOT EXISTS graves
+def _create_graves_table(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """CREATE TABLE IF NOT EXISTS graves
             (
                 memorial_id INTEGER PRIMARY KEY,
                 findagrave_url TEXT,
@@ -351,25 +350,30 @@ def _initialize_database(database_name="graves.db") -> None:
                 summary_fetched_at TEXT,
                 full_fetched_at TEXT
             )"""
-        )
-        grave_columns = {
-            row[1] for row in connection.execute("PRAGMA table_info(graves)").fetchall()
-        }
-        grave_migrations = {
-            "cemetery_id": "INTEGER",
-            "date_added": "TEXT",
-            "detail_level": "TEXT CHECK (detail_level IN ('summary', 'full'))",
-            "summary_fetched_at": "TEXT",
-            "full_fetched_at": "TEXT",
-        }
-        for column_name, column_type in grave_migrations.items():
-            if column_name not in grave_columns:
-                connection.execute(
-                    f"ALTER TABLE graves ADD COLUMN {column_name} {column_type}"
-                )
+    )
 
-        connection.execute(
-            """CREATE TABLE IF NOT EXISTS cemeteries
+
+def _migrate_graves_table(connection: sqlite3.Connection) -> None:
+    grave_columns = {
+        row[1] for row in connection.execute("PRAGMA table_info(graves)").fetchall()
+    }
+    grave_migrations = {
+        "cemetery_id": "INTEGER",
+        "date_added": "TEXT",
+        "detail_level": "TEXT CHECK (detail_level IN ('summary', 'full'))",
+        "summary_fetched_at": "TEXT",
+        "full_fetched_at": "TEXT",
+    }
+    for column_name, column_type in grave_migrations.items():
+        if column_name not in grave_columns:
+            connection.execute(
+                f"ALTER TABLE graves ADD COLUMN {column_name} {column_type}"
+            )
+
+
+def _create_cemeteries_table(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """CREATE TABLE IF NOT EXISTS cemeteries
             (
                 cemetery_id INTEGER PRIMARY KEY,
                 url TEXT,
@@ -379,19 +383,21 @@ def _initialize_database(database_name="graves.db") -> None:
                 first_observed_at TEXT,
                 last_observed_at TEXT
             )"""
-        )
-        cemetery_columns = {
-            row[1]
-            for row in connection.execute("PRAGMA table_info(cemeteries)").fetchall()
-        }
-        for column_name in ("first_observed_at", "last_observed_at"):
-            if column_name not in cemetery_columns:
-                connection.execute(
-                    f"ALTER TABLE cemeteries ADD COLUMN {column_name} TEXT"
-                )
+    )
 
-        connection.execute(
-            """CREATE TABLE IF NOT EXISTS memorial_observations
+
+def _migrate_cemeteries_table(connection: sqlite3.Connection) -> None:
+    cemetery_columns = {
+        row[1] for row in connection.execute("PRAGMA table_info(cemeteries)").fetchall()
+    }
+    for column_name in ("first_observed_at", "last_observed_at"):
+        if column_name not in cemetery_columns:
+            connection.execute(f"ALTER TABLE cemeteries ADD COLUMN {column_name} TEXT")
+
+
+def _create_research_schema(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """CREATE TABLE IF NOT EXISTS memorial_observations
             (
                 observation_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 memorial_id INTEGER NOT NULL,
@@ -405,9 +411,9 @@ def _initialize_database(database_name="graves.db") -> None:
                 FOREIGN KEY (memorial_id) REFERENCES graves(memorial_id),
                 FOREIGN KEY (cemetery_id) REFERENCES cemeteries(cemetery_id)
             )"""
-        )
-        connection.execute(
-            """CREATE TABLE IF NOT EXISTS research_tasks
+    )
+    connection.execute(
+        """CREATE TABLE IF NOT EXISTS research_tasks
             (
                 memorial_id INTEGER PRIMARY KEY,
                 status TEXT NOT NULL DEFAULT 'unprocessed' CHECK (status IN (
@@ -428,9 +434,9 @@ def _initialize_database(database_name="graves.db") -> None:
                 review_note TEXT,
                 FOREIGN KEY (memorial_id) REFERENCES graves(memorial_id)
             )"""
-        )
-        connection.execute(
-            """CREATE TABLE IF NOT EXISTS memorial_aliases
+    )
+    connection.execute(
+        """CREATE TABLE IF NOT EXISTS memorial_aliases
             (
                 source_memorial_id INTEGER PRIMARY KEY,
                 target_memorial_id INTEGER NOT NULL,
@@ -444,9 +450,9 @@ def _initialize_database(database_name="graves.db") -> None:
                 CHECK (source_memorial_id <> target_memorial_id),
                 FOREIGN KEY (source_memorial_id) REFERENCES graves(memorial_id)
             )"""
-        )
-        connection.execute(
-            """CREATE TABLE IF NOT EXISTS memorial_alias_observations
+    )
+    connection.execute(
+        """CREATE TABLE IF NOT EXISTS memorial_alias_observations
             (
                 observation_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 source_memorial_id INTEGER NOT NULL,
@@ -461,53 +467,69 @@ def _initialize_database(database_name="graves.db") -> None:
                 CHECK (source_memorial_id <> target_memorial_id),
                 FOREIGN KEY (source_memorial_id) REFERENCES graves(memorial_id)
             )"""
-        )
-        connection.execute(
-            """CREATE TRIGGER IF NOT EXISTS memorial_observations_no_update
+    )
+    connection.execute(
+        """CREATE TRIGGER IF NOT EXISTS memorial_observations_no_update
             BEFORE UPDATE ON memorial_observations
             BEGIN
                 SELECT RAISE(ABORT, 'memorial observations are immutable');
             END"""
-        )
-        connection.execute(
-            """CREATE TRIGGER IF NOT EXISTS memorial_observations_no_delete
+    )
+    connection.execute(
+        """CREATE TRIGGER IF NOT EXISTS memorial_observations_no_delete
             BEFORE DELETE ON memorial_observations
             BEGIN
                 SELECT RAISE(ABORT, 'memorial observations are immutable');
             END"""
-        )
-        for action in ("UPDATE", "DELETE"):
-            connection.execute(
-                f"""CREATE TRIGGER IF NOT EXISTS memorial_alias_observations_no_{action.lower()}
+    )
+    for action in ("UPDATE", "DELETE"):
+        connection.execute(
+            f"""CREATE TRIGGER IF NOT EXISTS memorial_alias_observations_no_{action.lower()}
                 BEFORE {action} ON memorial_alias_observations
                 BEGIN
                     SELECT RAISE(ABORT, 'memorial alias observations are immutable');
                 END"""
-            )
-        connection.execute(
-            "CREATE INDEX IF NOT EXISTS idx_graves_cemetery_id "
-            "ON graves(cemetery_id)"
         )
-        connection.execute(
-            "CREATE INDEX IF NOT EXISTS idx_memorial_observations_memorial_id "
-            "ON memorial_observations(memorial_id)"
-        )
-        connection.execute(
-            "CREATE INDEX IF NOT EXISTS idx_memorial_observations_cemetery_id "
-            "ON memorial_observations(cemetery_id)"
-        )
-        connection.execute(
-            "CREATE INDEX IF NOT EXISTS idx_research_tasks_status_priority "
-            "ON research_tasks(status, priority DESC, created_at)"
-        )
-        connection.execute(
-            "CREATE INDEX IF NOT EXISTS idx_memorial_aliases_target_status "
-            "ON memorial_aliases(target_memorial_id, status)"
-        )
-        connection.execute(
-            "CREATE INDEX IF NOT EXISTS idx_memorial_alias_observations_source "
-            "ON memorial_alias_observations(source_memorial_id, observed_at)"
-        )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_graves_cemetery_id ON graves(cemetery_id)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_memorial_observations_memorial_id "
+        "ON memorial_observations(memorial_id)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_memorial_observations_cemetery_id "
+        "ON memorial_observations(cemetery_id)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_research_tasks_status_priority "
+        "ON research_tasks(status, priority DESC, created_at)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_memorial_aliases_target_status "
+        "ON memorial_aliases(target_memorial_id, status)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_memorial_alias_observations_source "
+        "ON memorial_alias_observations(source_memorial_id, observed_at)"
+    )
+
+
+def _create_current_schema(connection: sqlite3.Connection) -> None:
+    """Create the complete current schema without performing legacy migrations."""
+    _create_graves_table(connection)
+    _create_cemeteries_table(connection)
+    _create_research_schema(connection)
+
+
+def _initialize_database(database_name="graves.db") -> None:
+    """Retain existing create-or-migrate behavior for pre-1.0 compatibility."""
+    with _connect(database_name) as connection:
+        _create_graves_table(connection)
+        _migrate_graves_table(connection)
+        _create_cemeteries_table(connection)
+        _migrate_cemeteries_table(connection)
+        _create_research_schema(connection)
 
 
 def _save_grave(

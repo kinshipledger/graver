@@ -67,7 +67,19 @@ uv sync --all-groups --locked
 uv run --group test pytest
 ```
 
-### Select a default database
+### Create or select a database
+
+Create a new current-schema research database and select it as the default:
+
+```shell
+uv run graver init
+uv run graver init research.db
+```
+
+With no argument, `init` creates `./graves.db`. A supplied path creates the named
+database. Initialization refuses to overwrite any existing path, and it selects the
+new database only after creation and validation succeed. Database upgrades are
+planned but are not yet implemented.
 
 Choose an existing Graver database once, then use ordinary research commands
 without repeating its path:
@@ -79,7 +91,8 @@ uv run graver use --clear
 ```
 
 `use` stores the resolved absolute path in Graver's per-user configuration file;
-it does not create or migrate a database. Database selection follows this order:
+it selects an existing database and does not create or migrate it. Database
+selection follows this order:
 an explicit `--db`, the `GRAVER_DB` environment variable, the saved selection,
 then the existing `graves.db` default. `--db` is a temporary override for one
 command and never changes the saved selection. An unavailable saved or environment

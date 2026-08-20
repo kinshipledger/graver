@@ -27,6 +27,10 @@ tag, or release changes have occurred.
 - `scrape-file <input-file> [--db DATABASE]` accepts memorial IDs or memorial URLs, de-duplicates IDs, retrieves full memorial pages, and saves them to SQLite.
 - `scrape-url <url> [--db DATABASE]` retrieves and saves one full memorial.
 - `search` queries Find a Grave's memorial search, including a cemetery ID option, name/date/location filters, and pagination. Search results are represented as `MemorialSummary` objects and persisted to the selected SQLite database before being emitted to logs.
+- `init [DATABASE]` exclusively creates a new complete current-schema database,
+  validates it, and saves its absolute path as the default. It defaults to
+  `./graves.db`, requires an existing parent directory, and refuses every existing
+  filesystem entry.
 - `use DATABASE`, `use --show`, and `use --clear` manage one researcher-facing default database selection without creating, migrating, or deleting databases. Explicit `--db` and `GRAVER_DB` remain higher-precedence temporary selections.
 - `work queue`, `work list`, `work next`, `work show`, and `work mark` provide a person-centered, network-free research workflow. `work enrich` retrieves exactly one explicitly approved memorial.
 - `admin aliases list`, `show`, `record`, and `retract` expose specialist Find a Grave redirect maintenance and immutable history without moving tasks or grave data.
@@ -106,9 +110,8 @@ Runtime dependencies currently include pytest, Faker, Betamax, and a typing pack
 and `dill` has no source usage found by the audit. Test and typing tools have not yet
 been fully separated from application dependencies.
 
-On 2026-08-20, after adding default-database selection and correcting test
-isolation, the complete suite passed in the current project environment:
-**276 passed**. Black check-only mode
+On 2026-08-20, after adding explicit new-database initialization, the complete suite
+passed in the current project environment: **295 passed**. Black check-only mode
 also passed. Codex must not run Flake8 autonomously; human maintainers may run it
 separately before release. Agent validation is limited to tests, Black check-only,
 diff checks, and task-specific verification. A migration and CLI check on a
@@ -161,18 +164,19 @@ their approved pre-1.0 removal has not yet occurred.
 
 Keep the existing scraper and its `graves` table as the **Find a Grave acquisition component**. The additive `cemeteries`, `memorial_observations`, and `research_tasks` layer now provides provenance and a practical queue.
 
-The task-oriented CLI foundation is complete, but the current memorial-centered
+The task-oriented CLI foundation and explicit new-database initialization are
+complete, but the current memorial-centered
 task identity, raw JSON, broad exports, implicit migration, compatibility aliases,
 dependency boundaries, and stale CI must not be frozen as the 1.0 contract. Before
 beginning FamilySearch work, follow the ordered pre-1.0 roadmap in
 `docs/project-context.md`, beginning with the contract and explicit database
-lifecycle. The planned `graver init [DATABASE]` will create a new database with the
-current schema and select it as the saved default. With no argument it creates
-`./graves.db`; with an argument it uses the named path. It must refuse to overwrite
-an existing file, require an existing parent directory, leave the prior selection
-untouched on failure, clean up only a newly created partial file, and report
-`Initialized and selected research database: PATH` after successful initialization
-and validation.
+lifecycle. `graver init [DATABASE]` now creates a new database with the current
+schema and selects it as the saved default. With no argument it creates
+`./graves.db`; with an argument it uses the named path. It refuses to overwrite an
+existing filesystem entry, requires an existing parent directory, leaves the prior
+selection untouched on failure, and cleans up only its own newly created partial
+file after schema or validation failure. A configuration-write failure preserves
+the valid initialized database without claiming it was selected.
 
 Keep runtime research databases ignored. Do not commit `graves.db` or
 `many_graves.db` as samples. Store schema and migrations in source control, build
@@ -183,19 +187,21 @@ semantics and edge cases. Use fixed-seed, explicit-locale Faker data behind the
 domain factories for volume, variation, pagination, ordering, and performance
 tests; assertions must use captured or overridden values rather than depending on
 Faker's version-specific output. Historical geography and other meaningful domain
-cases remain curated rather than randomly generated. After `init` is available,
-remove implicit database creation from acquisition commands as a separate
+cases remain curated rather than randomly generated. Now that `init` is available,
+removing implicit database creation from acquisition commands remains a separate
 compatibility change with actionable guidance to use `graver init` or
 `graver use DATABASE`.
 
-Validation, initialization, and migration are planned as separate operations.
-`graver use DATABASE` will remain non-mutating; an outdated database will receive
-actionable guidance. The planned specialist surface is
+New-database initialization and read-only validation are now separate operations.
+Further separation of schema inspection from legacy migration remains planned.
+`graver use DATABASE` remains non-mutating; a future outdated-schema check will
+provide actionable guidance. The planned specialist surface is
 `graver admin database upgrade DATABASE`, which will require a verified backup,
-transactional migration, validation, and recovery safeguards. None of `init`, the
-specialist upgrade workflow, generalized research subjects, versioned JSON,
-normalized acquisition options, hidden-command removal, or `python -m graver` is
-implemented yet.
+transactional migration, validation, and recovery safeguards. The specialist
+upgrade workflow, generalized research subjects, versioned JSON,
+normalized acquisition options, hidden-command removal, and `python -m graver` are
+not implemented yet. Explicit initialization does not change these current
+migration limitations.
 
 The planned testing-modernization milestone should avoid a large cassette rewrite.
 It will define parser/static-response, mocked-transport,
