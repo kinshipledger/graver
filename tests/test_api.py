@@ -16,14 +16,21 @@ from graver import (
     Cemetery,
     Driver,
     Memorial,
+    MemorialAliasError,
     MemorialMergedException,
     MemorialParseException,
     MemorialRemovedException,
     MemorialSummary,
     ResearchTaskNotFound,
+    alias_history,
     list_research_tasks,
     queue_memorials,
     record_failed_task_scrape,
+    record_memorial_alias,
+    record_merged_task_scrape,
+    resolve_memorial_alias,
+    retract_memorial_alias,
+    reverse_alias_lookup,
     save_completed_task_scrape,
     show_research_task,
     update_research_task,
@@ -726,6 +733,10 @@ class TestDatabaseOps(TestApi):
             "priority",
             "owner",
             "last_activity_at",
+            "alias_target_id",
+            "alias_status",
+            "alias_canonical_id",
+            "alias_path",
         ]
 
     def test_show_task_includes_cemetery_and_chronological_observations(
@@ -975,6 +986,174 @@ class TestDatabaseOps(TestApi):
     def test_memorial_by_id_not_found(self, memorial_id, database):
         with pytest.raises(graver.api.NotFound):
             Memorial.get_by_id(memorial_id)
+
+
+class TestMemorialAliases:
+    @staticmethod
+    def summary(fixture_name="andrew-jackson", **updates):
+        values = Test.load_memorial_from_json(fixture_name)
+        values.update(updates)
+        return MemorialSummary.from_dict(values)
+
+    def test_schema_constraints_foreign_keys_indexes_and_triggers(self, database):
+        with sqlite3.connect(database.name) as connection:
+            tables = {
+                r[0]
+                for r in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                )
+            }
+            indexes = {
+                r[0]
+                for r in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type='index'"
+                )
+            }
+            triggers = {
+                r[0]
+                for r in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type='trigger'"
+                )
+            }
+            foreign_keys = connection.execute(
+                "PRAGMA foreign_key_list(memorial_aliases)"
+            ).fetchall()
+        assert {"memorial_aliases", "memorial_alias_observations"} <= tables
+        assert "idx_memorial_aliases_target_status" in indexes
+        assert {
+            "memorial_alias_observations_no_update",
+            "memorial_alias_observations_no_delete",
+        } <= triggers
+        assert any(row[2] == "graves" for row in foreign_keys)
+
+    def test_observe_change_retract_reactivate_and_history(self, database, monkeypatch):
+        source = self.summary().save()
+        times = iter(["01", "02", "03", "04", "05"])
+        monkeypatch.setattr(graver.api, "_utc_now_iso", lambda: next(times))
+        first = record_memorial_alias(
+            database.name, source.memorial_id, 900001, "merged"
+        )
+        second = record_memorial_alias(
+            database.name, source.memorial_id, 900001, "merged"
+        )
+        changed = record_memorial_alias(
+            database.name,
+            source.memorial_id,
+            900002,
+            "redirected",
+            reason="reviewed change",
+        )
+        retract_memorial_alias(database.name, source.memorial_id, "not canonical")
+        active = record_memorial_alias(
+            database.name, source.memorial_id, 900002, "redirected"
+        )
+        history = alias_history(database.name, source.memorial_id)
+        assert first["current"]["first_observed_at"] == "01"
+        assert second["current"]["first_observed_at"] == "01"
+        assert changed["current"]["target_memorial_id"] == 900002
+        assert active["current"]["status"] == "active"
+        assert [item["event_type"] for item in history] == [
+            "observed",
+            "observed",
+            "changed",
+            "retracted",
+            "observed",
+        ]
+
+    def test_validation_cycles_resolution_reverse_and_nonlocal_target(self, database):
+        first = self.summary().save()
+        second = self.summary("john-j-pershing").save()
+        third = self.summary("carl-sagan").save()
+        with pytest.raises(MemorialAliasError, match="itself"):
+            record_memorial_alias(
+                database.name, first.memorial_id, first.memorial_id, "merged"
+            )
+        record_memorial_alias(
+            database.name, first.memorial_id, second.memorial_id, "merged"
+        )
+        record_memorial_alias(
+            database.name, second.memorial_id, third.memorial_id, "redirected"
+        )
+        resolved = resolve_memorial_alias(database.name, first.memorial_id)
+        assert resolved == {
+            "canonical_memorial_id": third.memorial_id,
+            "path": [first.memorial_id, second.memorial_id, third.memorial_id],
+        }
+        assert reverse_alias_lookup(database.name, second.memorial_id) == [
+            first.memorial_id
+        ]
+        with pytest.raises(MemorialAliasError, match="cycle"):
+            record_memorial_alias(
+                database.name, third.memorial_id, first.memorial_id, "merged"
+            )
+        with pytest.raises(MemorialAliasError, match="reason"):
+            record_memorial_alias(database.name, first.memorial_id, 999999, "merged")
+
+    def test_immutable_history_and_defensive_cycle_detection(self, database):
+        first = self.summary().save()
+        second = self.summary("john-j-pershing").save()
+        record_memorial_alias(
+            database.name, first.memorial_id, second.memorial_id, "merged"
+        )
+        with sqlite3.connect(database.name) as connection:
+            with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+                connection.execute("DELETE FROM memorial_alias_observations")
+            connection.execute("PRAGMA foreign_keys=OFF")
+            connection.execute("PRAGMA ignore_check_constraints=ON")
+            connection.execute("DROP TRIGGER memorial_alias_observations_no_update")
+            connection.execute(
+                "UPDATE memorial_aliases SET target_memorial_id=? WHERE source_memorial_id=?",
+                (first.memorial_id, first.memorial_id),
+            )
+        with pytest.raises(MemorialAliasError, match="cycle"):
+            resolve_memorial_alias(database.name, first.memorial_id)
+
+    def test_merged_attempt_is_atomic_on_alias_observation_failure(
+        self, database, monkeypatch
+    ):
+        source = self.summary().save()
+        queue_memorials(database.name)
+        with sqlite3.connect(database.name) as connection:
+            connection.execute(
+                "UPDATE research_tasks SET status='ready_for_full_scrape', "
+                "updated_at='before', last_activity_at='before'"
+            )
+            connection.execute(
+                """CREATE TRIGGER fail_alias_observation
+                   BEFORE INSERT ON memorial_alias_observations
+                   BEGIN SELECT RAISE(FAIL, 'alias observation failed'); END"""
+            )
+        monkeypatch.setattr(graver.api, "_utc_now_iso", lambda: "after")
+        error = MemorialMergedException(
+            "merged",
+            source.findagrave_url,
+            "https://www.findagrave.com/memorial/999999/target",
+        )
+        with pytest.raises(sqlite3.IntegrityError, match="alias observation failed"):
+            record_merged_task_scrape(
+                database.name,
+                source.memorial_id,
+                999999,
+                source.findagrave_url,
+                error.new_url,
+                error,
+            )
+        with sqlite3.connect(database.name) as connection:
+            assert (
+                connection.execute("SELECT COUNT(*) FROM memorial_aliases").fetchone()[
+                    0
+                ]
+                == 0
+            )
+            assert connection.execute(
+                "SELECT updated_at,last_activity_at FROM research_tasks"
+            ).fetchone() == ("before", "before")
+            assert (
+                connection.execute(
+                    "SELECT COUNT(*) FROM memorial_observations WHERE fetch_outcome='failure'"
+                ).fetchone()[0]
+                == 0
+            )
 
 
 class TestSearch(TestApi):

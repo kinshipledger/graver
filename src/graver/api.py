@@ -53,6 +53,10 @@ class ResearchTaskNotFound(Exception):
     pass
 
 
+class MemorialAliasError(Exception):
+    pass
+
+
 RESEARCH_TASK_STATUSES = (
     "unprocessed",
     "researching",
@@ -62,6 +66,8 @@ RESEARCH_TASK_STATUSES = (
     "completed",
     "unable_to_resolve",
 )
+MEMORIAL_ALIAS_TYPES = ("merged", "redirected")
+MEMORIAL_ALIAS_STATUSES = ("active", "retracted")
 
 
 class Driver:
@@ -424,6 +430,39 @@ def _initialize_database(database_name="graves.db") -> None:
             )"""
         )
         connection.execute(
+            """CREATE TABLE IF NOT EXISTS memorial_aliases
+            (
+                source_memorial_id INTEGER PRIMARY KEY,
+                target_memorial_id INTEGER NOT NULL,
+                alias_type TEXT NOT NULL CHECK (alias_type IN ('merged', 'redirected')),
+                source_url TEXT,
+                target_url TEXT,
+                status TEXT NOT NULL CHECK (status IN ('active', 'retracted')),
+                first_observed_at TEXT NOT NULL,
+                last_observed_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                CHECK (source_memorial_id <> target_memorial_id),
+                FOREIGN KEY (source_memorial_id) REFERENCES graves(memorial_id)
+            )"""
+        )
+        connection.execute(
+            """CREATE TABLE IF NOT EXISTS memorial_alias_observations
+            (
+                observation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_memorial_id INTEGER NOT NULL,
+                target_memorial_id INTEGER NOT NULL,
+                alias_type TEXT NOT NULL CHECK (alias_type IN ('merged', 'redirected')),
+                event_type TEXT NOT NULL CHECK (event_type IN ('observed', 'changed', 'retracted')),
+                observed_at TEXT NOT NULL,
+                source_url TEXT,
+                target_url TEXT,
+                parser_version TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                CHECK (source_memorial_id <> target_memorial_id),
+                FOREIGN KEY (source_memorial_id) REFERENCES graves(memorial_id)
+            )"""
+        )
+        connection.execute(
             """CREATE TRIGGER IF NOT EXISTS memorial_observations_no_update
             BEFORE UPDATE ON memorial_observations
             BEGIN
@@ -437,6 +476,14 @@ def _initialize_database(database_name="graves.db") -> None:
                 SELECT RAISE(ABORT, 'memorial observations are immutable');
             END"""
         )
+        for action in ("UPDATE", "DELETE"):
+            connection.execute(
+                f"""CREATE TRIGGER IF NOT EXISTS memorial_alias_observations_no_{action.lower()}
+                BEFORE {action} ON memorial_alias_observations
+                BEGIN
+                    SELECT RAISE(ABORT, 'memorial alias observations are immutable');
+                END"""
+            )
         connection.execute(
             "CREATE INDEX IF NOT EXISTS idx_graves_cemetery_id "
             "ON graves(cemetery_id)"
@@ -452,6 +499,14 @@ def _initialize_database(database_name="graves.db") -> None:
         connection.execute(
             "CREATE INDEX IF NOT EXISTS idx_research_tasks_status_priority "
             "ON research_tasks(status, priority DESC, created_at)"
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_memorial_aliases_target_status "
+            "ON memorial_aliases(target_memorial_id, status)"
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_memorial_alias_observations_source "
+            "ON memorial_alias_observations(source_memorial_id, observed_at)"
         )
 
 
@@ -561,6 +616,299 @@ def _row_to_dict(row: sqlite3.Row) -> dict:
     return {key: row[key] for key in row.keys()}
 
 
+def _resolve_alias(
+    connection: sqlite3.Connection, memorial_id: int, limit=1000
+) -> dict:
+    path = [memorial_id]
+    seen = {memorial_id}
+    current = memorial_id
+    for _ in range(limit):
+        row = connection.execute(
+            "SELECT target_memorial_id FROM memorial_aliases "
+            "WHERE source_memorial_id = ? AND status = 'active'",
+            (current,),
+        ).fetchone()
+        if row is None:
+            return {"canonical_memorial_id": current, "path": path}
+        current = row[0]
+        path.append(current)
+        if current in seen:
+            raise MemorialAliasError(
+                f"Alias cycle detected: {' -> '.join(map(str, path))}"
+            )
+        seen.add(current)
+    raise MemorialAliasError("Alias resolution exceeded the safety limit")
+
+
+def resolve_memorial_alias(database_name: str, memorial_id: int) -> dict:
+    _initialize_database(database_name)
+    with _connect(database_name) as connection:
+        return _resolve_alias(connection, memorial_id)
+
+
+def _record_alias(
+    connection,
+    source_memorial_id,
+    target_memorial_id,
+    alias_type,
+    source_url,
+    target_url,
+    reason,
+    timestamp,
+    require_change_reason=False,
+):
+    if alias_type not in MEMORIAL_ALIAS_TYPES:
+        raise MemorialAliasError(f"Invalid alias type: {alias_type}")
+    if source_memorial_id == target_memorial_id:
+        raise MemorialAliasError("A memorial cannot alias itself")
+    if (
+        connection.execute(
+            "SELECT 1 FROM graves WHERE memorial_id = ?", (source_memorial_id,)
+        ).fetchone()
+        is None
+    ):
+        raise NotFound(f"Memorial {source_memorial_id} does not exist")
+    if source_memorial_id in _resolve_alias(connection, target_memorial_id)["path"]:
+        raise MemorialAliasError("Alias would create a cycle")
+    current = connection.execute(
+        "SELECT target_memorial_id, first_observed_at FROM memorial_aliases WHERE source_memorial_id = ?",
+        (source_memorial_id,),
+    ).fetchone()
+    changed = current is not None and current[0] != target_memorial_id
+    if changed and require_change_reason and not reason:
+        raise MemorialAliasError("A reason is required when replacing an alias target")
+    event_type = "changed" if changed else "observed"
+    first_observed_at = current[1] if current is not None else timestamp
+    connection.execute(
+        """INSERT INTO memorial_aliases (
+               source_memorial_id, target_memorial_id, alias_type, source_url,
+               target_url, status, first_observed_at, last_observed_at, updated_at
+           ) VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?)
+           ON CONFLICT(source_memorial_id) DO UPDATE SET
+               target_memorial_id=excluded.target_memorial_id,
+               alias_type=excluded.alias_type, source_url=excluded.source_url,
+               target_url=excluded.target_url, status='active',
+               last_observed_at=excluded.last_observed_at,
+               updated_at=excluded.updated_at""",
+        (
+            source_memorial_id,
+            target_memorial_id,
+            alias_type,
+            source_url,
+            target_url,
+            first_observed_at,
+            timestamp,
+            timestamp,
+        ),
+    )
+    payload = {
+        "source_memorial_id": source_memorial_id,
+        "target_memorial_id": target_memorial_id,
+        "alias_type": alias_type,
+        "source_url": source_url,
+        "target_url": target_url,
+        "reason": reason,
+    }
+    connection.execute(
+        """INSERT INTO memorial_alias_observations (
+               source_memorial_id, target_memorial_id, alias_type, event_type,
+               observed_at, source_url, target_url, parser_version, payload_json
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            source_memorial_id,
+            target_memorial_id,
+            alias_type,
+            event_type,
+            timestamp,
+            source_url,
+            target_url,
+            _package_version(),
+            json.dumps(payload, ensure_ascii=False),
+        ),
+    )
+
+
+def record_memorial_alias(
+    database_name: str,
+    source_memorial_id: int,
+    target_memorial_id: int,
+    alias_type: str,
+    source_url: Optional[str] = None,
+    target_url: Optional[str] = None,
+    reason: Optional[str] = None,
+) -> dict:
+    _initialize_database(database_name)
+    with _connect(database_name) as connection:
+        _record_alias(
+            connection,
+            source_memorial_id,
+            target_memorial_id,
+            alias_type,
+            source_url,
+            target_url,
+            reason,
+            _utc_now_iso(),
+            True,
+        )
+    return get_memorial_alias(database_name, source_memorial_id)
+
+
+def retract_memorial_alias(
+    database_name: str, source_memorial_id: int, reason: str
+) -> dict:
+    if not reason or not reason.strip():
+        raise MemorialAliasError("A retraction reason is required")
+    _initialize_database(database_name)
+    timestamp = _utc_now_iso()
+    with _connect(database_name) as connection:
+        connection.row_factory = sqlite3.Row
+        current = connection.execute(
+            "SELECT * FROM memorial_aliases WHERE source_memorial_id=? AND status='active'",
+            (source_memorial_id,),
+        ).fetchone()
+        if current is None:
+            raise MemorialAliasError(
+                f"Memorial {source_memorial_id} has no active alias"
+            )
+        connection.execute(
+            "UPDATE memorial_aliases SET status='retracted', updated_at=? WHERE source_memorial_id=?",
+            (timestamp, source_memorial_id),
+        )
+        connection.execute(
+            """INSERT INTO memorial_alias_observations
+               (source_memorial_id,target_memorial_id,alias_type,event_type,observed_at,
+                source_url,target_url,parser_version,payload_json)
+               VALUES (?,?,?,'retracted',?,?,?,?,?)""",
+            (
+                source_memorial_id,
+                current["target_memorial_id"],
+                current["alias_type"],
+                timestamp,
+                current["source_url"],
+                current["target_url"],
+                _package_version(),
+                json.dumps({"reason": reason}, ensure_ascii=False),
+            ),
+        )
+    return get_memorial_alias(database_name, source_memorial_id)
+
+
+def alias_history(database_name: str, source_memorial_id: int) -> list:
+    _initialize_database(database_name)
+    with _connect(database_name) as connection:
+        connection.row_factory = sqlite3.Row
+        rows = connection.execute(
+            "SELECT * FROM memorial_alias_observations WHERE source_memorial_id=? "
+            "ORDER BY observed_at, observation_id",
+            (source_memorial_id,),
+        ).fetchall()
+    result = []
+    for row in rows:
+        item = _row_to_dict(row)
+        item["payload"] = json.loads(item.pop("payload_json"))
+        result.append(item)
+    return result
+
+
+def reverse_alias_lookup(database_name: str, target_memorial_id: int) -> list:
+    _initialize_database(database_name)
+    with _connect(database_name) as connection:
+        rows = connection.execute(
+            "SELECT source_memorial_id FROM memorial_aliases "
+            "WHERE target_memorial_id=? AND status='active' "
+            "ORDER BY source_memorial_id",
+            (target_memorial_id,),
+        ).fetchall()
+    return [row[0] for row in rows]
+
+
+def _sources_for_canonical(connection: sqlite3.Connection, canonical_id: int) -> list:
+    sources = connection.execute(
+        "SELECT source_memorial_id FROM memorial_aliases "
+        "WHERE status='active' ORDER BY source_memorial_id"
+    ).fetchall()
+    return [
+        row[0]
+        for row in sources
+        if _resolve_alias(connection, row[0])["canonical_memorial_id"] == canonical_id
+    ]
+
+
+def list_memorial_aliases(
+    database_name: str,
+    status: Optional[str] = None,
+    target_memorial_id: Optional[int] = None,
+    limit: int = 20,
+) -> list:
+    _initialize_database(database_name)
+    if status is not None and status not in MEMORIAL_ALIAS_STATUSES:
+        raise MemorialAliasError(f"Invalid alias status: {status}")
+    if limit < 1:
+        raise MemorialAliasError("Limit must be at least 1")
+    clauses, params = [], {
+        "status": status,
+        "target": target_memorial_id,
+        "limit": limit,
+    }
+    if status:
+        clauses.append("a.status=:status")
+    if target_memorial_id is not None:
+        clauses.append("a.target_memorial_id=:target")
+    where = "WHERE " + " AND ".join(clauses) if clauses else ""
+    with _connect(database_name) as connection:
+        connection.row_factory = sqlite3.Row
+        rows = connection.execute(
+            f"""SELECT a.*, sg.name AS source_name, tg.name AS target_name,
+                       CASE WHEN tg.memorial_id IS NULL THEN 0 ELSE 1 END AS target_exists_locally
+                FROM memorial_aliases a JOIN graves sg ON sg.memorial_id=a.source_memorial_id
+                LEFT JOIN graves tg ON tg.memorial_id=a.target_memorial_id {where}
+                ORDER BY a.source_memorial_id LIMIT :limit""",
+            params,
+        ).fetchall()
+        results = []
+        for row in rows:
+            item = _row_to_dict(row)
+            resolution = _resolve_alias(connection, item["source_memorial_id"])
+            item["alias_canonical_id"] = resolution["canonical_memorial_id"]
+            item["alias_path"] = resolution["path"]
+            results.append(item)
+    return results
+
+
+def get_memorial_alias(database_name: str, memorial_id: int) -> dict:
+    _initialize_database(database_name)
+    history = alias_history(database_name, memorial_id)
+    with _connect(database_name) as connection:
+        connection.row_factory = sqlite3.Row
+        current = connection.execute(
+            "SELECT * FROM memorial_aliases WHERE source_memorial_id=?", (memorial_id,)
+        ).fetchone()
+        if current is None and not history:
+            raise NotFound(f"Memorial {memorial_id} has no alias information")
+        resolution = _resolve_alias(connection, memorial_id)
+        path_info = []
+        for item_id in resolution["path"]:
+            grave = connection.execute(
+                "SELECT * FROM graves WHERE memorial_id=?", (item_id,)
+            ).fetchone()
+            task = connection.execute(
+                "SELECT * FROM research_tasks WHERE memorial_id=?", (item_id,)
+            ).fetchone()
+            path_info.append(
+                {
+                    "memorial_id": item_id,
+                    "grave": _row_to_dict(grave) if grave else None,
+                    "task": _row_to_dict(task) if task else None,
+                }
+            )
+    return {
+        "current": _row_to_dict(current) if current else None,
+        **resolution,
+        "path_records": path_info,
+        "history": history,
+    }
+
+
 def list_research_tasks(
     database_name: str,
     status: Optional[str] = None,
@@ -584,16 +932,27 @@ def list_research_tasks(
         rows = connection.execute(
             f"""SELECT g.memorial_id, g.name, g.birth, g.death,
                        g.cemetery_id, g.detail_level, t.status, t.priority,
-                       t.owner, t.last_activity_at
+                       t.owner, t.last_activity_at,
+                       a.target_memorial_id AS alias_target_id,
+                       a.status AS alias_status
                 FROM research_tasks AS t
                 JOIN graves AS g ON g.memorial_id = t.memorial_id
+                LEFT JOIN memorial_aliases AS a
+                  ON a.source_memorial_id = g.memorial_id AND a.status = 'active'
                 {where}
                 ORDER BY t.priority DESC, t.last_activity_at ASC,
                          g.memorial_id ASC
                 LIMIT :limit""",
             parameters,
         ).fetchall()
-    return [_row_to_dict(row) for row in rows]
+        results = []
+        for row in rows:
+            item = _row_to_dict(row)
+            resolution = _resolve_alias(connection, item["memorial_id"])
+            item["alias_canonical_id"] = resolution["canonical_memorial_id"]
+            item["alias_path"] = resolution["path"]
+            results.append(item)
+    return results
 
 
 def show_research_task(database_name: str, memorial_id: int) -> dict:
@@ -629,11 +988,38 @@ def show_research_task(database_name: str, memorial_id: int) -> dict:
         observation = _row_to_dict(row)
         observation["payload"] = json.loads(observation.pop("payload_json"))
         observation_dicts.append(observation)
+    resolution = resolve_memorial_alias(database_name, memorial_id)
+    canonical_id = resolution["canonical_memorial_id"]
+    with _connect(database_name) as connection:
+        canonical_grave = (
+            connection.execute(
+                "SELECT 1 FROM graves WHERE memorial_id=?", (canonical_id,)
+            ).fetchone()
+            is not None
+        )
+        canonical_task = (
+            connection.execute(
+                "SELECT 1 FROM research_tasks WHERE memorial_id=?", (canonical_id,)
+            ).fetchone()
+            is not None
+        )
+        related_sources = [
+            source_id
+            for source_id in _sources_for_canonical(connection, canonical_id)
+            if source_id != memorial_id
+        ]
     return {
         "task": _row_to_dict(task),
         "grave": _row_to_dict(grave),
         "cemetery": _row_to_dict(cemetery) if cemetery is not None else None,
         "observations": observation_dicts,
+        "alias": {
+            "is_active_source": len(resolution["path"]) > 1,
+            **resolution,
+            "canonical_target_exists": canonical_grave,
+            "canonical_target_has_task": canonical_task,
+            "other_active_sources": related_sources,
+        },
     }
 
 
@@ -771,6 +1157,75 @@ def record_failed_task_scrape(
         connection.execute(
             """UPDATE research_tasks SET updated_at = ?, last_activity_at = ?
                WHERE memorial_id = ?""",
+            (timestamp, timestamp, memorial_id),
+        )
+    return timestamp
+
+
+def record_merged_task_scrape(
+    database_name: str,
+    memorial_id: int,
+    target_memorial_id: int,
+    source_url: str,
+    target_url: str,
+    exception: Exception,
+) -> str:
+    """Atomically record an unsuccessful acquisition and its discovered alias."""
+    _initialize_database(database_name)
+    timestamp = _utc_now_iso()
+    error_message = " ".join(str(exception).split())[:500]
+    with _connect(database_name) as connection:
+        row = connection.execute(
+            """SELECT g.cemetery_id, t.status FROM graves g JOIN research_tasks t
+               ON t.memorial_id=g.memorial_id WHERE g.memorial_id=?""",
+            (memorial_id,),
+        ).fetchone()
+        if row is None:
+            raise ResearchTaskNotFound(f"Research task {memorial_id} does not exist")
+        if row[1] != "ready_for_full_scrape":
+            raise ValueError("Task is not ready for a full scrape")
+        if row[0] is not None:
+            connection.execute(
+                """INSERT INTO cemeteries
+                   (cemetery_id, first_observed_at, last_observed_at)
+                   VALUES (?, ?, ?) ON CONFLICT(cemetery_id) DO UPDATE SET
+                   last_observed_at=excluded.last_observed_at""",
+                (row[0], timestamp, timestamp),
+            )
+        _record_alias(
+            connection,
+            memorial_id,
+            target_memorial_id,
+            "merged",
+            source_url,
+            target_url,
+            None,
+            timestamp,
+            False,
+        )
+        connection.execute(
+            """INSERT INTO memorial_observations
+               (memorial_id,cemetery_id,acquisition_level,observed_at,fetch_outcome,
+                parser_version,payload_json) VALUES (?,?,'full',?,'failure',?,?)""",
+            (
+                memorial_id,
+                row[0],
+                timestamp,
+                _package_version(),
+                json.dumps(
+                    {
+                        "attempted_url": source_url,
+                        "exception_type": type(exception).__name__,
+                        "error_message": error_message,
+                        "target_url": target_url,
+                        "target_memorial_id": target_memorial_id,
+                    },
+                    ensure_ascii=False,
+                ),
+            ),
+        )
+        connection.execute(
+            "UPDATE research_tasks SET updated_at=?, last_activity_at=? WHERE memorial_id=?",
             (timestamp, timestamp, memorial_id),
         )
     return timestamp
@@ -1227,7 +1682,6 @@ class _SearchWorker:
         if self.cemetery is None:
             self.driver = kwargs.pop("driver", Driver())
             self.search_url = f"{FINDAGRAVE_BASE_URL}/memorial/search?"
-            # query params
             self.add_optional_text_params(
                 kwargs, "fulltext", "memorialid", "bio", "tags"
             )
@@ -1240,17 +1694,11 @@ class _SearchWorker:
             self.params["locationId"] = kwargs.get("locationId", "")
             self.params["mcid"] = kwargs.get("mcid", "")
             self.params["linkedToName"] = kwargs.get("linkedToName", "")
-            # Date added. "all" or n (where n = last n days)
             self.params["datefilter"] = kwargs.get("datefilter", "")
-            # orderby: r (random?), n/n- (newest first/oldest first), b/b- (birth),
-            # d/d- (death), pl (plot)
             self.params["orderby"] = kwargs.get("orderby", "r")
             self.params["plot"] = kwargs.get("plot", "")
-            # famous and sponsored are mutually exclusive
             self.process_famous(**kwargs) or self.process_sponsored(**kwargs)
-
             self.process_no_cemetery(**kwargs)
-            # cenotaph and monument are mutually exclusive
             self.process_cenotaph(**kwargs) or self.process_monument(**kwargs)
             self.process_veteran(**kwargs)
         else:

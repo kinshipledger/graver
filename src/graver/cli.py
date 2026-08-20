@@ -16,13 +16,20 @@ from graver import (
     Cemetery,
     Driver,
     Memorial,
+    MemorialAliasError,
     MemorialMergedException,
     MemorialParseException,
     NotFound,
     ResearchTaskNotFound,
+    get_memorial_alias,
+    list_memorial_aliases,
     list_research_tasks,
     queue_memorials as queue_memorials_in_database,
     record_failed_task_scrape,
+    record_memorial_alias,
+    record_merged_task_scrape,
+    resolve_memorial_alias,
+    retract_memorial_alias,
     save_completed_task_scrape,
     show_research_task,
     update_research_task,
@@ -159,7 +166,7 @@ def format_url(line: str):
     elif (match := re.search("GRid=([0-9]+)$", line)) is not None:  # id only
         mid = int(match.group(1))
         line = MEMORIAL_CANONICAL_URL_FORMAT.format(match.group(1))
-    elif (match := re.search("/([0-9]+)/.*$", line)) is not None:
+    elif (match := re.search(r"/memorial/([0-9]+)(?:/.*)?$", line)) is not None:
         mid = int(match.group(1))
     return mid, line
 
@@ -287,6 +294,91 @@ def _json_output(value) -> None:
     typer.echo(json.dumps(value, ensure_ascii=False, sort_keys=True))
 
 
+@app.command("list-aliases")
+def list_aliases(
+    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    status: Optional[str] = typer.Option(None, "--status"),
+    target_id: Optional[int] = typer.Option(None, "--target-id"),
+    limit: int = typer.Option(20, "--limit", min=1),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """List current memorial alias mappings without network access."""
+    try:
+        aliases = list_memorial_aliases(db, status, target_id, limit)
+    except MemorialAliasError as ex:
+        raise typer.BadParameter(str(ex))
+    if json_output:
+        _json_output(aliases)
+        return
+    for alias in aliases:
+        typer.echo(
+            f"{alias['source_memorial_id']} ({alias['source_name'] or '-'}) -> "
+            f"{alias['target_memorial_id']} ({alias['target_name'] or '-'}) | "
+            f"{alias['alias_type']} | {alias['status']} | "
+            f"{alias['first_observed_at']} | {alias['last_observed_at']}"
+        )
+
+
+@app.command("show-alias")
+def show_alias(
+    memorial_id: int,
+    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """Show current alias resolution and immutable history."""
+    try:
+        result = get_memorial_alias(db, memorial_id)
+    except (NotFound, MemorialAliasError) as ex:
+        typer.echo(str(ex), err=True)
+        raise typer.Exit(1)
+    if json_output:
+        _json_output(result)
+        return
+    typer.echo(f"Alias {memorial_id}: {' -> '.join(map(str, result['path']))}")
+    typer.echo(f"Canonical memorial: {result['canonical_memorial_id']}")
+    for item in result["history"]:
+        typer.echo(
+            f"  {item['observed_at']} | {item['event_type']} | "
+            f"{item['source_memorial_id']} -> {item['target_memorial_id']}"
+        )
+
+
+@app.command("record-alias")
+def record_alias(
+    source_id: int,
+    target_id: int,
+    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    alias_type: str = typer.Option(..., "--type"),
+    source_url: Optional[str] = typer.Option(None, "--source-url"),
+    target_url: Optional[str] = typer.Option(None, "--target-url"),
+    reason: Optional[str] = typer.Option(None, "--reason"),
+):
+    """Record a reviewed memorial alias without scraping."""
+    try:
+        result = record_memorial_alias(
+            db, source_id, target_id, alias_type, source_url, target_url, reason
+        )
+    except (NotFound, MemorialAliasError) as ex:
+        typer.echo(str(ex), err=True)
+        raise typer.Exit(1)
+    _json_output(result)
+
+
+@app.command("retract-alias")
+def retract_alias(
+    source_id: int,
+    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    reason: str = typer.Option(..., "--reason"),
+):
+    """Explicitly retract an active memorial alias."""
+    try:
+        result = retract_memorial_alias(db, source_id, reason)
+    except MemorialAliasError as ex:
+        typer.echo(str(ex), err=True)
+        raise typer.Exit(1)
+    _json_output(result)
+
+
 @app.command("list-tasks")
 def list_tasks(
     db: str = typer.Option(
@@ -306,6 +398,11 @@ def list_tasks(
         _json_output(tasks)
         return
     for task in tasks:
+        alias_marker = (
+            f" | alias->{task['alias_target_id']}"
+            if task.get("alias_status") == "active"
+            else ""
+        )
         typer.echo(
             "{memorial_id} | {name} | {birth}–{death} | cemetery {cemetery_id} | "
             "{detail_level} | {status} | priority {priority} | {owner} | "
@@ -315,6 +412,7 @@ def list_tasks(
                     for key, value in task.items()
                 }
             )
+            + alias_marker
         )
 
 
@@ -351,6 +449,14 @@ def show_task(
         typer.echo(
             f"Cemetery: {cemetery['name'] or '-'} | "
             f"{cemetery['location'] or '-'} | {cemetery['url'] or '-'}"
+        )
+    alias = result["alias"]
+    if alias["is_active_source"] or alias["other_active_sources"]:
+        typer.echo(
+            f"Alias: {' -> '.join(map(str, alias['path']))} | "
+            f"target local {alias['canonical_target_exists']} | "
+            f"target task {alias['canonical_target_has_task']} | "
+            f"other sources {alias['other_active_sources']}"
         )
     typer.echo(f"Observations: {len(result['observations'])}")
     for observation in result["observations"]:
@@ -402,15 +508,40 @@ def scrape_task(
     if current["task"]["status"] != "ready_for_full_scrape":
         typer.echo(f"Task {memorial_id} is not ready_for_full_scrape", err=True)
         raise typer.Exit(1)
+    resolution = resolve_memorial_alias(db, memorial_id)
+    if len(resolution["path"]) > 1:
+        typer.echo(
+            f"Memorial {memorial_id} is an active alias; canonical target "
+            f"{resolution['canonical_memorial_id']} via "
+            f"{' -> '.join(map(str, resolution['path']))}",
+            err=True,
+        )
+        raise typer.Exit(1)
     attempted_url = current["grave"]["findagrave_url"] or (
         MEMORIAL_CANONICAL_URL_FORMAT.format(memorial_id)
     )
     try:
-        try:
-            memorial = Memorial.parse(attempted_url)
-        except MemorialMergedException as merged:
-            memorial = Memorial.parse(merged.new_url)
+        memorial = Memorial.parse(attempted_url)
         result = save_completed_task_scrape(db, memorial_id, memorial)
+    except MemorialMergedException as merged:
+        source_id, _ = format_url(merged.old_url)
+        target_id, _ = format_url(merged.new_url)
+        if source_id != memorial_id or target_id < 0:
+            record_failed_task_scrape(db, memorial_id, attempted_url, merged)
+            typer.echo(
+                "Merged-memorial response did not contain the expected source "
+                "and target IDs",
+                err=True,
+            )
+            raise typer.Exit(1)
+        record_merged_task_scrape(
+            db, memorial_id, target_id, merged.old_url, merged.new_url, merged
+        )
+        typer.echo(
+            f"Memorial {memorial_id} redirects to {target_id}; alias recorded for review",
+            err=True,
+        )
+        raise typer.Exit(1)
     except Exception as ex:
         record_failed_task_scrape(db, memorial_id, attempted_url, ex)
         typer.echo(f"Full scrape failed for memorial {memorial_id}: {ex}", err=True)
@@ -676,12 +807,13 @@ def search(
     if len(results) > 0:
         for idx, m in enumerate(results):
             m.save()
-            if idx == 0:
-                log.info("[" + m.to_json() + ",")
-            elif idx == len(results) - 1:
-                log.info(m.to_json() + "]")
-            else:
-                log.info(m.to_json() + ",")
+            if log.isEnabledFor(logging.DEBUG):
+                if idx == 0:
+                    log.debug("[" + m.to_json() + ",")
+                elif idx == len(results) - 1:
+                    log.debug(m.to_json() + "]")
+                else:
+                    log.debug(m.to_json() + ",")
 
 
 if __name__ == "__main__":  # pragma: no cover

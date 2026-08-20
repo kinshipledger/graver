@@ -37,6 +37,99 @@ class TestCli(Test):
         if memorial.memorial_id not in TestCli.memorials_by_id:
             TestCli.memorials_by_id[memorial.memorial_id] = memorial
 
+    def test_alias_commands_are_deterministic_and_offline(
+        self, database, helpers, monkeypatch
+    ):
+        source = MemorialSummary.from_dict(
+            Test.load_memorial_from_json("andrew-jackson")
+        ).save()
+        monkeypatch.setattr(
+            Memorial, "parse", lambda *_args, **_kwargs: pytest.fail("network call")
+        )
+        recorded = helpers.graver_cli(
+            f"record-alias {source.memorial_id} 999999 --db '{database.name}' "
+            "--type merged --reason reviewed"
+        )
+        listed = helpers.graver_cli(
+            f"list-aliases --db '{database.name}' --status active --json"
+        )
+        shown = helpers.graver_cli(
+            f"show-alias {source.memorial_id} --db '{database.name}' --json"
+        )
+        retracted = helpers.graver_cli(
+            f"retract-alias {source.memorial_id} --db '{database.name}' --reason wrong"
+        )
+        assert (
+            recorded.exit_code
+            == listed.exit_code
+            == shown.exit_code
+            == retracted.exit_code
+            == 0
+        )
+        assert json.loads(listed.output)[0]["target_memorial_id"] == 999999
+        assert json.loads(shown.output)["path"] == [source.memorial_id, 999999]
+        assert json.loads(retracted.output)["history"][-1]["event_type"] == "retracted"
+
+    def test_scrape_task_refuses_known_alias_before_network(
+        self, database, helpers, monkeypatch
+    ):
+        source = MemorialSummary.from_dict(
+            Test.load_memorial_from_json("andrew-jackson")
+        ).save()
+        graver.api.queue_memorials(database.name)
+        graver.api.update_research_task(
+            database.name, source.memorial_id, status="ready_for_full_scrape"
+        )
+        graver.api.record_memorial_alias(
+            database.name, source.memorial_id, 999999, "merged"
+        )
+        monkeypatch.setattr(
+            Memorial, "parse", lambda *_args, **_kwargs: pytest.fail("network call")
+        )
+        result = helpers.graver_cli(
+            f"scrape-task {source.memorial_id} --db '{database.name}'"
+        )
+        assert result.exit_code == 1
+        assert "active alias" in result.output
+
+    def test_scrape_task_records_new_merge_without_touching_local_target(
+        self, database, helpers, monkeypatch
+    ):
+        source = MemorialSummary.from_dict(
+            Test.load_memorial_from_json("andrew-jackson")
+        ).save()
+        target = MemorialSummary.from_dict(
+            Test.load_memorial_from_json("john-j-pershing")
+        ).save()
+        graver.api.queue_memorials(database.name)
+        graver.api.update_research_task(
+            database.name, source.memorial_id, status="ready_for_full_scrape"
+        )
+        target_before = graver.api.show_research_task(database.name, target.memorial_id)
+        error = MemorialMergedException(
+            "merged", source.findagrave_url, target.findagrave_url
+        )
+        calls = []
+
+        def merged_once(url):
+            calls.append(url)
+            raise error
+
+        monkeypatch.setattr(Memorial, "parse", merged_once)
+        result = helpers.graver_cli(
+            f"scrape-task {source.memorial_id} --db '{database.name}'"
+        )
+        target_after = graver.api.show_research_task(database.name, target.memorial_id)
+        source_after = graver.api.show_research_task(database.name, source.memorial_id)
+        assert result.exit_code == 1
+        assert calls == [source.findagrave_url]
+        assert target_after["grave"] == target_before["grave"]
+        assert target_after["task"] == target_before["task"]
+        assert target_after["observations"] == target_before["observations"]
+        assert source_after["task"]["status"] == "ready_for_full_scrape"
+        assert source_after["alias"]["canonical_memorial_id"] == target.memorial_id
+        assert source_after["observations"][-1]["fetch_outcome"] == "failure"
+
     @staticmethod
     @pytest.fixture
     def fake_memorial(faker):

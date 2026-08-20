@@ -8,6 +8,11 @@ graver
 
 Scrape and Retrieve [FindAGrave](http://findagrave.com) memorial data and save them to an SQL database.
 
+Project direction and verified implementation status are maintained in the
+canonical [project context](docs/project-context.md),
+[existing-system inventory](docs/existing-system-inventory.md), and
+[initial inspection guide](docs/initial-inspection.md).
+
 
 ## Scraping
 [FindAGrave](http://findagrave.com) is a free website providing access to and an opportunity to input cemetery information to an online database of cemetery records (over 226 million and counting). Often when doing genealogy research, you don't want to rely on a webpage's future and so you want to download the information to your local filesystem. ```graver```takes a list of Find A Grave memorial IDs or FindAGrave URLs, scrapes relevant genealogical data, and stores the contents in a SQLite3 database.
@@ -84,6 +89,24 @@ uv run graver scrape-task MEMORIAL_ID --db graves.db
 `scrape-task` accepts exactly one memorial and only proceeds when its durable
 task is in `ready_for_full_scrape`. Listing, showing, updating, and queueing tasks
 make no network requests.
+
+### Memorial aliases and merged memorials
+
+Find a Grave redirects are retained as explicit provenance instead of silently
+moving research to the destination memorial:
+
+```shell
+uv run graver list-aliases --db graves.db --status active
+uv run graver show-alias SOURCE_ID --db graves.db
+uv run graver record-alias SOURCE_ID TARGET_ID --db graves.db --type merged
+uv run graver retract-alias SOURCE_ID --db graves.db --reason "reviewed correction"
+```
+
+`scrape-task` refuses a source with a known active alias before making a request.
+If a new merge is discovered, it records the alias and failed full acquisition
+for review, keeps the source task ready, and does not scrape or modify the target.
+A research task always remains attached to the memorial ID through which the
+person was discovered.
 
 ### Exporting
 Future versions of `graver` will support direct export to CSV from the CLI, but for now, you can use SQLite3 to execute these commands, which will output the contents of `graves.db` to `graves.csv`:
