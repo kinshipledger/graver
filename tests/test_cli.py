@@ -582,6 +582,238 @@ class TestCliResearchTasks(Test):
         assert shown["observations"][-1]["fetch_outcome"] == "failure"
 
 
+class TestCliResearcherSurface(Test):
+    @staticmethod
+    def summary(fixture_name="andrew-jackson", **updates):
+        values = Test.load_memorial_from_json(fixture_name)
+        values.update(updates)
+        return MemorialSummary.from_dict(values)
+
+    @staticmethod
+    def full(fixture_name="andrew-jackson", **updates):
+        values = Test.load_memorial_from_json(fixture_name)
+        values.update(updates)
+        return Memorial.from_dict(values)
+
+    def test_help_uses_progressive_disclosure(self, helpers):
+        root = helpers.graver_cli("--help")
+        work = helpers.graver_cli("work --help")
+        aliases = helpers.graver_cli("admin aliases --help")
+
+        assert root.exit_code == work.exit_code == aliases.exit_code == 0
+        assert "work" in root.output
+        assert "admin" in root.output
+        for legacy in (
+            "list-tasks",
+            "show-task",
+            "update-task",
+            "scrape-task",
+            "queue-memorials",
+            "list-aliases",
+            "show-alias",
+            "record-alias",
+            "retract-alias",
+        ):
+            assert legacy not in root.output
+        assert "Show the next person needing research" in work.output
+        assert "Review one person's current research state" in work.output
+        assert "Retrieve the full Find a Grave memorial" in work.output
+        for command in ("list", "show", "record", "retract"):
+            assert command in aliases.output
+
+    def test_work_list_filters_orders_and_marks_redirects(self, helpers, database):
+        first = self.summary(name="First", cemetery_id=10).save()
+        second = self.summary("carl-sagan", name="Second", cemetery_id=10).save()
+        self.summary("john-j-pershing", cemetery_id=20).save()
+        graver.api.queue_memorials(database.name)
+        graver.api.update_research_task(database.name, first.memorial_id, priority=3)
+        graver.api.update_research_task(database.name, second.memorial_id, priority=8)
+        graver.api.record_memorial_alias(
+            database.name, second.memorial_id, 999999, "merged"
+        )
+
+        result = helpers.graver_cli(
+            f"work list --db '{database.name}' --status unprocessed " "--cemetery-id 10"
+        )
+
+        assert result.exit_code == 0
+        assert result.output.index("Second") < result.output.index("First")
+        assert "summary-only" in result.output
+        assert "Redirect requires review" in result.output
+        assert "alias_path" not in result.output
+
+    def test_work_list_does_not_guess_legacy_acquisition_level(self, helpers, database):
+        summary = self.summary().save()
+        graver.api.queue_memorials(database.name)
+        with sqlite3.connect(database.name) as connection:
+            connection.execute(
+                "UPDATE graves SET detail_level=NULL WHERE memorial_id=?",
+                (summary.memorial_id,),
+            )
+
+        result = helpers.graver_cli(f"work list --db '{database.name}'")
+
+        assert result.exit_code == 0
+        assert "acquisition level unknown" in result.output
+        assert "summary-only" not in result.output
+
+    def test_work_next_is_deterministic_and_empty_is_success(self, helpers, database):
+        older = self.summary(name="Older activity").save()
+        newer = self.summary("carl-sagan", name="Newer activity").save()
+        graver.api.queue_memorials(database.name)
+        graver.api.update_research_task(database.name, older.memorial_id, priority=4)
+        graver.api.update_research_task(database.name, newer.memorial_id, priority=9)
+
+        selected = helpers.graver_cli(f"work next --db '{database.name}' --json")
+        empty = helpers.graver_cli(
+            f"work next --db '{database.name}' --status completed"
+        )
+
+        assert selected.exit_code == empty.exit_code == 0
+        assert json.loads(selected.output)["grave"]["memorial_id"] == newer.memorial_id
+        assert "No people match" in empty.output
+
+    def test_work_show_discloses_history_and_alias_only_when_relevant(
+        self, helpers, database
+    ):
+        ordinary = self.summary().save()
+        redirected = self.summary("carl-sagan").save()
+        graver.api.queue_memorials(database.name)
+
+        ordinary_result = helpers.graver_cli(
+            f"work show {ordinary.memorial_id} --db '{database.name}'"
+        )
+        history_result = helpers.graver_cli(
+            f"work show {ordinary.memorial_id} --db '{database.name}' --history"
+        )
+        graver.api.record_memorial_alias(
+            database.name, redirected.memorial_id, 999999, "redirected"
+        )
+        alias_result = helpers.graver_cli(
+            f"work show {redirected.memorial_id} --db '{database.name}'"
+        )
+        json_result = helpers.graver_cli(
+            f"work show {redirected.memorial_id} --db '{database.name}' --json"
+        )
+
+        assert "alias" not in ordinary_result.output.lower()
+        assert "payload" not in ordinary_result.output
+        assert "Detailed provenance" in history_result.output
+        assert ordinary.name in history_result.output
+        assert "Redirect requires review" in alias_result.output
+        assert "alias_path" not in alias_result.output
+        assert json.loads(json_result.output)["alias"]["path"] == [
+            redirected.memorial_id,
+            999999,
+        ]
+
+    def test_work_mark_preserves_fields_and_noop_timestamps(self, helpers, database):
+        summary = self.summary().save()
+        graver.api.queue_memorials(database.name, priority=6)
+        graver.api.update_research_task(
+            database.name, summary.memorial_id, owner="owner", review_note="old"
+        )
+
+        changed = helpers.graver_cli(
+            f"work mark {summary.memorial_id} --db '{database.name}' "
+            "--status researching --note new"
+        )
+        before_noop = graver.api.show_research_task(database.name, summary.memorial_id)[
+            "task"
+        ]
+        noop = helpers.graver_cli(
+            f"work mark {summary.memorial_id} --db '{database.name}' "
+            "--status researching"
+        )
+        after_noop = graver.api.show_research_task(database.name, summary.memorial_id)[
+            "task"
+        ]
+
+        assert changed.exit_code == noop.exit_code == 0
+        assert "Updated status, note" in changed.output
+        assert "No changes were needed" in noop.output
+        assert after_noop == before_noop
+        assert after_noop["priority"] == 6
+        assert after_noop["owner"] == "owner"
+        assert after_noop["review_note"] == "new"
+
+    def test_work_queue_is_idempotent_and_network_free(
+        self, helpers, database, monkeypatch
+    ):
+        summary = self.summary().save()
+        monkeypatch.setattr(
+            Memorial, "parse", lambda *_args, **_kwargs: pytest.fail("network call")
+        )
+
+        first = helpers.graver_cli(f"work queue --db '{database.name}'")
+        second = helpers.graver_cli(f"work queue --db '{database.name}'")
+
+        assert first.exit_code == second.exit_code == 0
+        assert "Added 1 person" in first.output
+        assert "Added 0 people" in second.output
+        task = graver.api.show_research_task(database.name, summary.memorial_id)["task"]
+        assert task["status"] == "unprocessed"
+
+    def test_work_enrich_uses_existing_one_person_safety(
+        self, helpers, database, monkeypatch
+    ):
+        summary = self.summary().save()
+        graver.api.queue_memorials(database.name)
+        calls = []
+        monkeypatch.setattr(
+            Memorial, "parse", lambda url: calls.append(url) or self.full()
+        )
+
+        refused = helpers.graver_cli(
+            f"work enrich {summary.memorial_id} --db '{database.name}'"
+        )
+        graver.api.update_research_task(
+            database.name, summary.memorial_id, status="ready_for_full_scrape"
+        )
+        enriched = helpers.graver_cli(
+            f"work enrich {summary.memorial_id} --db '{database.name}'"
+        )
+
+        assert refused.exit_code == 1
+        assert "not approved for enrichment" in refused.output
+        assert calls == [summary.findagrave_url]
+        assert enriched.exit_code == 0
+        assert "The full memorial was retrieved" in enriched.output
+
+    def test_admin_aliases_and_hidden_legacy_commands_both_work(
+        self, helpers, database
+    ):
+        source = self.summary().save()
+        graver.api.queue_memorials(database.name)
+
+        recorded = helpers.graver_cli(
+            f"admin aliases record {source.memorial_id} 999999 "
+            f"--db '{database.name}' --type merged --reason reviewed"
+        )
+        listed = helpers.graver_cli(f"admin aliases list --db '{database.name}' --json")
+        shown = helpers.graver_cli(
+            f"admin aliases show {source.memorial_id} --db '{database.name}' --json"
+        )
+        legacy_task = helpers.graver_cli(
+            f"show-task {source.memorial_id} --db '{database.name}' --json"
+        )
+        retracted = helpers.graver_cli(
+            f"admin aliases retract {source.memorial_id} --db '{database.name}' "
+            "--reason correction"
+        )
+
+        assert all(
+            result.exit_code == 0
+            for result in (recorded, listed, shown, legacy_task, retracted)
+        )
+        assert json.loads(listed.output)[0]["target_memorial_id"] == 999999
+        assert json.loads(shown.output)["canonical_memorial_id"] == 999999
+        assert (
+            json.loads(legacy_task.output)["task"]["memorial_id"] == source.memorial_id
+        )
+        assert json.loads(retracted.output)["history"][-1]["event_type"] == "retracted"
+
+
 class TestCliSearch(TestCli):
     def test_saves_results_to_specified_database(
         self, helpers, tmp_path, fake_memorial, monkeypatch

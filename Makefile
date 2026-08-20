@@ -25,11 +25,11 @@ run: ## Run the main application
 test: ## Run tests using pytest
 	PYTHONPATH=src uv run --group test pytest
 
-lint: ## Lint code using ruff
-	uv run ruff check .
+lint: ## Lint code using the configured Flake8 checks
+	uv run --group test flake8 src/graver tests --count --max-complexity=10 --max-line-length=127 --statistics
 
-format: ## Format code using ruff
-	uv run format .
+format: ## Format code using Black
+	uv run --group dev black .
 
 clean: ## Remove virtual environment and build artifacts
 	rm -rf .venv

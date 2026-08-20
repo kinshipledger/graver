@@ -73,40 +73,45 @@ uv run graver scrape-file <input-file>
 ```
 The memorial data will be saved in a SQL database (default: `graves.db`), where it can be viewed with any SQLite viewer, or exported to CSV. 
 
-### Research tasks
+### Research workflow
 
-Queue existing memorials, inspect them, and explicitly approve one memorial at a
-time for full-page enrichment:
-
-```shell
-uv run graver queue-memorials --db graves.db --cemetery-id 2181249
-uv run graver list-tasks --db graves.db --status unprocessed
-uv run graver show-task MEMORIAL_ID --db graves.db
-uv run graver update-task MEMORIAL_ID --db graves.db --status ready_for_full_scrape
-uv run graver scrape-task MEMORIAL_ID --db graves.db
-```
-
-`scrape-task` accepts exactly one memorial and only proceeds when its durable
-task is in `ready_for_full_scrape`. Listing, showing, updating, and queueing tasks
-make no network requests.
-
-### Memorial aliases and merged memorials
-
-Find a Grave redirects are retained as explicit provenance instead of silently
-moving research to the destination memorial:
+Use `work` for normal person-by-person research. Queue acquired memorials, choose
+the next person, review the current picture, record a decision, and enrich only
+an explicitly approved person:
 
 ```shell
-uv run graver list-aliases --db graves.db --status active
-uv run graver show-alias SOURCE_ID --db graves.db
-uv run graver record-alias SOURCE_ID TARGET_ID --db graves.db --type merged
-uv run graver retract-alias SOURCE_ID --db graves.db --reason "reviewed correction"
+uv run graver work queue --db graves.db --cemetery-id 2181249
+uv run graver work next --db graves.db
+uv run graver work show MEMORIAL_ID --db graves.db
+uv run graver work mark MEMORIAL_ID --db graves.db --status ready_for_full_scrape
+uv run graver work enrich MEMORIAL_ID --db graves.db
 ```
 
-`scrape-task` refuses a source with a known active alias before making a request.
+`work enrich` accepts exactly one memorial and only proceeds when its durable
+task is in `ready_for_full_scrape`. Listing, showing, marking, choosing, and
+queueing people make no network requests. Use `work show --history` when detailed
+acquisition provenance is needed; ordinary output keeps that detail summarized.
+
+### Administrative redirect maintenance
+
+The `admin` namespace contains specialist maintenance and diagnostics. Find a
+Grave redirects are retained as explicit provenance instead of silently moving
+research to the destination memorial:
+
+```shell
+uv run graver admin aliases list --db graves.db --status active
+uv run graver admin aliases show SOURCE_ID --db graves.db
+uv run graver admin aliases record SOURCE_ID TARGET_ID --db graves.db --type merged
+uv run graver admin aliases retract SOURCE_ID --db graves.db --reason "reviewed correction"
+```
+
+`work enrich` refuses a source with a known active alias before making a request.
 If a new merge is discovered, it records the alias and failed full acquisition
 for review, keeps the source task ready, and does not scrape or modify the target.
 A research task always remains attached to the memorial ID through which the
-person was discovered.
+person was discovered. Earlier top-level task and alias commands remain available
+as hidden compatibility aliases for existing scripts, but are omitted from normal
+help output.
 
 ### Exporting
 Future versions of `graver` will support direct export to CSV from the CLI, but for now, you can use SQLite3 to execute these commands, which will output the contents of `graves.db` to `graves.csv`:

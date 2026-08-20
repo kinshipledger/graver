@@ -18,9 +18,9 @@ person-at-a-time task handling are integrated and tested.
 - `scrape-file <input-file> [--db DATABASE]` accepts memorial IDs or memorial URLs, de-duplicates IDs, retrieves full memorial pages, and saves them to SQLite.
 - `scrape-url <url> [--db DATABASE]` retrieves and saves one full memorial.
 - `search` queries Find a Grave's memorial search, including a cemetery ID option, name/date/location filters, and pagination. Search results are represented as `MemorialSummary` objects and persisted to the selected SQLite database before being emitted to logs.
-- `queue-memorials [--db DATABASE] [--cemetery-id ID] [--priority NUMBER]` creates durable `unprocessed` research tasks from memorials already in `graves`. It performs no network requests and is idempotent: existing task state is preserved.
-- `list-tasks`, `show-task`, and `update-task` provide deterministic, network-free person-at-a-time queue review. `scrape-task` retrieves exactly one explicitly approved memorial.
-- `list-aliases`, `show-alias`, `record-alias`, and `retract-alias` expose reviewed Find a Grave redirect state and immutable history without moving tasks or grave data.
+- `work queue`, `work list`, `work next`, `work show`, and `work mark` provide a person-centered, network-free research workflow. `work enrich` retrieves exactly one explicitly approved memorial.
+- `admin aliases list`, `show`, `record`, and `retract` expose specialist Find a Grave redirect maintenance and immutable history without moving tasks or grave data.
+- The earlier top-level task and alias commands remain functional as hidden compatibility aliases. They preserve existing arguments, output, and exit behavior but do not compete with ordinary workflows in root help.
 
 ### Retrieval and parsing
 
@@ -65,32 +65,72 @@ The 334 representative rows are intentionally search summaries, not full memoria
 - Family relationships, source evidence, FamilySearch matches, WikiTree matches, identity conclusions, and cemetery-tag decisions are not modeled.
 - Legacy rows are deliberately not assigned a `detail_level` during migration because their acquisition level cannot be inferred reliably. They become classified when subsequently saved through the summary or full persistence path.
 - Legacy rows deliberately do not receive fabricated observation records during migration because their original timestamp and exact observed payload are unknown.
+- Some acquisition commands still reflect scraper implementation terminology. Their information architecture is intentionally deferred; this milestone changes only the research and alias-maintenance surfaces.
 
 ## Test and environment status
 
 The repository has a substantial fixture-backed test suite covering memorial parsing, search filters, cemetery pagination, merged/removed memorial handling, CLI behavior, SQLite persistence, additive migration, summary/full overwrite protection, atomic observation creation, observation immutability, foreign-key constraints, and queue idempotency.
 
-On 2026-08-19, after adding explicit memorial-alias support, the complete suite
-passed in the current project environment: **236 passed in 47.02 seconds**.
-Black and the complete configured flake8 check also passed. A migration check on a
-temporary copy of `many_graves.db` preserved all 334 rows and distinct memorial
-IDs and fabricated zero alias mappings or alias observations. A second temporary
-copy queued 334 tasks, recorded and resolved a synthetic non-local target, left
-the source task unchanged, and retained `observed` and `retracted` alias history.
-SQLite integrity and foreign-key checks passed. The original database checksum
-remained `7b952c7f1202c7f3b8260edc4b466c6f334052c801ba7596ebfa23bea912a3cc`.
+On 2026-08-20, after adding the progressive-disclosure CLI, the complete suite
+passed in the current project environment: **246 passed**. Black check-only mode
+also passed. Codex must not run Flake8 autonomously; human maintainers may run it
+separately before release. Agent validation is limited to tests, Black check-only,
+diff checks, and task-specific verification. A migration and CLI check on a
+temporary copy of `many_graves.db` preserved all 334 rows and distinct
+memorial IDs, queued 334 tasks idempotently, exercised the researcher workflow,
+and fabricated zero aliases or acquisition observations. SQLite integrity and
+foreign-key checks passed. The original database checksum remained
+`7b952c7f1202c7f3b8260edc4b466c6f334052c801ba7596ebfa23bea912a3cc`.
+
+## Researcher CLI structure
+
+The default help surface now separates three concerns: existing acquisition
+commands, `work` for ordinary person-at-a-time research, and `admin` for advanced
+maintenance and diagnostics. Ordinary task display leads with the person and
+research state, summarizes provenance, and reveals redirect warnings only when
+they affect the selected person. Full acquisition payloads require `--history` or
+`--json`. `work next` defaults to `unprocessed`, the least ambiguous actionable
+state in the current task model, and uses the queue's deterministic priority,
+activity, and memorial-ID ordering.
+
+The internal Python API remains complete. Hidden compatibility commands are a
+deliberate automation policy rather than deprecated behavior; they can be reviewed
+after downstream users have had an explicit migration window.
 
 ## Recommended smallest next change
 
 Keep the existing scraper and its `graves` table as the **Find a Grave acquisition component**. The additive `cemeteries`, `memorial_observations`, and `research_tasks` layer now provides provenance and a practical queue.
 
-The next milestone should exercise alias review alongside person-at-a-time research
-before FamilySearch matching begins. In particular, decide how a researcher
-records whether a Find a Grave alias is only a platform redirect or is accepted
-as an identity conclusion; the current alias deliberately records no identity
-inference. Do not introduce unattended cemetery-wide enrichment yet.
+The task-oriented CLI foundation is complete. FamilySearch workflows should extend
+the same `work` surface rather than adding one command per persistence entity.
 
-FamilySearch, WikiTree, evidence, relationships, confidence scoring, and work packets can follow as later additive migrations after the task lifecycle has been exercised with real research work.
+The next milestone should add the FamilySearch candidate-discovery and research
+layer. A candidate is a hypothesis whose status, match signals, supporting and
+conflicting evidence, confidence, and reasoning can evolve during research. A
+reviewed identity conclusion must come afterward and explicitly record an
+accepted, rejected, or unresolved result. It must not be required before the
+FamilySearch research needed to support it.
+
+Candidate discovery must be safely repeatable for the same memorial at any time so
+that later FamilySearch corrections, newly attached sources, repaired family
+relationships, and new candidate possibilities can be observed. Each execution
+should create an immutable search-run record and timestamped candidate snapshots.
+Re-running discovery must preserve reviewer notes, research status, assessments,
+and conclusions; it should highlight new or materially changed candidates for
+review rather than silently resetting decisions. Candidates absent from a later
+result set must be retained and marked absent from that run rather than deleted.
+
+The FamilySearch implementation must preserve a rich internal model without exposing
+every search-run, snapshot, comparison, or assessment operation as a separate
+top-level CLI command. The primary user action should be a simple task such as
+refreshing candidates for the current person, with new possibilities, material
+changes, discrepancies, and required decisions presented contextually.
+
+Find a Grave aliases remain platform-redirection provenance only. They may inform
+FamilySearch candidate research but do not automatically assert genealogical
+identity. WikiTree integration, relationship reconciliation, and work packets
+should follow reviewed identity research. Do not introduce unattended
+cemetery-wide enrichment yet.
 
 ## Before implementation
 

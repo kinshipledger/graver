@@ -99,8 +99,16 @@ def logging_callback(log_level: str):
 
 
 app = typer.Typer(
-    add_completion=False, context_settings={"help_option_names": ["-h", "--help"]}
+    add_completion=False,
+    context_settings={"help_option_names": ["-h", "--help"]},
+    help="Acquire Find a Grave records and manage person-by-person research.",
 )
+work_app = typer.Typer(help="Choose, review, and advance people in the research queue.")
+admin_app = typer.Typer(help="Perform advanced maintenance and diagnostics.")
+aliases_app = typer.Typer(help="Review and maintain Find a Grave redirects.")
+app.add_typer(work_app, name="work")
+app.add_typer(admin_app, name="admin")
+admin_app.add_typer(aliases_app, name="aliases")
 
 
 @app.callback()
@@ -273,7 +281,11 @@ def scrape_url(
     log.info(m.to_json())
 
 
-@app.command()
+# Compatibility policy: these original top-level task and alias commands remain
+# registered (and behaviorally stable) for scripts written before the task-oriented
+# CLI was introduced.  They are intentionally hidden from ordinary help; new human
+# workflows belong under ``work`` and specialist alias maintenance under ``admin``.
+@app.command(hidden=True)
 def queue_memorials(
     db: str = typer.Option(
         DEFAULT_DB_FILE_NAME, "--db", help="Database containing memorials to queue"
@@ -294,7 +306,7 @@ def _json_output(value) -> None:
     typer.echo(json.dumps(value, ensure_ascii=False, sort_keys=True))
 
 
-@app.command("list-aliases")
+@app.command("list-aliases", hidden=True)
 def list_aliases(
     db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
     status: Optional[str] = typer.Option(None, "--status"),
@@ -319,7 +331,7 @@ def list_aliases(
         )
 
 
-@app.command("show-alias")
+@app.command("show-alias", hidden=True)
 def show_alias(
     memorial_id: int,
     db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
@@ -343,7 +355,7 @@ def show_alias(
         )
 
 
-@app.command("record-alias")
+@app.command("record-alias", hidden=True)
 def record_alias(
     source_id: int,
     target_id: int,
@@ -364,7 +376,7 @@ def record_alias(
     _json_output(result)
 
 
-@app.command("retract-alias")
+@app.command("retract-alias", hidden=True)
 def retract_alias(
     source_id: int,
     db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
@@ -379,7 +391,7 @@ def retract_alias(
     _json_output(result)
 
 
-@app.command("list-tasks")
+@app.command("list-tasks", hidden=True)
 def list_tasks(
     db: str = typer.Option(
         DEFAULT_DB_FILE_NAME, "--db", help="Database containing research tasks"
@@ -416,7 +428,7 @@ def list_tasks(
         )
 
 
-@app.command("show-task")
+@app.command("show-task", hidden=True)
 def show_task(
     memorial_id: int,
     db: str = typer.Option(
@@ -467,7 +479,7 @@ def show_task(
         )
 
 
-@app.command("update-task")
+@app.command("update-task", hidden=True)
 def update_task(
     memorial_id: int,
     db: str = typer.Option(
@@ -492,7 +504,7 @@ def update_task(
     _json_output(task)
 
 
-@app.command("scrape-task")
+@app.command("scrape-task", hidden=True)
 def scrape_task(
     memorial_id: int,
     db: str = typer.Option(
@@ -500,23 +512,49 @@ def scrape_task(
     ),
 ):
     """Scrape exactly one task already approved for full-page enrichment."""
+    _enrich_task(memorial_id, db, researcher_output=False, json_output=True)
+
+
+def _approved_enrichment_task(
+    memorial_id: int, db: str, researcher_output: bool
+) -> dict:
+    """Load one approved task and reject known redirects before retrieval."""
     try:
         current = show_research_task(db, memorial_id)
     except (NotFound, ResearchTaskNotFound) as ex:
         typer.echo(str(ex), err=True)
         raise typer.Exit(1)
     if current["task"]["status"] != "ready_for_full_scrape":
-        typer.echo(f"Task {memorial_id} is not ready_for_full_scrape", err=True)
+        message = (
+            "This person is not approved for enrichment."
+            if researcher_output
+            else f"Task {memorial_id} is not ready_for_full_scrape"
+        )
+        typer.echo(message, err=True)
         raise typer.Exit(1)
     resolution = resolve_memorial_alias(db, memorial_id)
-    if len(resolution["path"]) > 1:
+    if len(resolution["path"]) == 1:
+        return current
+    if researcher_output:
+        typer.echo(
+            f"Find a Grave redirects this memorial to "
+            f"{resolution['canonical_memorial_id']}. No retrieval was made.",
+            err=True,
+        )
+    else:
         typer.echo(
             f"Memorial {memorial_id} is an active alias; canonical target "
             f"{resolution['canonical_memorial_id']} via "
             f"{' -> '.join(map(str, resolution['path']))}",
             err=True,
         )
-        raise typer.Exit(1)
+    raise typer.Exit(1)
+
+
+def _enrich_task(
+    memorial_id: int, db: str, researcher_output: bool, json_output: bool
+) -> None:
+    current = _approved_enrichment_task(memorial_id, db, researcher_output)
     attempted_url = current["grave"]["findagrave_url"] or (
         MEMORIAL_CANONICAL_URL_FORMAT.format(memorial_id)
     )
@@ -537,16 +575,270 @@ def scrape_task(
         record_merged_task_scrape(
             db, memorial_id, target_id, merged.old_url, merged.new_url, merged
         )
-        typer.echo(
-            f"Memorial {memorial_id} redirects to {target_id}; alias recorded for review",
-            err=True,
+        message = (
+            f"Find a Grave redirects this memorial to {target_id}; "
+            "the redirect was recorded for review."
+            if researcher_output
+            else f"Memorial {memorial_id} redirects to {target_id}; "
+            "alias recorded for review"
         )
+        typer.echo(message, err=True)
         raise typer.Exit(1)
     except Exception as ex:
         record_failed_task_scrape(db, memorial_id, attempted_url, ex)
-        typer.echo(f"Full scrape failed for memorial {memorial_id}: {ex}", err=True)
+        message = (
+            "Retrieval failed; the task remains ready for review. " + str(ex)
+            if researcher_output
+            else f"Full scrape failed for memorial {memorial_id}: {ex}"
+        )
+        typer.echo(message, err=True)
         raise typer.Exit(1)
-    _json_output(result)
+    if json_output:
+        _json_output(result)
+    else:
+        typer.echo(
+            f"The full memorial was retrieved. Person {memorial_id} is now "
+            f"{result['status']}."
+        )
+
+
+def _display_work_list(tasks: list) -> None:
+    for task in tasks:
+        detail = {
+            "full": "fully enriched",
+            "summary": "summary-only",
+        }.get(task["detail_level"], "acquisition level unknown")
+        action = (
+            " | Redirect requires review"
+            if task.get("alias_status") == "active"
+            else ""
+        )
+        typer.echo(
+            f"{task['memorial_id']} | {task['name'] or 'Unknown person'} | "
+            f"{task['birth'] or '?'}–{task['death'] or '?'} | "
+            f"{task['status']} | priority {task['priority']} | {detail}{action}"
+        )
+
+
+def _load_task_or_exit(db: str, memorial_id: int) -> dict:
+    try:
+        return show_research_task(db, memorial_id)
+    except (NotFound, ResearchTaskNotFound) as ex:
+        typer.echo(str(ex), err=True)
+        raise typer.Exit(1)
+
+
+def _display_work_task(result: dict, history: bool = False) -> None:
+    task, grave = result["task"], result["grave"]
+    typer.echo(
+        f"Person: {grave['name'] or 'Unknown'} "
+        f"({grave['birth'] or '?'}–{grave['death'] or '?'})"
+    )
+    typer.echo(
+        f"Research: {task['status']} | priority {task['priority']} | "
+        f"owner {task['owner'] or 'unassigned'}"
+    )
+    typer.echo(
+        f"Find a Grave: memorial {grave['memorial_id']} | "
+        f"{grave['detail_level'] or 'legacy/unclassified'} | "
+        f"cemetery {grave['cemetery_id'] or 'unknown'}"
+    )
+    alias = result["alias"]
+    if alias["is_active_source"]:
+        typer.echo(
+            f"Important: Find a Grave redirects this memorial to "
+            f"{alias['canonical_memorial_id']}. Redirect requires review."
+        )
+        typer.echo(
+            f"Next action: review with `graver admin aliases show "
+            f"{grave['memorial_id']}`."
+        )
+    elif task["status"] == "unprocessed":
+        typer.echo(
+            "Next action: begin research or mark this person ready for enrichment."
+        )
+    elif task["status"] == "ready_for_full_scrape":
+        typer.echo(f"Next action: run `graver work enrich {grave['memorial_id']}`.")
+    else:
+        typer.echo(
+            "Next action: review the current research state and choose a status."
+        )
+    typer.echo(f"Provenance: {len(result['observations'])} acquisition observations.")
+    if history:
+        typer.echo("Detailed provenance:")
+        for observation in result["observations"]:
+            typer.echo(
+                f"  {observation['observed_at']} | "
+                f"{observation['acquisition_level']} | "
+                f"{observation['fetch_outcome']} | "
+                f"{observation['parser_version']} | "
+                f"{json.dumps(observation['payload'], ensure_ascii=False, sort_keys=True)}"
+            )
+        if alias["is_active_source"]:
+            typer.echo(f"Alias path: {' -> '.join(map(str, alias['path']))}")
+
+
+@work_app.command("list")
+def work_list(
+    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    status: Optional[str] = typer.Option(None, "--status"),
+    cemetery_id: Optional[int] = typer.Option(None, "--cemetery-id"),
+    limit: int = typer.Option(20, "--limit", min=1),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """List people in the research queue and what needs attention."""
+    try:
+        tasks = list_research_tasks(db, status, cemetery_id, limit)
+    except ValueError as ex:
+        raise typer.BadParameter(str(ex))
+    if json_output:
+        _json_output(tasks)
+    else:
+        _display_work_list(tasks)
+
+
+@work_app.command("next")
+def work_next(
+    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    status: Optional[str] = typer.Option(
+        "unprocessed", "--status", help="Research status to select."
+    ),
+    cemetery_id: Optional[int] = typer.Option(None, "--cemetery-id"),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """Show the next person needing research."""
+    try:
+        tasks = list_research_tasks(db, status, cemetery_id, 1)
+    except ValueError as ex:
+        raise typer.BadParameter(str(ex))
+    if not tasks:
+        typer.echo("No people match the requested research queue filters.")
+        return
+    result = _load_task_or_exit(db, tasks[0]["memorial_id"])
+    if json_output:
+        _json_output(result)
+    else:
+        _display_work_task(result)
+
+
+@work_app.command("show")
+def work_show(
+    memorial_id: int,
+    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    history: bool = typer.Option(False, "--history"),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """Review one person's current research state."""
+    result = _load_task_or_exit(db, memorial_id)
+    if json_output:
+        _json_output(result)
+    else:
+        _display_work_task(result, history)
+
+
+@work_app.command("mark")
+def work_mark(
+    memorial_id: int,
+    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    status: Optional[str] = typer.Option(None, "--status"),
+    priority: Optional[int] = typer.Option(None, "--priority"),
+    owner: Optional[str] = typer.Option(None, "--owner"),
+    note: Optional[str] = typer.Option(None, "--note"),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """Record a research decision or assignment for one person."""
+    before = _load_task_or_exit(db, memorial_id)["task"]
+    try:
+        task = update_research_task(db, memorial_id, status, priority, owner, note)
+    except ValueError as ex:
+        typer.echo(str(ex), err=True)
+        raise typer.Exit(2)
+    if json_output:
+        _json_output(task)
+        return
+    labels = {
+        "status": "status",
+        "priority": "priority",
+        "owner": "owner",
+        "review_note": "note",
+    }
+    changed = [label for key, label in labels.items() if before[key] != task[key]]
+    if changed:
+        typer.echo(f"Updated {', '.join(changed)} for person {memorial_id}.")
+    else:
+        typer.echo(f"No changes were needed for person {memorial_id}.")
+
+
+@work_app.command("enrich")
+def work_enrich(
+    memorial_id: int,
+    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """Retrieve the full Find a Grave memorial for an approved person."""
+    _enrich_task(memorial_id, db, researcher_output=True, json_output=json_output)
+
+
+@work_app.command("queue")
+def work_queue(
+    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    cemetery_id: Optional[int] = typer.Option(None, "--cemetery-id"),
+    priority: int = typer.Option(0, "--priority"),
+):
+    """Add people already acquired to the research queue."""
+    created, existing = queue_memorials_in_database(db, cemetery_id, priority)
+    created_label = "person" if created == 1 else "people"
+    existing_label = "person was" if existing == 1 else "people were"
+    typer.echo(
+        f"Added {created} {created_label} to the research queue; "
+        f"{existing} {existing_label} already present."
+    )
+
+
+@aliases_app.command("list")
+def admin_aliases_list(
+    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    status: Optional[str] = typer.Option(None, "--status"),
+    target_id: Optional[int] = typer.Option(None, "--target-id"),
+    limit: int = typer.Option(20, "--limit", min=1),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """List reviewed Find a Grave redirect mappings."""
+    list_aliases(db, status, target_id, limit, json_output)
+
+
+@aliases_app.command("show")
+def admin_aliases_show(
+    memorial_id: int,
+    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """Inspect one redirect and its immutable history."""
+    show_alias(memorial_id, db, json_output)
+
+
+@aliases_app.command("record")
+def admin_aliases_record(
+    source_id: int,
+    target_id: int,
+    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    alias_type: str = typer.Option(..., "--type"),
+    source_url: Optional[str] = typer.Option(None, "--source-url"),
+    target_url: Optional[str] = typer.Option(None, "--target-url"),
+    reason: Optional[str] = typer.Option(None, "--reason"),
+):
+    """Record a reviewed Find a Grave redirect or merge."""
+    record_alias(source_id, target_id, db, alias_type, source_url, target_url, reason)
+
+
+@aliases_app.command("retract")
+def admin_aliases_retract(
+    source_id: int,
+    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    reason: str = typer.Option(..., "--reason"),
+):
+    """Retract an active redirect while preserving its history."""
+    retract_alias(source_id, db, reason)
 
 
 def gpsfilter_callback(value: str):
