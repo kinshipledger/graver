@@ -107,6 +107,130 @@ task such as refreshing candidates for the current person.
 - Do not automate external writes without user approval.
 - Confirm Find a Grave, FamilySearch, and WikiTree access rules before scaling collection or integrations.
 
+## Research database lifecycle
+
+SQLite research databases are mutable user data, not source artifacts. The default
+runtime filename `graves.db`, representative databases such as `many_graves.db`, and
+other researcher-created databases must remain ignored by Git and must not be
+published merely to provide an example. The schema and migrations belong in source
+control. Ordinary tests should build isolated temporary databases from small,
+readable fictional or public-domain fixtures. Test data should be created through
+deterministic, project-specific factories: hand-authored records for genealogical
+meaning and edge cases, and seeded Faker data for volume and variation. Faker must
+remain behind those domain factories, use fixed seeds and explicit locales, and not
+be used for assertions that depend on a particular library-generated value. Curated
+cases should cover partial dates, repeated and variant names, relationships,
+conflicting evidence, aliases, missing fields, non-ASCII text, and summary-to-full
+enrichment. Generated places are opaque test values, not substitutes for curated
+historical-geography cases. A binary SQLite fixture is appropriate only when a
+small, purpose-specific historical database is necessary to verify a migration and
+cannot be reconstructed without defeating the test.
+
+Database ownership should become intentional through two complementary researcher
+actions:
+
+- `graver init` creates and selects `./graves.db`.
+- `graver init DATABASE` creates and selects the named database.
+- `graver use DATABASE` selects an existing database without creating or migrating
+  it; `use --show` and `use --clear` inspect or clear that preference.
+
+Initialization must refuse to overwrite any existing file, require the parent
+directory to exist, initialize and validate the complete current schema, and save
+the new default only after success. A partial failure must remove only the newly
+created incomplete file and leave the previous selection unchanged. The concise
+success message should be `Initialized and selected research database: PATH`.
+
+After `init` is established, implicit database creation by acquisition commands
+should be removed in a separate compatibility milestone. Missing database errors
+should direct the researcher to `graver init` or `graver use DATABASE`. Explicit
+`--db` remains a one-command override and must never change the saved selection.
+
+## Testing strategy
+
+The offline suite should distinguish four complementary layers:
+
+1. Domain and parser tests feed curated HTML or JSON directly to parsers without an
+   HTTP session. They cover genealogical semantics, missing and malformed fields,
+   removed and merged pages, source variants, and summary-to-full behavior.
+2. Transport tests use explicit HTTP mocks to verify methods, URLs, query and POST
+   parameters, headers, redirects, retry policy, timeouts, and failures. Request
+   construction should not require a recorded cassette.
+3. Persistence and researcher-workflow tests use isolated temporary SQLite
+   databases and exercise schema, migrations, transactions, provenance,
+   configuration precedence, and CLI behavior.
+4. A small recorded-contract suite replays sanitized interactions actually observed
+   from external platforms to verify the complete transport-to-domain pipeline.
+
+Ordinary tests and CI must deny live network access. Recorded tests must default to
+replay-only and fail when an interaction is absent; recording or refreshing a
+cassette requires an explicit maintainer workflow and authorization. Recorded
+fixtures must remove credentials, cookies, Cloudflare and session identifiers,
+personal data not needed by the test, and other sensitive or unstable metadata.
+Authenticated FamilySearch or WikiTree traffic requires an especially strict review
+before any sanitized fixture may be committed.
+
+Betamax remains a temporary compatibility mechanism for the existing cassette
+inventory, not the foundation for new tests. First lock it to replay-only and mark
+the recorded-contract tests. Then migrate parser coverage to static response
+fixtures and transport behavior to `requests-mock`. Trial a small conversion of the
+remaining contract cases to the actively maintained VCR.py/pytest-recording stack;
+complete that migration only if it is demonstrably simpler and stable. Remove the
+cassette layer entirely if static fixtures and transport mocks provide the same
+useful coverage.
+
+Test infrastructure must also follow these rules:
+
+- Faker uses a fixed default seed and explicit locale behind domain factories;
+  Python randomness is seeded consistently, time-based reseeding is forbidden, and
+  failures report the seed needed for reproduction.
+- Temporary files, databases, configuration, environment variables, and connections
+  use pytest lifecycle fixtures and are always cleaned up. Tests never read or alter
+  a developer's runtime database or user configuration.
+- Test frameworks, Faker, record/replay tools, mocks, and coverage tools belong only
+  in test dependency groups, not the installed application's runtime dependencies.
+- Vestigial tool smoke tests, empty tests, and commented-out test bodies should be
+  removed or replaced by assertions about Graver behavior.
+- Register meaningful `unit`, `integration`, `recorded`, and `slow` markers and
+  enable strict marker checking. Evaluate pytest importlib mode against the current
+  `src` layout before adopting it.
+- Establish branch-coverage reporting from the measured baseline, then introduce a
+  modest non-regression threshold and raise it only as meaningful behavior is
+  covered; coverage percentage must not substitute for useful assertions.
+
+### Live Find a Grave contract probe
+
+Add a separate, explicitly invoked `live_contract` maintenance probe to answer a
+different question from recorded tests: whether the current Find a Grave site still
+satisfies Graver's minimum parsing contract. It is not part of ordinary local tests,
+pull-request validation, cassette recording, or the researcher-facing CLI. The
+designated full-memorial canary is the stable public George Washington memorial:
+
+`https://www.findagrave.com/memorial/1075/george-washington`
+
+Each run should make only two or three requests: retrieve that memorial, perform one
+tightly constrained search expected to yield a summary, and optionally retrieve one
+stable cemetery page if cemetery parsing remains operationally important. Use short
+timeouts, minimal retries, no database writes, no fixture updates, and no
+authenticated session. Assert semantic invariants rather than exact mutable content:
+the response is not an access challenge or generic error; the memorial ID, name, and
+cemetery or burial linkage are recognizable; parsing does not silently produce an
+empty object; and a search result exposes its ID, URL, name, and burial context.
+
+Classify outcomes as `compatible`, `schema_changed`, `access_blocked`,
+`site_unavailable`, `canary_changed`, or `probe_error`. A failure artifact may retain
+the timestamp, page type, status, final URL, redirects, content type, parser stage,
+missing invariant, response hash, and a small sanitized structural excerpt. It must
+never expose cookies, credentials, Cloudflare identifiers, unnecessary personal
+data, or automatically commit a response or refresh a fixture.
+
+Begin with manual execution before releases and parser changes, then run it
+periodically from a normal developer environment. Trial a weekly scheduled job only
+after confirming that its runner produces a reliable signal rather than Cloudflare
+false positives. Before any scheduled live access, review the current Find a Grave
+terms, robots directives, and published automation guidance; unclear policy requires
+maintainer review rather than assuming permission. A live failure is diagnostic and
+must not automatically block an unrelated release until its category is understood.
+
 ## Target persistent entities
 
 The eventual SQLite model may include cemeteries, memorials, FamilySearch discovery runs, candidate snapshots, FamilySearch candidates, candidate assessments, sources/evidence, reviewed identity conclusions, WikiTree matches, relationships, and work-queue tasks. Candidate hypotheses and evolving assessments must remain distinguishable from final reviewed conclusions. Every research item must retain stable Find a Grave memorial and cemetery links.
@@ -131,8 +255,16 @@ Initial work states may include `unprocessed`, `researching`, `familysearch_matc
 4. Completed: refine the CLI into a small, task-oriented `work` surface with
    progressive disclosure; move alias maintenance under `admin aliases` while
    retaining hidden compatibility commands and the complete Python API.
-5. Add repeatable FamilySearch candidate discovery and research storage behind simple researcher workflows, including immutable search runs and candidate snapshots, detection of new or materially changed candidates, candidate status, match signals, evidence, discrepancies, evolving confidence, reasoning, reviewer fields, and immutable decision history.
-6. Add explicit human-reviewed identity conclusions only after FamilySearch evidence gathering: accepted, rejected, or unresolved.
-7. Integrate WikiTree profile search and reconciliation for identities sufficiently supported by reviewed research.
-8. Generate evidence summaries, identity assessments, relationship reconciliation, and WikiTree work packets.
-9. Extend the interface from person-at-a-time to reviewed family work packets.
+5. Complete the explicit research-database lifecycle: add `graver init [DATABASE]`
+   to create and select a new database safely, establish the repository fixture
+   policy with deterministic domain factories, curated edge cases, and seeded Faker
+   volume data; modernize test isolation, network safety, dependency grouping, and
+   test classification; reduce Betamax to a replay-only compatibility layer and
+   evaluate its incremental replacement; add the bounded, explicitly invoked live
+   Find a Grave contract probe; and then remove implicit database creation from
+   acquisition commands in a separately tested compatibility change.
+6. Add repeatable FamilySearch candidate discovery and research storage behind simple researcher workflows, including immutable search runs and candidate snapshots, detection of new or materially changed candidates, candidate status, match signals, evidence, discrepancies, evolving confidence, reasoning, reviewer fields, and immutable decision history.
+7. Add explicit human-reviewed identity conclusions only after FamilySearch evidence gathering: accepted, rejected, or unresolved.
+8. Integrate WikiTree profile search and reconciliation for identities sufficiently supported by reviewed research.
+9. Generate evidence summaries, identity assessments, relationship reconciliation, and WikiTree work packets.
+10. Extend the interface from person-at-a-time to reviewed family work packets.

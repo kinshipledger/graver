@@ -18,6 +18,7 @@ person-at-a-time task handling are integrated and tested.
 - `scrape-file <input-file> [--db DATABASE]` accepts memorial IDs or memorial URLs, de-duplicates IDs, retrieves full memorial pages, and saves them to SQLite.
 - `scrape-url <url> [--db DATABASE]` retrieves and saves one full memorial.
 - `search` queries Find a Grave's memorial search, including a cemetery ID option, name/date/location filters, and pagination. Search results are represented as `MemorialSummary` objects and persisted to the selected SQLite database before being emitted to logs.
+- `use DATABASE`, `use --show`, and `use --clear` manage one researcher-facing default database selection without creating, migrating, or deleting databases. Explicit `--db` and `GRAVER_DB` remain higher-precedence temporary selections.
 - `work queue`, `work list`, `work next`, `work show`, and `work mark` provide a person-centered, network-free research workflow. `work enrich` retrieves exactly one explicitly approved memorial.
 - `admin aliases list`, `show`, `record`, and `retract` expose specialist Find a Grave redirect maintenance and immutable history without moving tasks or grave data.
 - The earlier top-level task and alias commands remain functional as hidden compatibility aliases. They preserve existing arguments, output, and exit behavior but do not compete with ordinary workflows in root help.
@@ -32,7 +33,11 @@ person-at-a-time task handling are integrated and tested.
 
 ## Current SQLite databases
 
-The earlier local `src/graver/graves.db` is a small development sample. The ignored, untracked representative `src/graver/many_graves.db` contains 334 distinct memorials discovered from a Morris Hill Cemetery search (Find a Grave cemetery ID `2181249`). It has one table:
+The local `src/graver/graves.db` is an ignored runtime byproduct of early human
+command-line development, not a supported sample or repository fixture. The
+ignored, untracked representative `src/graver/many_graves.db` contains 334 distinct
+memorials discovered from a Morris Hill Cemetery search (Find a Grave cemetery ID
+`2181249`). It has one table:
 
 ```text
 graves
@@ -71,6 +76,16 @@ The 334 representative rows are intentionally search summaries, not full memoria
 
 The repository has a substantial fixture-backed test suite covering memorial parsing, search filters, cemetery pagination, merged/removed memorial handling, CLI behavior, SQLite persistence, additive migration, summary/full overwrite protection, atomic observation creation, observation immutability, foreign-key constraints, and queue idempotency.
 
+The inherited suite mixes several responsibilities that should now be separated.
+Betamax cassettes provide valuable real Find a Grave contract examples, but ordinary
+execution is not explicitly locked to replay-only, Betamax warnings are globally
+suppressed, and the project is locked to Betamax 0.8.1. Generic Betamax and Faker
+smoke tests, incomplete or commented test bodies, time-seeded Faker providers,
+`delete=False` temporary databases, direct environment mutation, and test tools in
+runtime dependencies are legacy test-infrastructure debt rather than intentional
+long-term design. `requests-mock` is already available and is the preferred boundary
+for method, parameter, retry, and error-path tests.
+
 On 2026-08-20, after adding the progressive-disclosure CLI, the complete suite
 passed in the current project environment: **246 passed**. Black check-only mode
 also passed. Codex must not run Flake8 autonomously; human maintainers may run it
@@ -86,7 +101,11 @@ foreign-key checks passed. The original database checksum remained
 
 The default help surface now separates three concerns: existing acquisition
 commands, `work` for ordinary person-at-a-time research, and `admin` for advanced
-maintenance and diagnostics. Ordinary task display leads with the person and
+maintenance and diagnostics. The top-level `use` command selects the default
+research database without introducing a general configuration namespace. All
+database-aware CLI commands share the precedence `--db`, `GRAVER_DB`, saved
+selection, then `graves.db`; invalid environment or saved selections fail rather
+than silently falling through. Ordinary task display leads with the person and
 research state, summarizes provenance, and reveals redirect warnings only when
 they affect the selected person. Full acquisition payloads require `--history` or
 `--json`. `work next` defaults to `unprocessed`, the least ambiguous actionable
@@ -101,8 +120,68 @@ after downstream users have had an explicit migration window.
 
 Keep the existing scraper and its `graves` table as the **Find a Grave acquisition component**. The additive `cemeteries`, `memorial_observations`, and `research_tasks` layer now provides provenance and a practical queue.
 
-The task-oriented CLI foundation is complete. FamilySearch workflows should extend
-the same `work` surface rather than adding one command per persistence entity.
+The task-oriented CLI foundation is complete. Before beginning FamilySearch work,
+complete the explicit research-database lifecycle. Add `graver init [DATABASE]` to
+create a new database with the current schema and select it as the saved default.
+With no argument it creates `./graves.db`; with an argument it uses the named path.
+It must refuse to overwrite an existing file, require an existing parent directory,
+leave the prior selection untouched on failure, clean up only a newly created
+partial file, and report `Initialized and selected research database: PATH` after
+successful initialization and validation.
+
+Keep runtime research databases ignored. Do not commit `graves.db` or
+`many_graves.db` as samples. Store schema and migrations in source control, build
+ordinary test databases through deterministic project-specific factories, and
+reserve committed binary SQLite fixtures for narrowly scoped historical migration
+tests. Use hand-authored fictional or public-domain records for genealogical
+semantics and edge cases. Use fixed-seed, explicit-locale Faker data behind the
+domain factories for volume, variation, pagination, ordering, and performance
+tests; assertions must use captured or overridden values rather than depending on
+Faker's version-specific output. Historical geography and other meaningful domain
+cases remain curated rather than randomly generated. After `init` is available,
+remove implicit database creation from acquisition commands as a separate
+compatibility change with actionable guidance to use `graver init` or
+`graver use DATABASE`.
+
+Modernize the inherited suite within the same milestone without attempting a large
+cassette rewrite. Define parser/static-response, mocked-transport,
+temporary-database/workflow, and recorded-contract layers. Deny network access by
+default; make existing Betamax cases replay-only and explicitly marked; sanitize all
+recorded traffic; and require a deliberate maintainer-only refresh process. Move new
+parser cases to curated HTML/JSON fixtures and new transport cases to
+`requests-mock`. Trial VCR.py through pytest-recording on a few representative
+contracts before deciding whether to migrate the remaining cassettes or eliminate
+record/replay entirely.
+
+Replace time-based Faker and Python randomness with fixed, reported seeds and an
+explicit locale. Move all test-only packages out of runtime dependencies. Replace
+leaking temporary files and global environment mutation with pytest-managed
+lifecycle fixtures. Remove generic tool smoke tests, empty tests, and commented-out
+bodies. Register strict `unit`, `integration`, `recorded`, and `slow` markers;
+evaluate importlib mode for the `src` layout; and establish branch-coverage reporting
+and a modest non-regression threshold from the measured baseline rather than an
+arbitrary target.
+
+Add a distinct live-contract maintenance probe after the offline test boundaries are
+established. It should retrieve the public George Washington memorial at
+`https://www.findagrave.com/memorial/1075/george-washington`, execute one tightly
+constrained summary search, and optionally check one cemetery page, for a total of no
+more than two or three requests per run. It should validate minimum semantic parsing
+invariants rather than mutable content and classify results as `compatible`,
+`schema_changed`, `access_blocked`, `site_unavailable`, `canary_changed`, or
+`probe_error`.
+
+Mark the probe `live_contract` and exclude it from ordinary tests, pull-request
+checks, cassette recording, and the human CLI. It must use short timeouts, minimal
+retries, no database writes, no fixture refresh, and sanitized diagnostics. Start
+with manual pre-release and parser-change execution from a normal developer
+environment; trial a weekly scheduled runner only if Cloudflare does not make its
+signal unreliable. Confirm current Find a Grave terms, robots directives, and
+automation guidance before scheduling it. Do not let an unclassified live-site or
+runner failure automatically block an unrelated release.
+
+FamilySearch workflows should then extend the same `work` surface rather than
+adding one command per persistence entity.
 
 The next milestone should add the FamilySearch candidate-discovery and research
 layer. A candidate is a hypothesis whose status, match signals, supporting and
@@ -135,6 +214,7 @@ cemetery-wide enrichment yet.
 ## Before implementation
 
 - Use `many_graves.db` as the initial representative cemetery-search dataset while seeking additional cemeteries to assess cross-cemetery and duplicate behavior.
-- Treat the old `graves.db` as a development sample unless evidence establishes otherwise.
+- Treat local `graves.db` and `many_graves.db` files as ignored researcher data, not
+  repository samples or fixtures.
 - Maintain the reproducible environment defined by `pyproject.toml`, `requirements.txt`, and `uv.lock`.
 - Confirm current platform terms, rate limits, authentication, and API policies before any scaled retrieval or third-party integration.
