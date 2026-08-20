@@ -12,6 +12,7 @@ from urllib.parse import urlparse
 import typer
 from tqdm import tqdm
 
+from graver import config as graver_config
 from graver import (
     Cemetery,
     Driver,
@@ -45,9 +46,6 @@ log = logging.getLogger(__name__)
 
 # Global Driver
 cli_driver = Driver()
-
-# Defaults
-DEFAULT_DB_FILE_NAME = "graves.db"
 
 # Logging setup
 DEFAULT_LOG_FILENAME = "graver.log"
@@ -98,6 +96,23 @@ def logging_callback(log_level: str):
         log.debug("Log level is " + str(log_level.upper()))
 
 
+def database_callback(value: Optional[str]) -> str:
+    """Resolve all CLI database options through the same precedence rules."""
+    try:
+        return graver_config.resolve_database(value).path
+    except graver_config.GraverConfigurationError as ex:
+        raise typer.BadParameter(str(ex))
+
+
+def database_option(help_text: str):
+    return typer.Option(
+        None,
+        "--db",
+        callback=database_callback,
+        help=f"{help_text} Overrides GRAVER_DB and the saved default.",
+    )
+
+
 app = typer.Typer(
     add_completion=False,
     context_settings={"help_option_names": ["-h", "--help"]},
@@ -131,6 +146,47 @@ def graver(
     ),
 ):
     pass
+
+
+@app.command()
+def use(
+    database: Optional[str] = typer.Argument(
+        None, help="Existing Graver database to use by default."
+    ),
+    show: bool = typer.Option(
+        False, "--show", help="Show the currently selected default database."
+    ),
+    clear: bool = typer.Option(
+        False, "--clear", help="Forget the selected default without deleting it."
+    ),
+):
+    """Select the database Graver should use by default."""
+    action_count = int(database is not None) + int(show) + int(clear)
+    if action_count != 1:
+        raise typer.BadParameter(
+            "Choose exactly one action: provide DATABASE, use --show, or use --clear."
+        )
+    try:
+        if database is not None:
+            selected = graver_config.select_default_database(database)
+            typer.echo(f"Default research database: {selected}")
+        elif show:
+            selected = graver_config.configured_default_database()
+            if selected is None:
+                typer.echo(
+                    "No default research database is selected. "
+                    "Run `graver use DATABASE` to select one."
+                )
+            else:
+                typer.echo(f"Default research database: {selected}")
+        else:
+            graver_config.clear_default_database()
+            typer.echo(
+                "The saved default database was cleared. No database was deleted."
+            )
+    except graver_config.GraverConfigurationError as ex:
+        typer.echo(str(ex), err=True)
+        raise typer.Exit(1)
 
 
 # TODO: Add support for output CSV
@@ -220,9 +276,7 @@ def scrape_file(
     input_filename: str = typer.Argument(
         ..., help="Text file of memorial IDs or URLs, one per line."
     ),
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Database name (results will be stored here)"
-    ),
+    db: str = database_option("Database where results will be stored."),
 ):
     """Retrieve full memorials listed in a text file."""
     log.debug(f"Input file: {input_filename}")
@@ -266,14 +320,13 @@ def scrape_file(
 @app.command()
 def scrape_url(
     url: str = typer.Argument(..., help="Find a Grave memorial URL to retrieve."),
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Database name (results will be stored here)"
-    ),
+    db: str = database_option("Database where results will be stored."),
 ):
     """Retrieve one full Find a Grave memorial."""
     if not url_validator(url):
         log.error(f"Invalid or non-memorial URL: [{url}]")
         raise typer.Exit(1)
+    os.environ["DATABASE_NAME"] = db
     Memorial.create_table(db)
     try:
         m: Memorial = parse_and_save_memorial(url)
@@ -289,9 +342,7 @@ def scrape_url(
 # workflows belong under ``work`` and specialist alias maintenance under ``admin``.
 @app.command(hidden=True)
 def queue_memorials(
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Database containing memorials to queue"
-    ),
+    db: str = database_option("Database containing memorials to queue."),
     cemetery_id: int = typer.Option(
         None, "--cemetery-id", help="Only queue memorials from this cemetery"
     ),
@@ -310,7 +361,7 @@ def _json_output(value) -> None:
 
 @app.command("list-aliases", hidden=True)
 def list_aliases(
-    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    db: str = database_option("Research database to inspect."),
     status: Optional[str] = typer.Option(None, "--status"),
     target_id: Optional[int] = typer.Option(None, "--target-id"),
     limit: int = typer.Option(20, "--limit", min=1),
@@ -336,7 +387,7 @@ def list_aliases(
 @app.command("show-alias", hidden=True)
 def show_alias(
     memorial_id: int,
-    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    db: str = database_option("Research database to inspect."),
     json_output: bool = typer.Option(False, "--json"),
 ):
     """Show current alias resolution and immutable history."""
@@ -361,7 +412,7 @@ def show_alias(
 def record_alias(
     source_id: int,
     target_id: int,
-    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    db: str = database_option("Research database to update."),
     alias_type: str = typer.Option(..., "--type"),
     source_url: Optional[str] = typer.Option(None, "--source-url"),
     target_url: Optional[str] = typer.Option(None, "--target-url"),
@@ -381,7 +432,7 @@ def record_alias(
 @app.command("retract-alias", hidden=True)
 def retract_alias(
     source_id: int,
-    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    db: str = database_option("Research database to update."),
     reason: str = typer.Option(..., "--reason"),
 ):
     """Explicitly retract an active memorial alias."""
@@ -395,9 +446,7 @@ def retract_alias(
 
 @app.command("list-tasks", hidden=True)
 def list_tasks(
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Database containing research tasks"
-    ),
+    db: str = database_option("Database containing research tasks."),
     status: Optional[str] = typer.Option(None, "--status"),
     cemetery_id: Optional[int] = typer.Option(None, "--cemetery-id"),
     limit: int = typer.Option(20, "--limit", min=1),
@@ -433,9 +482,7 @@ def list_tasks(
 @app.command("show-task", hidden=True)
 def show_task(
     memorial_id: int,
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Database containing the research task"
-    ),
+    db: str = database_option("Database containing the research task."),
     json_output: bool = typer.Option(False, "--json"),
 ):
     """Show one task, its current source record, and observation history."""
@@ -484,9 +531,7 @@ def show_task(
 @app.command("update-task", hidden=True)
 def update_task(
     memorial_id: int,
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Database containing the research task"
-    ),
+    db: str = database_option("Database containing the research task."),
     status: Optional[str] = typer.Option(None, "--status"),
     priority: Optional[int] = typer.Option(None, "--priority"),
     owner: Optional[str] = typer.Option(None, "--owner"),
@@ -509,9 +554,7 @@ def update_task(
 @app.command("scrape-task", hidden=True)
 def scrape_task(
     memorial_id: int,
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Database containing the approved task"
-    ),
+    db: str = database_option("Database containing the approved task."),
 ):
     """Scrape exactly one task already approved for full-page enrichment."""
     _enrich_task(memorial_id, db, researcher_output=False, json_output=True)
@@ -682,9 +725,7 @@ def _display_work_task(result: dict, history: bool = False) -> None:
 
 @work_app.command("list")
 def work_list(
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Research database to read."
-    ),
+    db: str = database_option("Research database to read."),
     status: Optional[str] = typer.Option(
         None, "--status", help="Filter by research status."
     ),
@@ -709,9 +750,7 @@ def work_list(
 
 @work_app.command("next")
 def work_next(
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Research database to read."
-    ),
+    db: str = database_option("Research database to read."),
     status: Optional[str] = typer.Option(
         "unprocessed", "--status", help="Research status to select."
     ),
@@ -742,9 +781,7 @@ def work_show(
     memorial_id: int = typer.Argument(
         ..., help="Find a Grave memorial ID for the person to review."
     ),
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Research database to read."
-    ),
+    db: str = database_option("Research database to read."),
     history: bool = typer.Option(
         False, "--history", help="Include detailed acquisition and redirect history."
     ),
@@ -765,9 +802,7 @@ def work_mark(
     memorial_id: int = typer.Argument(
         ..., help="Find a Grave memorial ID for the person to update."
     ),
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Research database to update."
-    ),
+    db: str = database_option("Research database to update."),
     status: Optional[str] = typer.Option(
         None, "--status", help="New research status for this person."
     ),
@@ -812,9 +847,7 @@ def work_enrich(
     memorial_id: int = typer.Argument(
         ..., help="Find a Grave memorial ID approved for full retrieval."
     ),
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Research database to update."
-    ),
+    db: str = database_option("Research database to update."),
     json_output: bool = typer.Option(
         False, "--json", help="Return the result as machine-readable JSON."
     ),
@@ -825,9 +858,7 @@ def work_enrich(
 
 @work_app.command("queue")
 def work_queue(
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Database containing acquired memorials."
-    ),
+    db: str = database_option("Database containing acquired memorials."),
     cemetery_id: Optional[int] = typer.Option(
         None, "--cemetery-id", help="Queue only people from this cemetery ID."
     ),
@@ -847,9 +878,7 @@ def work_queue(
 
 @aliases_app.command("list")
 def admin_aliases_list(
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Research database to inspect."
-    ),
+    db: str = database_option("Research database to inspect."),
     status: Optional[str] = typer.Option(
         None, "--status", help="Show only active or retracted redirects."
     ),
@@ -872,9 +901,7 @@ def admin_aliases_show(
     memorial_id: int = typer.Argument(
         ..., help="Source memorial ID whose redirect history should be shown."
     ),
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Research database to inspect."
-    ),
+    db: str = database_option("Research database to inspect."),
     json_output: bool = typer.Option(
         False, "--json", help="Return complete machine-readable JSON."
     ),
@@ -889,9 +916,7 @@ def admin_aliases_record(
     target_id: int = typer.Argument(
         ..., help="Memorial ID that is the redirect target."
     ),
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Research database to update."
-    ),
+    db: str = database_option("Research database to update."),
     alias_type: str = typer.Option(
         ..., "--type", help="Redirect type: merged or redirected."
     ),
@@ -914,9 +939,7 @@ def admin_aliases_retract(
     source_id: int = typer.Argument(
         ..., help="Source memorial ID whose active redirect should be retracted."
     ),
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Research database to update."
-    ),
+    db: str = database_option("Research database to update."),
     reason: str = typer.Option(
         ..., "--reason", help="Required explanation for retracting the redirect."
     ),
@@ -992,9 +1015,7 @@ def name_filter_callback(ctx: typer.Context, value: str):
 
 @app.command()
 def search(
-    db: str = typer.Option(
-        DEFAULT_DB_FILE_NAME, "--db", help="Database name (results will be stored here)"
-    ),
+    db: str = database_option("Database where results will be stored."),
     cemetery_id: int = typer.Option(
         None,
         "--cid",

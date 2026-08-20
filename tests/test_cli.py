@@ -4,6 +4,7 @@ import logging
 import os
 import random
 import sqlite3
+from pathlib import Path
 from typing import Dict
 
 import pytest
@@ -594,6 +595,111 @@ class TestCliResearcherSurface(Test):
         values = Test.load_memorial_from_json(fixture_name)
         values.update(updates)
         return Memorial.from_dict(values)
+
+    def test_use_select_show_and_clear(
+        self, helpers, database, isolate_graver_configuration
+    ):
+        selected = helpers.graver_cli(f"use '{database.name}'")
+        shown = helpers.graver_cli("use --show")
+        cleared = helpers.graver_cli("use --clear")
+        empty = helpers.graver_cli("use --show")
+        cleared_again = helpers.graver_cli("use --clear")
+
+        expected_path = str(Path(database.name).resolve())
+        assert all(
+            result.exit_code == 0
+            for result in (selected, shown, cleared, empty, cleared_again)
+        )
+        assert expected_path in selected.output
+        assert expected_path in shown.output
+        assert "No default research database is selected" in empty.output
+        assert "graver use DATABASE" in empty.output
+        assert "No database was deleted" in cleared.output
+        assert "No database was deleted" in cleared_again.output
+        assert "default_database" not in json.loads(
+            isolate_graver_configuration.read_text()
+        )
+
+    @pytest.mark.parametrize(
+        "command",
+        ["use", "use --show --clear", "use some.db --show", "use some.db --clear"],
+    )
+    def test_use_requires_exactly_one_action(self, helpers, command):
+        result = helpers.graver_cli(command)
+
+        assert result.exit_code == 2
+        assert "Choose exactly one action" in result.output
+
+    def test_use_reports_malformed_and_stale_configuration(
+        self, helpers, isolate_graver_configuration, tmp_path
+    ):
+        isolate_graver_configuration.parent.mkdir(parents=True)
+        isolate_graver_configuration.write_text("{bad-json")
+        malformed = helpers.graver_cli("use --show")
+        isolate_graver_configuration.write_text(
+            json.dumps({"default_database": str(tmp_path / "missing.db")})
+        )
+        stale = helpers.graver_cli("use --show")
+
+        assert malformed.exit_code == stale.exit_code == 1
+        assert "configuration is unreadable" in malformed.output
+        assert "does not exist" in stale.output
+        assert "graver use" not in stale.output
+
+    def test_use_help_is_researcher_oriented(self, helpers):
+        result = helpers.graver_cli("use --help")
+        rendered = " ".join(result.output.split())
+
+        assert result.exit_code == 0
+        assert "Select the database Graver should use by default" in rendered
+        assert "Existing Graver database to use by default" in rendered
+        assert "Show the currently selected default database" in rendered
+        assert "without deleting it" in rendered
+
+    def test_existing_commands_use_central_database_resolution(
+        self, helpers, database, tmp_path, monkeypatch
+    ):
+        saved = Path(database.name).resolve()
+        environment = tmp_path / "environment.db"
+        explicit = tmp_path / "explicit.db"
+        Memorial.create_table(str(environment))
+        Memorial.create_table(str(explicit))
+        assert helpers.graver_cli(f"use '{saved}'").exit_code == 0
+        calls = []
+        monkeypatch.setattr(
+            "graver.cli.list_research_tasks",
+            lambda db, *_args: calls.append(db) or [],
+        )
+
+        monkeypatch.delenv("GRAVER_DB")
+        saved_result = helpers.graver_cli("work list --json")
+        monkeypatch.setenv("GRAVER_DB", str(environment))
+        environment_result = helpers.graver_cli("work list --json")
+        explicit_result = helpers.graver_cli(f"work list --db '{explicit}' --json")
+
+        assert all(
+            result.exit_code == 0
+            for result in (saved_result, environment_result, explicit_result)
+        )
+        assert calls == [str(saved), str(environment.resolve()), str(explicit)]
+        assert json.loads(saved_result.output) == []
+        assert json.loads(environment_result.output) == []
+        assert json.loads(explicit_result.output) == []
+
+    def test_invalid_saved_database_blocks_command_without_fallback(
+        self, helpers, isolate_graver_configuration, tmp_path, monkeypatch
+    ):
+        monkeypatch.delenv("GRAVER_DB")
+        isolate_graver_configuration.parent.mkdir(parents=True)
+        isolate_graver_configuration.write_text(
+            json.dumps({"default_database": str(tmp_path / "gone.db")})
+        )
+
+        result = helpers.graver_cli("work list --json")
+
+        assert result.exit_code == 2
+        assert "does not exist" in result.output
+        assert not (tmp_path / "gone.db").exists()
 
     def test_help_uses_progressive_disclosure(self, helpers):
         root = helpers.graver_cli("--help")

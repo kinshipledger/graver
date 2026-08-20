@@ -9,7 +9,7 @@ from click.testing import Result
 from faker import Faker
 from typer.testing import CliRunner
 
-from graver import Cemetery, Driver, Memorial
+from graver import Cemetery, Driver, Memorial, config as graver_config
 from graver.cli import app
 from tests.memorial_provider import MemorialProvider, ResultSetProvider
 
@@ -45,6 +45,25 @@ def customize_faker(faker: Faker):
 @pytest.fixture(autouse=True)
 def disable_progress_bars(monkeypatch):
     monkeypatch.setenv("TQDM_DISABLE", "1")
+
+
+@pytest.fixture(autouse=True)
+def isolate_graver_configuration(monkeypatch, tmp_path):
+    """Prevent CLI tests from reading or writing the developer's preferences."""
+    config_path = tmp_path / "user-config" / "graver" / "config.json"
+    default_database = tmp_path / "user-config" / "default.db"
+    default_database.parent.mkdir(parents=True)
+    Memorial.create_table(str(default_database))
+    real_configuration_path = graver_config.configuration_path
+
+    def isolated_path(environment=None, platform=None, home=None):
+        if environment is None and platform is None and home is None:
+            return config_path
+        return real_configuration_path(environment, platform, home)
+
+    monkeypatch.setattr(graver_config, "configuration_path", isolated_path)
+    monkeypatch.setenv("GRAVER_DB", str(default_database))
+    return config_path
 
 
 # configure Betamax

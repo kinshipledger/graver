@@ -67,6 +67,24 @@ uv sync --all-groups --locked
 uv run --group test pytest
 ```
 
+### Select a default database
+
+Choose an existing Graver database once, then use ordinary research commands
+without repeating its path:
+
+```shell
+uv run graver use /path/to/research.db
+uv run graver use --show
+uv run graver use --clear
+```
+
+`use` stores the resolved absolute path in Graver's per-user configuration file;
+it does not create or migrate a database. Database selection follows this order:
+an explicit `--db`, the `GRAVER_DB` environment variable, the saved selection,
+then the existing `graves.db` default. `--db` is a temporary override for one
+command and never changes the saved selection. An unavailable saved or environment
+database is reported instead of silently falling back.
+
 ### Scrape
 ```sh
 uv run graver scrape-file <input-file>
@@ -80,11 +98,11 @@ the next person, review the current picture, record a decision, and enrich only
 an explicitly approved person:
 
 ```shell
-uv run graver work queue --db graves.db --cemetery-id 2181249
-uv run graver work next --db graves.db
-uv run graver work show MEMORIAL_ID --db graves.db
-uv run graver work mark MEMORIAL_ID --db graves.db --status ready_for_full_scrape
-uv run graver work enrich MEMORIAL_ID --db graves.db
+uv run graver work queue --cemetery-id 2181249
+uv run graver work next
+uv run graver work show MEMORIAL_ID
+uv run graver work mark MEMORIAL_ID --status ready_for_full_scrape
+uv run graver work enrich MEMORIAL_ID
 ```
 
 `work enrich` accepts exactly one memorial and only proceeds when its durable
