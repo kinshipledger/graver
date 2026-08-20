@@ -6,6 +6,7 @@ import re
 import sqlite3
 from collections import namedtuple
 from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
 from re import Match
 from time import sleep
 from typing import Any, Dict, List, Optional, cast
@@ -227,9 +228,73 @@ class Cemetery:
         self.num_memorials = count
 
 
+SUMMARY_FIELDS = (
+    "memorial_id",
+    "findagrave_url",
+    "prefix",
+    "name",
+    "suffix",
+    "nickname",
+    "maiden_name",
+    "famous",
+    "veteran",
+    "birth",
+    "death",
+    "memorial_type",
+    "cemetery_id",
+    "burial_place",
+    "plot",
+)
+FULL_ONLY_FIELDS = (
+    "original_name",
+    "birth_place",
+    "death_place",
+    "coords",
+    "has_bio",
+    "date_added",
+)
+FULL_FIELDS = SUMMARY_FIELDS + FULL_ONLY_FIELDS
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="microseconds").replace(
+        "+00:00", "Z"
+    )
+
+
+def _save_grave(
+    values: dict,
+    data_fields: tuple,
+    detail_level: str,
+    fetched_at_column: str,
+) -> None:
+    parameters = {name: values[name] for name in data_fields}
+    parameters.update(detail_level=detail_level, fetched_at=_utc_now_iso())
+    insert_fields = data_fields + ("detail_level", fetched_at_column)
+    placeholders = ", ".join(f":{name}" for name in data_fields)
+    placeholders += ", :detail_level, :fetched_at"
+    updates = [f"{name} = excluded.{name}" for name in data_fields]
+    if detail_level == "summary":
+        updates.append(
+            "detail_level = CASE WHEN graves.detail_level = 'full' "
+            "THEN 'full' ELSE 'summary' END"
+        )
+    else:
+        updates.append("detail_level = 'full'")
+    updates.append(f"{fetched_at_column} = excluded.{fetched_at_column}")
+    sql = (
+        f"INSERT INTO graves ({', '.join(insert_fields)}) "
+        f"VALUES ({placeholders}) "
+        "ON CONFLICT(memorial_id) DO UPDATE SET "
+        f"{', '.join(updates)}"
+    )
+    with sqlite3.connect(os.getenv("DATABASE_NAME", "graves.db")) as connection:
+        connection.execute(sql, parameters)
+
+
 @dataclass(frozen=True)
-class Memorial:
-    """Class for keeping track of a Find A Grave memorial."""
+class _MemorialSummaryFields:
+    """Fields observable in Find A Grave search results."""
 
     memorial_id: int
     findagrave_url: str
@@ -238,17 +303,23 @@ class Memorial:
     suffix: str
     nickname: str
     maiden_name: str
-    original_name: str
     famous: bool
     veteran: bool
     birth: str
-    birth_place: str
     death: str
-    death_place: str
     memorial_type: str
-    burial_place: str
     cemetery_id: int
+    burial_place: str
     plot: str
+
+
+@dataclass(frozen=True)
+class Memorial(_MemorialSummaryFields):
+    """Complete data parsed from an individual Find A Grave memorial page."""
+
+    original_name: str
+    birth_place: str
+    death_place: str
     coords: str
     has_bio: bool
     date_added: Optional[str] = None
@@ -321,52 +392,31 @@ class Memorial:
                 plot TEXT,
                 coords TEXT,
                 has_bio BOOL,
-                date_added TEXT
+                date_added TEXT,
+                detail_level TEXT CHECK (detail_level IN ('summary', 'full')),
+                summary_fetched_at TEXT,
+                full_fetched_at TEXT
             )"""
         )
         columns = {
             row[1] for row in conn.execute("PRAGMA table_info(graves)").fetchall()
         }
-        if "date_added" not in columns:
-            conn.execute("ALTER TABLE graves ADD COLUMN date_added TEXT")
+        migrations = {
+            "date_added": "TEXT",
+            "detail_level": "TEXT CHECK (detail_level IN ('summary', 'full'))",
+            "summary_fetched_at": "TEXT",
+            "full_fetched_at": "TEXT",
+        }
+        for column_name, column_type in migrations.items():
+            if column_name not in columns:
+                conn.execute(
+                    f"ALTER TABLE graves ADD COLUMN {column_name} {column_type}"
+                )
         conn.commit()
         conn.close()
 
     def save(self) -> "Memorial":
-        with sqlite3.connect(os.getenv("DATABASE_NAME", "graves.db")) as con:
-            con.cursor().execute(
-                "INSERT OR REPLACE INTO graves ("
-                "memorial_id, findagrave_url, prefix, name, suffix, nickname, "
-                "maiden_name, original_name, famous, veteran, birth, birth_place, "
-                "death, death_place, memorial_type, cemetery_id, burial_place, plot, "
-                "coords, has_bio, date_added"
-                ") VALUES ("
-                ":memorial_id, "
-                ":findagrave_url, "
-                ":prefix, "
-                ":name, "
-                ":suffix, "
-                ":nickname, "
-                ":maiden_name, "
-                ":original_name, "
-                ":famous, "
-                ":veteran, "
-                ":birth, "
-                ":birth_place, "
-                ":death, "
-                ":death_place, "
-                ":memorial_type, "
-                ":cemetery_id, "
-                ":burial_place, "
-                ":plot, "
-                ":coords, "
-                ":has_bio, "
-                ":date_added"
-                ")",
-                self.__dict__,
-            )
-            con.commit()
-
+        _save_grave(self.__dict__, FULL_FIELDS, "full", "full_fetched_at")
         return self
 
     @classmethod
@@ -380,7 +430,10 @@ class Memorial:
         con.row_factory = sqlite3.Row
 
         cur = con.cursor()
-        cur.execute("SELECT * FROM graves WHERE memorial_id=?", (memorial_id,))
+        cur.execute(
+            f"SELECT {', '.join(FULL_FIELDS)} FROM graves WHERE memorial_id=?",
+            (memorial_id,),
+        )
 
         record = cur.fetchone()
 
@@ -1056,9 +1109,9 @@ class _SearchWorker:
 
     def scrape_results_page(
         self, page_soup: BeautifulSoup, cemetery=None, max_results=0
-    ) -> List[Memorial]:
+    ) -> List["MemorialSummary"]:
         divs = page_soup.find_all("div", role="group")
-        results: List[Memorial] = []
+        results: List[MemorialSummary] = []
 
         for div in divs:
             # mem = {}
@@ -1070,19 +1123,14 @@ class _SearchWorker:
                 "suffix": None,
                 "nickname": None,
                 "maiden_name": None,
-                "original_name": None,
                 "famous": None,
                 "veteran": None,
                 "birth": None,
-                "birth_place": None,
                 "death": None,
-                "death_place": None,
                 "memorial_type": None,
                 "burial_place": None,
                 "cemetery_id": None,
                 "plot": None,
-                "coords": None,
-                "has_bio": None,
             }
 
             self.scrape_memorial_url(div, mem)
@@ -1095,7 +1143,7 @@ class _SearchWorker:
             self.scrape_memorial_veteran(mem_item_info, mem)
             mem_cem_info = div.find("div", {"class": "memorial-item---cemet"})
             self.scrape_memorial_cemetery_info(mem_cem_info, mem)
-            results.append(Memorial.from_dict(mem))
+            results.append(MemorialSummary.from_dict(mem))
             if 0 < max_results == len(results):
                 break
 
@@ -1112,59 +1160,12 @@ class ResultSet(list):
 
 
 @dataclass(frozen=True)
-class MemorialSummary:
-    """Class for keeping track of a Find A Grave memorial."""
-
-    memorial_id: int
-    findagrave_url: str
-    prefix: str
-    name: str
-    suffix: str
-    nickname: str
-    maiden_name: str
-    original_name: str
-    famous: bool
-    veteran: bool
-    birth: str
-    birth_place: str
-    death: str
-    death_place: str
-    memorial_type: str
-    burial_place: str
-    cemetery_id: int
-    plot: str
-    coords: str
-    has_bio: bool
-
-    def __eq__(self, other):
-        if self.__class__ != other.__class__:
-            return False
-        return (
-            self.memorial_id == other.memorial_id
-            and self.findagrave_url == other.findagrave_url
-            and self.prefix == other.prefix
-            and self.name == other.name
-            and self.suffix == other.suffix
-            and self.nickname == other.nickname
-            and self.maiden_name == other.maiden_name
-            and self.original_name == other.original_name
-            and self.famous == other.famous
-            and self.veteran == other.veteran
-            and self.birth == other.birth
-            and self.birth_place == other.birth_place
-            and self.death == other.death
-            and self.death_place == other.death_place
-            and self.memorial_type == other.memorial_type
-            and self.burial_place == other.burial_place
-            and self.cemetery_id == other.cemetery_id
-            and self.plot == other.plot
-            and self.coords == other.coords
-            and self.has_bio == other.has_bio
-        )
+class MemorialSummary(_MemorialSummaryFields):
+    """Partial memorial data parsed from a search result."""
 
     @classmethod
     def from_dict(cls, d):
-        return cls(**d)
+        return cls(**{name: d[name] for name in SUMMARY_FIELDS})
 
     def to_dict(self):
         d = asdict(self)
@@ -1172,3 +1173,7 @@ class MemorialSummary:
 
     def to_json(self, **kwargs):
         return json.dumps(self.to_dict(), ensure_ascii=False, **kwargs)
+
+    def save(self) -> "MemorialSummary":
+        _save_grave(self.__dict__, SUMMARY_FIELDS, "summary", "summary_fetched_at")
+        return self

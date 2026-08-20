@@ -19,6 +19,7 @@ from graver import (
     MemorialMergedException,
     MemorialParseException,
     MemorialRemovedException,
+    MemorialSummary,
 )
 from tests.test import Test
 
@@ -396,10 +397,11 @@ class TestCemetery(TestApi):
 
 
 class TestDatabaseOps(TestApi):
-    def test_create_table_migrates_date_added_column(self, tmp_path):
+    def test_create_table_migrates_additive_columns(self, tmp_path):
         database_name = tmp_path / "legacy.db"
         with sqlite3.connect(database_name) as connection:
             connection.execute("CREATE TABLE graves (memorial_id INTEGER PRIMARY KEY)")
+            connection.execute("INSERT INTO graves (memorial_id) VALUES (123)")
 
         Memorial.create_table(str(database_name))
 
@@ -408,7 +410,126 @@ class TestDatabaseOps(TestApi):
                 row[1]
                 for row in connection.execute("PRAGMA table_info(graves)").fetchall()
             }
-        assert "date_added" in columns
+            row = connection.execute(
+                "SELECT memorial_id, detail_level, summary_fetched_at, "
+                "full_fetched_at FROM graves"
+            ).fetchone()
+        assert {
+            "date_added",
+            "detail_level",
+            "summary_fetched_at",
+            "full_fetched_at",
+        } <= columns
+        assert row == (123, None, None, None)
+
+    @staticmethod
+    def summary(fixture_name="andrew-jackson", **updates):
+        values = Test.load_memorial_from_json(fixture_name)
+        values.update(updates)
+        return MemorialSummary.from_dict(values)
+
+    @staticmethod
+    def full(fixture_name="andrew-jackson", **updates):
+        values = Test.load_memorial_from_json(fixture_name)
+        values.update(updates)
+        return Memorial.from_dict(values)
+
+    def test_new_summary_records_detail_level_and_timestamp(self, database):
+        summary = self.summary().save()
+
+        with sqlite3.connect(database.name) as connection:
+            row = connection.execute(
+                "SELECT detail_level, summary_fetched_at, full_fetched_at "
+                "FROM graves WHERE memorial_id = ?",
+                (summary.memorial_id,),
+            ).fetchone()
+        assert row[0] == "summary"
+        assert row[1].endswith("Z")
+        assert row[2] is None
+
+    def test_full_save_upgrades_summary_and_preserves_timestamp(
+        self, database, monkeypatch
+    ):
+        timestamps = iter(
+            ["2026-01-01T00:00:00.000000Z", "2026-01-02T00:00:00.000000Z"]
+        )
+        monkeypatch.setattr(graver.api, "_utc_now_iso", lambda: next(timestamps))
+        summary = self.summary()
+
+        summary.save()
+        self.full().save()
+
+        with sqlite3.connect(database.name) as connection:
+            row = connection.execute(
+                "SELECT detail_level, summary_fetched_at, full_fetched_at "
+                "FROM graves WHERE memorial_id = ?",
+                (summary.memorial_id,),
+            ).fetchone()
+        assert row == (
+            "full",
+            "2026-01-01T00:00:00.000000Z",
+            "2026-01-02T00:00:00.000000Z",
+        )
+
+    def test_summary_does_not_downgrade_or_clear_full_fields(
+        self, database, monkeypatch
+    ):
+        timestamps = iter(["full-time", "summary-time"])
+        monkeypatch.setattr(graver.api, "_utc_now_iso", lambda: next(timestamps))
+        full = self.full(original_name="full original", coords="1.0,2.0")
+        full.save()
+
+        self.summary(name="refreshed summary").save()
+
+        with sqlite3.connect(database.name) as connection:
+            row = connection.execute(
+                "SELECT detail_level, name, original_name, coords, "
+                "summary_fetched_at, full_fetched_at FROM graves "
+                "WHERE memorial_id = ?",
+                (full.memorial_id,),
+            ).fetchone()
+        assert row == (
+            "full",
+            "refreshed summary",
+            "full original",
+            "1.0,2.0",
+            "summary-time",
+            "full-time",
+        )
+
+    def test_repeated_summary_refreshes_fields_and_timestamp(
+        self, database, monkeypatch
+    ):
+        timestamps = iter(["summary-one", "summary-two"])
+        monkeypatch.setattr(graver.api, "_utc_now_iso", lambda: next(timestamps))
+        self.summary(name="old summary").save()
+
+        summary = self.summary(name="new summary", plot="new plot").save()
+
+        with sqlite3.connect(database.name) as connection:
+            row = connection.execute(
+                "SELECT name, plot, detail_level, summary_fetched_at "
+                "FROM graves WHERE memorial_id = ?",
+                (summary.memorial_id,),
+            ).fetchone()
+        assert row == ("new summary", "new plot", "summary", "summary-two")
+
+    def test_repeated_full_save_refreshes_complete_fields_and_timestamp(
+        self, database, monkeypatch
+    ):
+        timestamps = iter(["full-one", "full-two"])
+        monkeypatch.setattr(graver.api, "_utc_now_iso", lambda: next(timestamps))
+        self.full(original_name="old original", coords="1.0,2.0").save()
+
+        full = self.full(original_name=None, coords=None).save()
+
+        with sqlite3.connect(database.name) as connection:
+            row = connection.execute(
+                "SELECT original_name, coords, detail_level, full_fetched_at "
+                "FROM graves WHERE memorial_id = ?",
+                (full.memorial_id,),
+            ).fetchone()
+        assert row == (None, None, "full", "full-two")
 
     @pytest.mark.parametrize("name", TestApi.memorials)
     def test_memorial_save(self, name: str, database):
@@ -535,6 +656,7 @@ class TestSearch(TestApi):
         assert results is not None
         assert len(results) == 1
         for result in results:
+            assert isinstance(result, MemorialSummary)
             assert first_name in result.name
             assert middle_name in result.name
             assert last_name in result.name
@@ -691,7 +813,7 @@ class TestSearch(TestApi):
         )
         assert len(results) >= 1
         assert (m := results[0]) is not None
-        assert isinstance(m, Memorial)
+        assert isinstance(m, MemorialSummary)
         assert m.memorial_id == person["memorial_id"]
         assert first in m.name
         if middle != "":
@@ -737,7 +859,7 @@ class TestSearch(TestApi):
         rs = Memorial.search(cem, firstname="Adrian", lastname="Williams")
         assert len(rs) == 1
         m = rs[0]
-        assert isinstance(m, Memorial)
+        assert isinstance(m, MemorialSummary)
         assert m.memorial_type == "Monument"
 
     def test_search_cemetery_identifies_memorial_type_cenotaph(self, driver):
@@ -748,7 +870,7 @@ class TestSearch(TestApi):
         rs = Memorial.search(cem, firstname="Harold", lastname="Costill")
         assert len(rs) == 1
         m = rs[0]
-        assert isinstance(m, Memorial)
+        assert isinstance(m, MemorialSummary)
         assert m.memorial_type == "Cenotaph"
 
     @pytest.mark.parametrize(

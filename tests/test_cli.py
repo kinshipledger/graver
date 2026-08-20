@@ -8,7 +8,12 @@ from typing import Dict
 import pytest
 from click.testing import Result
 
-from graver import Memorial, MemorialMergedException, MemorialParseException
+from graver import (
+    Memorial,
+    MemorialMergedException,
+    MemorialParseException,
+    MemorialSummary,
+)
 from graver.constants import APP_NAME
 
 from .test import Test
@@ -294,7 +299,8 @@ class TestCliSearch(TestCli):
     def test_saves_results_to_specified_database(
         self, helpers, tmp_path, fake_memorial, monkeypatch
     ) -> None:
-        expected = fake_memorial()
+        expected = MemorialSummary.from_dict(fake_memorial().to_dict())
+        assert isinstance(expected, MemorialSummary)
         database = tmp_path / "search.db"
         monkeypatch.setattr(
             Memorial, "search", lambda *args, **kwargs: [expected]
@@ -305,10 +311,12 @@ class TestCliSearch(TestCli):
         assert result.exit_code == 0
         with sqlite3.connect(database) as connection:
             row = connection.execute(
-                "SELECT memorial_id FROM graves WHERE memorial_id = ?",
+                "SELECT memorial_id, detail_level, summary_fetched_at "
+                "FROM graves WHERE memorial_id = ?",
                 (expected.memorial_id,),
             ).fetchone()
-        assert row == (expected.memorial_id,)
+        assert row[0:2] == (expected.memorial_id, "summary")
+        assert row[2].endswith("Z")
 
     def test_uses_specified_database(
         self, helpers, tmp_path, monkeypatch
