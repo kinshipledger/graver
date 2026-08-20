@@ -1,11 +1,12 @@
 import importlib.metadata
+import json
 import logging
 import os
 import re
 import sys
 from logging.handlers import RotatingFileHandler
 from time import sleep
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from urllib.parse import urlparse
 
 import typer
@@ -17,7 +18,14 @@ from graver import (
     Memorial,
     MemorialMergedException,
     MemorialParseException,
+    NotFound,
+    ResearchTaskNotFound,
+    list_research_tasks,
     queue_memorials as queue_memorials_in_database,
+    record_failed_task_scrape,
+    save_completed_task_scrape,
+    show_research_task,
+    update_research_task,
 )
 from graver.constants import (
     APP_NAME,
@@ -229,7 +237,7 @@ def scrape_file(
             parse_and_save_memorial(url)
             scraped += 1
             pbar.set_postfix_str("")
-            sleep(request_interval_ms/1000)
+            sleep(request_interval_ms / 1000)
         except MemorialParseException as ex:
             log.error(ex)
             failed_urls.append(url)
@@ -273,6 +281,141 @@ def queue_memorials(
         db, cemetery_id=cemetery_id, priority=priority
     )
     typer.echo(f"Created {created} research tasks; {existing} already present.")
+
+
+def _json_output(value) -> None:
+    typer.echo(json.dumps(value, ensure_ascii=False, sort_keys=True))
+
+
+@app.command("list-tasks")
+def list_tasks(
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Database containing research tasks"
+    ),
+    status: Optional[str] = typer.Option(None, "--status"),
+    cemetery_id: Optional[int] = typer.Option(None, "--cemetery-id"),
+    limit: int = typer.Option(20, "--limit", min=1),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """List queued memorial research tasks without making network requests."""
+    try:
+        tasks = list_research_tasks(db, status, cemetery_id, limit)
+    except ValueError as ex:
+        raise typer.BadParameter(str(ex))
+    if json_output:
+        _json_output(tasks)
+        return
+    for task in tasks:
+        typer.echo(
+            "{memorial_id} | {name} | {birth}–{death} | cemetery {cemetery_id} | "
+            "{detail_level} | {status} | priority {priority} | {owner} | "
+            "{last_activity_at}".format(
+                **{
+                    key: ("-" if value is None else value)
+                    for key, value in task.items()
+                }
+            )
+        )
+
+
+@app.command("show-task")
+def show_task(
+    memorial_id: int,
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Database containing the research task"
+    ),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """Show one task, its current source record, and observation history."""
+    try:
+        result = show_research_task(db, memorial_id)
+    except (NotFound, ResearchTaskNotFound) as ex:
+        typer.echo(str(ex), err=True)
+        raise typer.Exit(1)
+    if json_output:
+        _json_output(result)
+        return
+    task = result["task"]
+    grave = result["grave"]
+    typer.echo(
+        f"Task {memorial_id}: {task['status']} (priority {task['priority']}, "
+        f"owner {task['owner'] or '-'})"
+    )
+    typer.echo(
+        f"Memorial: {grave['name'] or '-'} | {grave['birth'] or '-'}–"
+        f"{grave['death'] or '-'} | cemetery {grave['cemetery_id'] or '-'} | "
+        f"{grave['detail_level'] or '-'}"
+    )
+    if result["cemetery"] is not None:
+        cemetery = result["cemetery"]
+        typer.echo(
+            f"Cemetery: {cemetery['name'] or '-'} | "
+            f"{cemetery['location'] or '-'} | {cemetery['url'] or '-'}"
+        )
+    typer.echo(f"Observations: {len(result['observations'])}")
+    for observation in result["observations"]:
+        typer.echo(
+            f"  {observation['observed_at']} | {observation['acquisition_level']} | "
+            f"{observation['fetch_outcome']} | {observation['parser_version']} | "
+            f"{json.dumps(observation['payload'], ensure_ascii=False, sort_keys=True)}"
+        )
+
+
+@app.command("update-task")
+def update_task(
+    memorial_id: int,
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Database containing the research task"
+    ),
+    status: Optional[str] = typer.Option(None, "--status"),
+    priority: Optional[int] = typer.Option(None, "--priority"),
+    owner: Optional[str] = typer.Option(None, "--owner"),
+    review_note: Optional[str] = typer.Option(None, "--review-note"),
+):
+    """Explicitly update selected fields on one research task."""
+    try:
+        task = update_research_task(
+            db, memorial_id, status, priority, owner, review_note
+        )
+    except ValueError as ex:
+        typer.echo(str(ex), err=True)
+        raise typer.Exit(2)
+    except ResearchTaskNotFound as ex:
+        typer.echo(str(ex), err=True)
+        raise typer.Exit(1)
+    _json_output(task)
+
+
+@app.command("scrape-task")
+def scrape_task(
+    memorial_id: int,
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Database containing the approved task"
+    ),
+):
+    """Scrape exactly one task already approved for full-page enrichment."""
+    try:
+        current = show_research_task(db, memorial_id)
+    except (NotFound, ResearchTaskNotFound) as ex:
+        typer.echo(str(ex), err=True)
+        raise typer.Exit(1)
+    if current["task"]["status"] != "ready_for_full_scrape":
+        typer.echo(f"Task {memorial_id} is not ready_for_full_scrape", err=True)
+        raise typer.Exit(1)
+    attempted_url = current["grave"]["findagrave_url"] or (
+        MEMORIAL_CANONICAL_URL_FORMAT.format(memorial_id)
+    )
+    try:
+        try:
+            memorial = Memorial.parse(attempted_url)
+        except MemorialMergedException as merged:
+            memorial = Memorial.parse(merged.new_url)
+        result = save_completed_task_scrape(db, memorial_id, memorial)
+    except Exception as ex:
+        record_failed_task_scrape(db, memorial_id, attempted_url, ex)
+        typer.echo(f"Full scrape failed for memorial {memorial_id}: {ex}", err=True)
+        raise typer.Exit(1)
+    _json_output(result)
 
 
 def gpsfilter_callback(value: str):

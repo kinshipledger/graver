@@ -68,6 +68,23 @@ uv run graver scrape-file <input-file>
 ```
 The memorial data will be saved in a SQL database (default: `graves.db`), where it can be viewed with any SQLite viewer, or exported to CSV. 
 
+### Research tasks
+
+Queue existing memorials, inspect them, and explicitly approve one memorial at a
+time for full-page enrichment:
+
+```shell
+uv run graver queue-memorials --db graves.db --cemetery-id 2181249
+uv run graver list-tasks --db graves.db --status unprocessed
+uv run graver show-task MEMORIAL_ID --db graves.db
+uv run graver update-task MEMORIAL_ID --db graves.db --status ready_for_full_scrape
+uv run graver scrape-task MEMORIAL_ID --db graves.db
+```
+
+`scrape-task` accepts exactly one memorial and only proceeds when its durable
+task is in `ready_for_full_scrape`. Listing, showing, updating, and queueing tasks
+make no network requests.
+
 ### Exporting
 Future versions of `graver` will support direct export to CSV from the CLI, but for now, you can use SQLite3 to execute these commands, which will output the contents of `graves.db` to `graves.csv`:
 ```shell

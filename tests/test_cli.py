@@ -1,4 +1,5 @@
 import importlib.metadata
+import json
 import logging
 import os
 import random
@@ -8,6 +9,7 @@ from typing import Dict
 import pytest
 from click.testing import Result
 
+import graver.api
 from graver import (
     Memorial,
     MemorialMergedException,
@@ -330,6 +332,163 @@ class TestCliQueueMemorials(TestCli):
         assert "Created 0 research tasks; 2 already present." in repeated.output
 
 
+class TestCliResearchTasks(Test):
+    @staticmethod
+    def summary(fixture_name="andrew-jackson", **updates):
+        values = Test.load_memorial_from_json(fixture_name)
+        values.update(updates)
+        return MemorialSummary.from_dict(values)
+
+    @staticmethod
+    def full(fixture_name="andrew-jackson", **updates):
+        values = Test.load_memorial_from_json(fixture_name)
+        values.update(updates)
+        return Memorial.from_dict(values)
+
+    def test_list_show_and_update_json_are_stable_and_network_free(
+        self, helpers, database, monkeypatch
+    ):
+        summary = self.summary()
+        summary.save()
+        graver.api.queue_memorials(database.name, priority=3)
+
+        def fail_network(*args, **kwargs):
+            raise AssertionError("research task inspection must not use the network")
+
+        monkeypatch.setattr("graver.api.Driver.get", fail_network)
+        listed = helpers.graver_cli(
+            f"list-tasks --db '{database.name}' --status unprocessed "
+            f"--cemetery-id {summary.cemetery_id} --json"
+        )
+        shown = helpers.graver_cli(
+            f"show-task {summary.memorial_id} --db '{database.name}' --json"
+        )
+        updated = helpers.graver_cli(
+            f"update-task {summary.memorial_id} --db '{database.name}' "
+            "--status researching --owner researcher"
+        )
+
+        assert listed.exit_code == shown.exit_code == updated.exit_code == 0
+        assert json.loads(listed.output)[0]["memorial_id"] == summary.memorial_id
+        assert (
+            listed.output
+            == json.dumps(json.loads(listed.output), ensure_ascii=False, sort_keys=True)
+            + "\n"
+        )
+        assert (
+            json.loads(shown.output)["observations"][0]["payload"] == summary.to_dict()
+        )
+        assert json.loads(updated.output)["status"] == "researching"
+
+    def test_missing_memorial_and_missing_task_exit_nonzero(self, helpers, database):
+        missing_memorial = helpers.graver_cli(f"show-task 999 --db '{database.name}'")
+        with sqlite3.connect(database.name) as connection:
+            connection.execute("INSERT INTO graves (memorial_id) VALUES (999)")
+        missing_task = helpers.graver_cli(f"show-task 999 --db '{database.name}'")
+
+        assert missing_memorial.exit_code != 0
+        assert "Memorial 999 does not exist" in missing_memorial.output
+        assert missing_task.exit_code != 0
+        assert "Research task 999 does not exist" in missing_task.output
+
+    @pytest.mark.parametrize(
+        "task_exists, status", [(False, None), (True, "researching")]
+    )
+    def test_scrape_task_preconditions_make_no_request(
+        self, helpers, database, monkeypatch, task_exists, status
+    ):
+        summary = self.summary()
+        summary.save()
+        if task_exists:
+            graver.api.queue_memorials(database.name)
+            graver.api.update_research_task(
+                database.name, summary.memorial_id, status=status
+            )
+        calls = []
+        monkeypatch.setattr(
+            Memorial, "parse", lambda *args, **kwargs: calls.append(args)
+        )
+
+        result = helpers.graver_cli(
+            f"scrape-task {summary.memorial_id} --db '{database.name}'"
+        )
+
+        assert result.exit_code != 0
+        assert calls == []
+
+    def test_scrape_task_success_processes_only_selected_task(
+        self, helpers, database, monkeypatch
+    ):
+        selected = self.summary()
+        other = self.summary("carl-sagan")
+        selected.save()
+        other.save()
+        graver.api.queue_memorials(database.name)
+        graver.api.update_research_task(
+            database.name,
+            selected.memorial_id,
+            status="ready_for_full_scrape",
+            priority=7,
+            owner="owner",
+            review_note="keep",
+        )
+        calls = []
+
+        def parse(url):
+            calls.append(url)
+            return self.full()
+
+        monkeypatch.setattr(Memorial, "parse", parse)
+
+        result = helpers.graver_cli(
+            f"scrape-task {selected.memorial_id} --db '{database.name}'"
+        )
+
+        assert result.exit_code == 0
+        assert calls == [selected.findagrave_url]
+        shown = graver.api.show_research_task(database.name, selected.memorial_id)
+        other_task = graver.api.show_research_task(database.name, other.memorial_id)
+        assert shown["task"]["status"] == "full_scrape_complete"
+        assert shown["task"]["priority"] == 7
+        assert shown["task"]["owner"] == "owner"
+        assert shown["task"]["review_note"] == "keep"
+        assert shown["observations"][-1]["acquisition_level"] == "full"
+        assert other_task["task"]["status"] == "unprocessed"
+
+    def test_scrape_task_failure_preserves_record_and_human_task_fields(
+        self, helpers, database, monkeypatch
+    ):
+        summary = self.summary(name="preserved name")
+        summary.save()
+        graver.api.queue_memorials(database.name)
+        graver.api.update_research_task(
+            database.name,
+            summary.memorial_id,
+            status="ready_for_full_scrape",
+            priority=4,
+            owner="owner",
+            review_note="human note",
+        )
+
+        def fail_parse(url):
+            raise MemorialParseException("mocked parse failure")
+
+        monkeypatch.setattr(Memorial, "parse", fail_parse)
+
+        result = helpers.graver_cli(
+            f"scrape-task {summary.memorial_id} --db '{database.name}'"
+        )
+
+        assert result.exit_code != 0
+        shown = graver.api.show_research_task(database.name, summary.memorial_id)
+        assert shown["grave"]["name"] == "preserved name"
+        assert shown["task"]["status"] == "ready_for_full_scrape"
+        assert shown["task"]["priority"] == 4
+        assert shown["task"]["owner"] == "owner"
+        assert shown["task"]["review_note"] == "human note"
+        assert shown["observations"][-1]["fetch_outcome"] == "failure"
+
+
 class TestCliSearch(TestCli):
     def test_saves_results_to_specified_database(
         self, helpers, tmp_path, fake_memorial, monkeypatch
@@ -337,9 +496,7 @@ class TestCliSearch(TestCli):
         expected = MemorialSummary.from_dict(fake_memorial().to_dict())
         assert isinstance(expected, MemorialSummary)
         database = tmp_path / "search.db"
-        monkeypatch.setattr(
-            Memorial, "search", lambda *args, **kwargs: [expected]
-        )
+        monkeypatch.setattr(Memorial, "search", lambda *args, **kwargs: [expected])
 
         result = helpers.graver_cli(f"search --db '{database}'")
 
@@ -353,9 +510,7 @@ class TestCliSearch(TestCli):
         assert row[0:2] == (expected.memorial_id, "summary")
         assert row[2].endswith("Z")
 
-    def test_uses_specified_database(
-        self, helpers, tmp_path, monkeypatch
-    ) -> None:
+    def test_uses_specified_database(self, helpers, tmp_path, monkeypatch) -> None:
         database = tmp_path / "search.db"
         created_databases = []
 
@@ -414,6 +569,7 @@ class TestCliSearch(TestCli):
             )
 
         monkeypatch.setattr(Memorial, "search", mock_search)
+
         class FakeCemetery:
             def save(self, database_name):
                 return self

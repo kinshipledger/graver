@@ -13,7 +13,15 @@ from graver.api import (
     MemorialMergedException,
     MemorialParseException,
     MemorialRemovedException,
+    NotFound,
+    RESEARCH_TASK_STATUSES,
+    ResearchTaskNotFound,
+    list_research_tasks,
     queue_memorials,
+    record_failed_task_scrape,
+    save_completed_task_scrape,
+    show_research_task,
+    update_research_task,
 )
 
 from .constants import *  # noqa
@@ -28,7 +36,15 @@ __all__ = (
     "MemorialMergedException",
     "MemorialParseException",
     "MemorialRemovedException",
+    "NotFound",
+    "RESEARCH_TASK_STATUSES",
+    "ResearchTaskNotFound",
+    "list_research_tasks",
     "queue_memorials",
+    "record_failed_task_scrape",
+    "save_completed_task_scrape",
+    "show_research_task",
+    "update_research_task",
 )
 
 import logging

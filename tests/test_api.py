@@ -20,7 +20,13 @@ from graver import (
     MemorialParseException,
     MemorialRemovedException,
     MemorialSummary,
+    ResearchTaskNotFound,
+    list_research_tasks,
     queue_memorials,
+    record_failed_task_scrape,
+    save_completed_task_scrape,
+    show_research_task,
+    update_research_task,
 )
 from tests.test import Test
 
@@ -175,8 +181,8 @@ class TestMemorialParser(TestApi):
                 "https://www.findagrave.com/memorial/101010101/mary-e-smith-johnson",
             ),
             (
-                    "Ann-Marie Smitherson",
-                    "https://www.findagrave.com/memorial/101010101/ann-marie-smitherson",
+                "Ann-Marie Smitherson",
+                "https://www.findagrave.com/memorial/101010101/ann-marie-smitherson",
             ),
         ],
     )
@@ -450,9 +456,9 @@ class TestDatabaseOps(TestApi):
                     "SELECT name FROM sqlite_master WHERE type = 'trigger'"
                 )
             }
-            foreign_keys_enabled = connection.execute(
-                "PRAGMA foreign_keys"
-            ).fetchone()[0]
+            foreign_keys_enabled = connection.execute("PRAGMA foreign_keys").fetchone()[
+                0
+            ]
             observation_foreign_keys = {
                 row[2]
                 for row in connection.execute(
@@ -679,6 +685,181 @@ class TestDatabaseOps(TestApi):
             ).fetchone()
         assert task_count == 3
         assert after == preserved
+
+    def test_list_tasks_filters_orders_and_defaults_to_twenty(self, database):
+        with sqlite3.connect(database.name) as connection:
+            connection.executemany(
+                "INSERT INTO graves (memorial_id, name, cemetery_id) VALUES (?, ?, ?)",
+                [
+                    (number, f"Person {number}", 10 if number < 22 else 20)
+                    for number in range(1, 26)
+                ],
+            )
+        queue_memorials(database.name)
+        with sqlite3.connect(database.name) as connection:
+            connection.execute(
+                "UPDATE research_tasks SET status = 'researching' WHERE memorial_id = 1"
+            )
+            connection.execute(
+                "UPDATE research_tasks SET priority = 5, last_activity_at = 'later' WHERE memorial_id = 3"
+            )
+            connection.execute(
+                "UPDATE research_tasks SET priority = 5, last_activity_at = 'earlier' WHERE memorial_id = 2"
+            )
+
+        tasks = list_research_tasks(database.name)
+        filtered = list_research_tasks(
+            database.name, status="unprocessed", cemetery_id=20, limit=10
+        )
+
+        assert len(tasks) == 20
+        assert [task["memorial_id"] for task in tasks[:2]] == [2, 3]
+        assert [task["memorial_id"] for task in filtered] == [22, 23, 24, 25]
+        assert list(tasks[0]) == [
+            "memorial_id",
+            "name",
+            "birth",
+            "death",
+            "cemetery_id",
+            "detail_level",
+            "status",
+            "priority",
+            "owner",
+            "last_activity_at",
+        ]
+
+    def test_show_task_includes_cemetery_and_chronological_observations(
+        self, database, monkeypatch
+    ):
+        timestamps = iter(["second", "first", "queue"])
+        monkeypatch.setattr(graver.api, "_utc_now_iso", lambda: next(timestamps))
+        summary = self.summary()
+        summary.save()
+        self.summary(name="later acquisition").save()
+        queue_memorials(database.name)
+        cemetery = Cemetery.from_dict(
+            {
+                "cemetery_id": summary.cemetery_id,
+                "findagrave_url": "https://example.test/cemetery",
+                "name": "Observed cemetery",
+                "location": "A place",
+                "coords": "1,2",
+                "num_memorials": 1,
+            }
+        )
+        monkeypatch.setattr(graver.api, "_utc_now_iso", lambda: "third")
+        cemetery.save(database.name)
+
+        result = show_research_task(database.name, summary.memorial_id)
+
+        assert result["task"]["memorial_id"] == summary.memorial_id
+        assert result["grave"]["name"] == "later acquisition"
+        assert result["cemetery"]["name"] == "Observed cemetery"
+        assert [item["observed_at"] for item in result["observations"]] == [
+            "first",
+            "second",
+        ]
+        assert result["observations"][0]["payload"]["name"] == "later acquisition"
+
+    def test_show_task_distinguishes_missing_memorial_and_task(self, database):
+        with pytest.raises(graver.api.NotFound, match="Memorial 999"):
+            show_research_task(database.name, 999)
+        with sqlite3.connect(database.name) as connection:
+            connection.execute("INSERT INTO graves (memorial_id) VALUES (999)")
+        with pytest.raises(ResearchTaskNotFound, match="Research task 999"):
+            show_research_task(database.name, 999)
+
+    def test_partial_and_noop_task_updates(self, database, monkeypatch):
+        summary = self.summary()
+        summary.save()
+        queue_memorials(database.name, priority=7)
+        with sqlite3.connect(database.name) as connection:
+            connection.execute(
+                """UPDATE research_tasks SET owner = 'owner', review_note = 'keep',
+                   updated_at = 'old-update', last_activity_at = 'old-activity'"""
+            )
+        monkeypatch.setattr(graver.api, "_utc_now_iso", lambda: "new-time")
+
+        changed = update_research_task(
+            database.name, summary.memorial_id, status="researching"
+        )
+        noop = update_research_task(
+            database.name, summary.memorial_id, status="researching"
+        )
+
+        assert changed["priority"] == 7
+        assert changed["owner"] == "owner"
+        assert changed["review_note"] == "keep"
+        assert changed["updated_at"] == changed["last_activity_at"] == "new-time"
+        assert noop == changed
+        with pytest.raises(ValueError, match="Invalid task status"):
+            update_research_task(
+                database.name, summary.memorial_id, status="not-a-status"
+            )
+
+    def test_successful_task_scrape_is_atomic_and_preserves_task_fields(
+        self, database, monkeypatch
+    ):
+        summary = self.summary(name="summary name")
+        summary.save()
+        queue_memorials(database.name, priority=8)
+        with sqlite3.connect(database.name) as connection:
+            connection.execute(
+                """UPDATE research_tasks SET status = 'ready_for_full_scrape',
+                   owner = 'owner', review_note = 'note'"""
+            )
+        monkeypatch.setattr(graver.api, "_utc_now_iso", lambda: "full-time")
+
+        result = save_completed_task_scrape(
+            database.name, summary.memorial_id, self.full(name="full name")
+        )
+
+        shown = show_research_task(database.name, summary.memorial_id)
+        assert result == {
+            "memorial_id": summary.memorial_id,
+            "status": "full_scrape_complete",
+            "full_observed_at": "full-time",
+        }
+        assert shown["grave"]["name"] == "full name"
+        assert shown["task"]["status"] == "full_scrape_complete"
+        assert shown["task"]["priority"] == 8
+        assert shown["task"]["owner"] == "owner"
+        assert shown["task"]["review_note"] == "note"
+        assert shown["observations"][-1]["acquisition_level"] == "full"
+
+    def test_failed_task_scrape_records_observation_without_changing_grave(
+        self, database, monkeypatch
+    ):
+        summary = self.summary(name="preserved")
+        summary.save()
+        queue_memorials(database.name, priority=9)
+        with sqlite3.connect(database.name) as connection:
+            connection.execute(
+                """UPDATE research_tasks SET status = 'ready_for_full_scrape',
+                   owner = 'owner', review_note = 'human note'"""
+            )
+        monkeypatch.setattr(graver.api, "_utc_now_iso", lambda: "failure-time")
+
+        record_failed_task_scrape(
+            database.name,
+            summary.memorial_id,
+            summary.findagrave_url,
+            MemorialParseException("concise failure"),
+        )
+
+        shown = show_research_task(database.name, summary.memorial_id)
+        failure = shown["observations"][-1]
+        assert shown["grave"]["name"] == "preserved"
+        assert shown["task"]["status"] == "ready_for_full_scrape"
+        assert shown["task"]["priority"] == 9
+        assert shown["task"]["owner"] == "owner"
+        assert shown["task"]["review_note"] == "human note"
+        assert failure["fetch_outcome"] == "failure"
+        assert failure["payload"] == {
+            "attempted_url": summary.findagrave_url,
+            "exception_type": "MemorialParseException",
+            "error_message": "concise failure",
+        }
 
     def test_full_save_upgrades_summary_and_preserves_timestamp(
         self, database, monkeypatch

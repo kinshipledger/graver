@@ -49,6 +49,21 @@ class NotFound(MemorialException):
     pass
 
 
+class ResearchTaskNotFound(Exception):
+    pass
+
+
+RESEARCH_TASK_STATUSES = (
+    "unprocessed",
+    "researching",
+    "ready_for_full_scrape",
+    "full_scrape_complete",
+    "ready_for_review",
+    "completed",
+    "unable_to_resolve",
+)
+
+
 class Driver:
     recoverable_errors: Dict[int, str] = {
         408: "Request Timeout",
@@ -280,8 +295,10 @@ FULL_FIELDS = SUMMARY_FIELDS + FULL_ONLY_FIELDS
 
 
 def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="microseconds").replace(
-        "+00:00", "Z"
+    return (
+        datetime.now(timezone.utc)
+        .isoformat(timespec="microseconds")
+        .replace("+00:00", "Z")
     )
 
 
@@ -330,8 +347,7 @@ def _initialize_database(database_name="graves.db") -> None:
             )"""
         )
         grave_columns = {
-            row[1]
-            for row in connection.execute("PRAGMA table_info(graves)").fetchall()
+            row[1] for row in connection.execute("PRAGMA table_info(graves)").fetchall()
         }
         grave_migrations = {
             "cemetery_id": "INTEGER",
@@ -444,10 +460,13 @@ def _save_grave(
     data_fields: tuple,
     detail_level: str,
     fetched_at_column: str,
+    database_name: Optional[str] = None,
+    connection: Optional[sqlite3.Connection] = None,
+    timestamp: Optional[str] = None,
 ) -> None:
-    database_name = os.getenv("DATABASE_NAME", "graves.db")
+    database_name = database_name or os.getenv("DATABASE_NAME", "graves.db")
     _initialize_database(database_name)
-    timestamp = _utc_now_iso()
+    timestamp = timestamp or _utc_now_iso()
     parameters = {name: values[name] for name in data_fields}
     parameters.update(detail_level=detail_level, fetched_at=timestamp)
     insert_fields = data_fields + ("detail_level", fetched_at_column)
@@ -471,10 +490,11 @@ def _save_grave(
     payload = json.dumps(
         {name: values[name] for name in data_fields}, ensure_ascii=False
     )
-    with _connect(database_name) as connection:
-        connection.execute(sql, parameters)
+
+    def persist(active_connection: sqlite3.Connection) -> None:
+        active_connection.execute(sql, parameters)
         if values["cemetery_id"] is not None:
-            connection.execute(
+            active_connection.execute(
                 """INSERT INTO cemeteries (
                     cemetery_id, first_observed_at, last_observed_at
                 ) VALUES (?, ?, ?)
@@ -482,7 +502,7 @@ def _save_grave(
                     last_observed_at = excluded.last_observed_at""",
                 (values["cemetery_id"], timestamp, timestamp),
             )
-        connection.execute(
+        active_connection.execute(
             """INSERT INTO memorial_observations (
                 memorial_id, cemetery_id, acquisition_level, observed_at,
                 fetch_outcome, parser_version, payload_json
@@ -497,6 +517,12 @@ def _save_grave(
             ),
         )
 
+    if connection is not None:
+        persist(connection)
+    else:
+        with _connect(database_name) as active_connection:
+            persist(active_connection)
+
 
 def queue_memorials(
     database_name: str, cemetery_id: Optional[int] = None, priority: int = 0
@@ -504,9 +530,7 @@ def queue_memorials(
     _initialize_database(database_name)
     timestamp = _utc_now_iso()
     where_clause = (
-        "WHERE 1 = 1"
-        if cemetery_id is None
-        else "WHERE cemetery_id = :cemetery_id"
+        "WHERE 1 = 1" if cemetery_id is None else "WHERE cemetery_id = :cemetery_id"
     )
     parameters = {
         "cemetery_id": cemetery_id,
@@ -531,6 +555,225 @@ def queue_memorials(
         )
         created = cursor.rowcount
     return created, eligible - created
+
+
+def _row_to_dict(row: sqlite3.Row) -> dict:
+    return {key: row[key] for key in row.keys()}
+
+
+def list_research_tasks(
+    database_name: str,
+    status: Optional[str] = None,
+    cemetery_id: Optional[int] = None,
+    limit: int = 20,
+) -> list:
+    _initialize_database(database_name)
+    if status is not None and status not in RESEARCH_TASK_STATUSES:
+        raise ValueError(f"Invalid task status: {status}")
+    if limit < 1:
+        raise ValueError("Limit must be at least 1")
+    clauses = []
+    parameters = {"status": status, "cemetery_id": cemetery_id, "limit": limit}
+    if status is not None:
+        clauses.append("t.status = :status")
+    if cemetery_id is not None:
+        clauses.append("g.cemetery_id = :cemetery_id")
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    with _connect(database_name) as connection:
+        connection.row_factory = sqlite3.Row
+        rows = connection.execute(
+            f"""SELECT g.memorial_id, g.name, g.birth, g.death,
+                       g.cemetery_id, g.detail_level, t.status, t.priority,
+                       t.owner, t.last_activity_at
+                FROM research_tasks AS t
+                JOIN graves AS g ON g.memorial_id = t.memorial_id
+                {where}
+                ORDER BY t.priority DESC, t.last_activity_at ASC,
+                         g.memorial_id ASC
+                LIMIT :limit""",
+            parameters,
+        ).fetchall()
+    return [_row_to_dict(row) for row in rows]
+
+
+def show_research_task(database_name: str, memorial_id: int) -> dict:
+    _initialize_database(database_name)
+    with _connect(database_name) as connection:
+        connection.row_factory = sqlite3.Row
+        grave = connection.execute(
+            "SELECT * FROM graves WHERE memorial_id = ?", (memorial_id,)
+        ).fetchone()
+        if grave is None:
+            raise NotFound(f"Memorial {memorial_id} does not exist")
+        task = connection.execute(
+            "SELECT * FROM research_tasks WHERE memorial_id = ?", (memorial_id,)
+        ).fetchone()
+        if task is None:
+            raise ResearchTaskNotFound(f"Research task {memorial_id} does not exist")
+        cemetery = None
+        if grave["cemetery_id"] is not None:
+            cemetery = connection.execute(
+                "SELECT * FROM cemeteries WHERE cemetery_id = ?",
+                (grave["cemetery_id"],),
+            ).fetchone()
+        observations = connection.execute(
+            """SELECT observation_id, memorial_id, cemetery_id,
+                      acquisition_level, observed_at, fetch_outcome,
+                      parser_version, payload_json
+               FROM memorial_observations WHERE memorial_id = ?
+               ORDER BY observed_at ASC, observation_id ASC""",
+            (memorial_id,),
+        ).fetchall()
+    observation_dicts = []
+    for row in observations:
+        observation = _row_to_dict(row)
+        observation["payload"] = json.loads(observation.pop("payload_json"))
+        observation_dicts.append(observation)
+    return {
+        "task": _row_to_dict(task),
+        "grave": _row_to_dict(grave),
+        "cemetery": _row_to_dict(cemetery) if cemetery is not None else None,
+        "observations": observation_dicts,
+    }
+
+
+def update_research_task(
+    database_name: str,
+    memorial_id: int,
+    status: Optional[str] = None,
+    priority: Optional[int] = None,
+    owner: Optional[str] = None,
+    review_note: Optional[str] = None,
+) -> dict:
+    _initialize_database(database_name)
+    if status is not None and status not in RESEARCH_TASK_STATUSES:
+        raise ValueError(f"Invalid task status: {status}")
+    requested = {
+        key: value
+        for key, value in {
+            "status": status,
+            "priority": priority,
+            "owner": owner,
+            "review_note": review_note,
+        }.items()
+        if value is not None
+    }
+    if not requested:
+        raise ValueError("At least one task change is required")
+    with _connect(database_name) as connection:
+        connection.row_factory = sqlite3.Row
+        current = connection.execute(
+            "SELECT * FROM research_tasks WHERE memorial_id = ?", (memorial_id,)
+        ).fetchone()
+        if current is None:
+            raise ResearchTaskNotFound(f"Research task {memorial_id} does not exist")
+        changed = {
+            key: value for key, value in requested.items() if current[key] != value
+        }
+        if changed:
+            timestamp = _utc_now_iso()
+            changed["updated_at"] = timestamp
+            if "status" in changed or "review_note" in changed:
+                changed["last_activity_at"] = timestamp
+            assignments = ", ".join(f"{key} = :{key}" for key in changed)
+            connection.execute(
+                f"UPDATE research_tasks SET {assignments} WHERE memorial_id = :memorial_id",
+                {**changed, "memorial_id": memorial_id},
+            )
+        result = connection.execute(
+            "SELECT * FROM research_tasks WHERE memorial_id = ?", (memorial_id,)
+        ).fetchone()
+    return _row_to_dict(result)
+
+
+def save_completed_task_scrape(
+    database_name: str, requested_memorial_id: int, memorial: "Memorial"
+) -> dict:
+    if memorial.memorial_id != requested_memorial_id:
+        raise ValueError(
+            f"Requested memorial {requested_memorial_id}, but parsed {memorial.memorial_id}"
+        )
+    _initialize_database(database_name)
+    timestamp = _utc_now_iso()
+    with _connect(database_name) as connection:
+        task = connection.execute(
+            "SELECT status FROM research_tasks WHERE memorial_id = ?",
+            (requested_memorial_id,),
+        ).fetchone()
+        if task is None:
+            raise ResearchTaskNotFound(
+                f"Research task {requested_memorial_id} does not exist"
+            )
+        if task[0] != "ready_for_full_scrape":
+            raise ValueError("Task is not ready for a full scrape")
+        memorial.save(
+            database_name=database_name, connection=connection, timestamp=timestamp
+        )
+        connection.execute(
+            """UPDATE research_tasks
+               SET status = 'full_scrape_complete', updated_at = ?,
+                   last_activity_at = ? WHERE memorial_id = ?""",
+            (timestamp, timestamp, requested_memorial_id),
+        )
+    return {
+        "memorial_id": requested_memorial_id,
+        "status": "full_scrape_complete",
+        "full_observed_at": timestamp,
+    }
+
+
+def record_failed_task_scrape(
+    database_name: str,
+    memorial_id: int,
+    attempted_url: str,
+    exception: Exception,
+) -> str:
+    _initialize_database(database_name)
+    timestamp = _utc_now_iso()
+    error_message = " ".join(str(exception).split())[:500]
+    payload = json.dumps(
+        {
+            "attempted_url": attempted_url,
+            "exception_type": type(exception).__name__,
+            "error_message": error_message,
+        },
+        ensure_ascii=False,
+    )
+    with _connect(database_name) as connection:
+        row = connection.execute(
+            """SELECT g.cemetery_id, t.status
+               FROM graves AS g JOIN research_tasks AS t
+                 ON t.memorial_id = g.memorial_id
+               WHERE g.memorial_id = ?""",
+            (memorial_id,),
+        ).fetchone()
+        if row is None:
+            raise ResearchTaskNotFound(f"Research task {memorial_id} does not exist")
+        cemetery_id, status = row
+        if status != "ready_for_full_scrape":
+            raise ValueError("Task is not ready for a full scrape")
+        if cemetery_id is not None:
+            connection.execute(
+                """INSERT INTO cemeteries (
+                       cemetery_id, first_observed_at, last_observed_at
+                   ) VALUES (?, ?, ?)
+                   ON CONFLICT(cemetery_id) DO UPDATE SET
+                       last_observed_at = excluded.last_observed_at""",
+                (cemetery_id, timestamp, timestamp),
+            )
+        connection.execute(
+            """INSERT INTO memorial_observations (
+                   memorial_id, cemetery_id, acquisition_level, observed_at,
+                   fetch_outcome, parser_version, payload_json
+               ) VALUES (?, ?, 'full', ?, 'failure', ?, ?)""",
+            (memorial_id, cemetery_id, timestamp, _package_version(), payload),
+        )
+        connection.execute(
+            """UPDATE research_tasks SET updated_at = ?, last_activity_at = ?
+               WHERE memorial_id = ?""",
+            (timestamp, timestamp, memorial_id),
+        )
+    return timestamp
 
 
 @dataclass(frozen=True)
@@ -611,8 +854,21 @@ class Memorial(_MemorialSummaryFields):
     def create_table(cls, database_name="graves.db"):
         _initialize_database(database_name)
 
-    def save(self) -> "Memorial":
-        _save_grave(self.__dict__, FULL_FIELDS, "full", "full_fetched_at")
+    def save(
+        self,
+        database_name: Optional[str] = None,
+        connection: Optional[sqlite3.Connection] = None,
+        timestamp: Optional[str] = None,
+    ) -> "Memorial":
+        _save_grave(
+            self.__dict__,
+            FULL_FIELDS,
+            "full",
+            "full_fetched_at",
+            database_name=database_name,
+            connection=connection,
+            timestamp=timestamp,
+        )
         return self
 
     @classmethod
@@ -788,7 +1044,9 @@ class _MemorialParser:
     def get_prefix_suffix(name: str, memorial_link: str):
         # simple name is derived from the final path component in a memorial link
         # e.g. /memorial/12345/john-q-smith (simple name is "john q smith")
-        log.debug(f"in get_prefix_suffix, name=[{name}] memorial_link=[{memorial_link}]")
+        log.debug(
+            f"in get_prefix_suffix, name=[{name}] memorial_link=[{memorial_link}]"
+        )
         prefix = None
         suffix = None
 
@@ -1208,9 +1466,7 @@ class _SearchWorker:
                 response = self.driver.get(self.search_url, params=self.params)
                 soup = BeautifulSoup(response.content, "html.parser")
 
-                results = self.scrape_results_page(
-                    soup, max_results=(count - len(rs))
-                )
+                results = self.scrape_results_page(soup, max_results=(count - len(rs)))
                 rs.extend(results)
                 progress.update(len(results))
 
