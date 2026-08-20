@@ -20,6 +20,7 @@ from graver import (
     MemorialParseException,
     MemorialRemovedException,
     MemorialSummary,
+    queue_memorials,
 )
 from tests.test import Test
 
@@ -401,7 +402,9 @@ class TestDatabaseOps(TestApi):
         database_name = tmp_path / "legacy.db"
         with sqlite3.connect(database_name) as connection:
             connection.execute("CREATE TABLE graves (memorial_id INTEGER PRIMARY KEY)")
-            connection.execute("INSERT INTO graves (memorial_id) VALUES (123)")
+            connection.executemany(
+                "INSERT INTO graves (memorial_id) VALUES (?)", [(123,), (456,), (789,)]
+            )
 
         Memorial.create_table(str(database_name))
 
@@ -411,8 +414,9 @@ class TestDatabaseOps(TestApi):
                 for row in connection.execute("PRAGMA table_info(graves)").fetchall()
             }
             row = connection.execute(
-                "SELECT memorial_id, detail_level, summary_fetched_at, "
-                "full_fetched_at FROM graves"
+                "SELECT COUNT(*), COUNT(DISTINCT memorial_id), "
+                "COUNT(detail_level), COUNT(summary_fetched_at), "
+                "COUNT(full_fetched_at) FROM graves"
             ).fetchone()
         assert {
             "date_added",
@@ -420,7 +424,116 @@ class TestDatabaseOps(TestApi):
             "summary_fetched_at",
             "full_fetched_at",
         } <= columns
-        assert row == (123, None, None, None)
+        assert row == (3, 3, 0, 0, 0)
+
+    def test_research_tables_indexes_constraints_and_foreign_keys(self, tmp_path):
+        database_name = tmp_path / "research.db"
+
+        Memorial.create_table(str(database_name))
+
+        with graver.api._connect(str(database_name)) as connection:
+            tables = {
+                row[0]
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table'"
+                )
+            }
+            indexes = {
+                row[0]
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'index'"
+                )
+            }
+            triggers = {
+                row[0]
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'trigger'"
+                )
+            }
+            foreign_keys_enabled = connection.execute(
+                "PRAGMA foreign_keys"
+            ).fetchone()[0]
+            observation_foreign_keys = {
+                row[2]
+                for row in connection.execute(
+                    "PRAGMA foreign_key_list(memorial_observations)"
+                ).fetchall()
+            }
+            cemetery_columns = {
+                row[1]
+                for row in connection.execute(
+                    "PRAGMA table_info(cemeteries)"
+                ).fetchall()
+            }
+            with pytest.raises(sqlite3.IntegrityError):
+                connection.execute(
+                    """INSERT INTO research_tasks (
+                        memorial_id, status, priority, created_at, updated_at,
+                        last_activity_at
+                    ) VALUES (999, 'unprocessed', 0, 'now', 'now', 'now')"""
+                )
+            connection.execute("INSERT INTO graves (memorial_id) VALUES (1)")
+            with pytest.raises(sqlite3.IntegrityError):
+                connection.execute(
+                    """INSERT INTO research_tasks (
+                        memorial_id, status, priority, created_at, updated_at,
+                        last_activity_at
+                    ) VALUES (1, 'invalid', 0, 'now', 'now', 'now')"""
+                )
+
+        assert {
+            "graves",
+            "cemeteries",
+            "memorial_observations",
+            "research_tasks",
+        } <= tables
+        assert {
+            "idx_graves_cemetery_id",
+            "idx_memorial_observations_memorial_id",
+            "idx_memorial_observations_cemetery_id",
+            "idx_research_tasks_status_priority",
+        } <= indexes
+        assert {
+            "memorial_observations_no_update",
+            "memorial_observations_no_delete",
+        } <= triggers
+        assert foreign_keys_enabled == 1
+        assert observation_foreign_keys == {"graves", "cemeteries"}
+        assert {
+            "cemetery_id",
+            "url",
+            "name",
+            "location",
+            "coords",
+            "first_observed_at",
+            "last_observed_at",
+        } <= cemetery_columns
+
+    def test_cemetery_save_preserves_first_observed_timestamp(
+        self, tmp_path, monkeypatch
+    ):
+        database_name = tmp_path / "cemetery.db"
+        timestamps = iter(["first", "last"])
+        monkeypatch.setattr(graver.api, "_utc_now_iso", lambda: next(timestamps))
+        cemetery = Cemetery.from_dict(
+            {
+                "cemetery_id": 10,
+                "findagrave_url": "https://www.findagrave.com/cemetery/10/example",
+                "name": "Original name",
+                "location": "Original location",
+                "coords": "1,2",
+                "num_memorials": 3,
+            }
+        )
+        cemetery.save(str(database_name))
+        cemetery.name = "Updated name"
+        cemetery.save(str(database_name))
+
+        with sqlite3.connect(database_name) as connection:
+            row = connection.execute(
+                "SELECT name, first_observed_at, last_observed_at FROM cemeteries"
+            ).fetchone()
+        assert row == ("Updated name", "first", "last")
 
     @staticmethod
     def summary(fixture_name="andrew-jackson", **updates):
@@ -443,9 +556,129 @@ class TestDatabaseOps(TestApi):
                 "FROM graves WHERE memorial_id = ?",
                 (summary.memorial_id,),
             ).fetchone()
+            observation = connection.execute(
+                """SELECT memorial_id, cemetery_id, acquisition_level,
+                          observed_at, fetch_outcome, parser_version, payload_json
+                   FROM memorial_observations"""
+            ).fetchone()
         assert row[0] == "summary"
         assert row[1].endswith("Z")
         assert row[2] is None
+        assert observation[0:3] == (
+            summary.memorial_id,
+            summary.cemetery_id,
+            "summary",
+        )
+        assert observation[3].endswith("Z")
+        assert observation[4] == "success"
+        assert observation[5]
+        assert json.loads(observation[6]) == summary.to_dict()
+        with sqlite3.connect(database.name) as connection:
+            cemetery = connection.execute(
+                """SELECT cemetery_id, url, name, first_observed_at,
+                          last_observed_at FROM cemeteries"""
+            ).fetchone()
+        assert cemetery[0:3] == (summary.cemetery_id, None, None)
+        assert cemetery[3] == cemetery[4] == observation[3]
+
+    def test_new_full_save_creates_full_observation(self, database):
+        full = self.full().save()
+
+        with sqlite3.connect(database.name) as connection:
+            observation = connection.execute(
+                """SELECT acquisition_level, payload_json
+                   FROM memorial_observations"""
+            ).fetchone()
+        assert observation[0] == "full"
+        assert json.loads(observation[1]) == full.to_dict()
+
+    def test_repeated_acquisitions_create_immutable_observations(self, database):
+        summary = self.summary(name="first observation")
+        summary.save()
+        self.summary(name="second observation").save()
+
+        with sqlite3.connect(database.name) as connection:
+            observations = connection.execute(
+                """SELECT observation_id, payload_json
+                   FROM memorial_observations ORDER BY observation_id"""
+            ).fetchall()
+        assert len(observations) == 2
+        assert observations[0][0] != observations[1][0]
+        assert json.loads(observations[0][1])["name"] == "first observation"
+        assert json.loads(observations[1][1])["name"] == "second observation"
+        with sqlite3.connect(database.name) as connection:
+            with pytest.raises(
+                sqlite3.IntegrityError, match="memorial observations are immutable"
+            ):
+                connection.execute(
+                    "UPDATE memorial_observations SET fetch_outcome = 'changed'"
+                )
+            with pytest.raises(
+                sqlite3.IntegrityError, match="memorial observations are immutable"
+            ):
+                connection.execute("DELETE FROM memorial_observations")
+
+    def test_observation_failure_rolls_back_grave_upsert(self, database):
+        summary = self.summary(name="preserved name")
+        summary.save()
+        with sqlite3.connect(database.name) as connection:
+            connection.execute(
+                """CREATE TRIGGER fail_observation
+                   BEFORE INSERT ON memorial_observations
+                   BEGIN
+                       SELECT RAISE(FAIL, 'observation failed');
+                   END"""
+            )
+
+        with pytest.raises(sqlite3.IntegrityError, match="observation failed"):
+            self.summary(name="rolled back name").save()
+
+        with sqlite3.connect(database.name) as connection:
+            grave_name = connection.execute(
+                "SELECT name FROM graves WHERE memorial_id = ?",
+                (summary.memorial_id,),
+            ).fetchone()[0]
+            observation_count = connection.execute(
+                "SELECT COUNT(*) FROM memorial_observations"
+            ).fetchone()[0]
+        assert grave_name == "preserved name"
+        assert observation_count == 1
+
+    def test_queueing_filters_and_is_idempotent(self, database):
+        summaries = [
+            self.summary(cemetery_id=10),
+            self.summary("carl-sagan", cemetery_id=10),
+            self.summary("george-washington", cemetery_id=20),
+        ]
+        for summary in summaries:
+            summary.save()
+
+        assert queue_memorials(database.name, cemetery_id=10, priority=7) == (2, 0)
+        with sqlite3.connect(database.name) as connection:
+            connection.execute(
+                """UPDATE research_tasks SET status = 'researching', owner = 'owner',
+                   priority = 99, review_note = 'keep', updated_at = 'updated',
+                   last_activity_at = 'active' WHERE memorial_id = ?""",
+                (summaries[0].memorial_id,),
+            )
+            preserved = connection.execute(
+                "SELECT * FROM research_tasks WHERE memorial_id = ?",
+                (summaries[0].memorial_id,),
+            ).fetchone()
+
+        assert queue_memorials(database.name, cemetery_id=10, priority=1) == (0, 2)
+        assert queue_memorials(database.name, priority=3) == (1, 2)
+
+        with sqlite3.connect(database.name) as connection:
+            task_count = connection.execute(
+                "SELECT COUNT(*) FROM research_tasks"
+            ).fetchone()[0]
+            after = connection.execute(
+                "SELECT * FROM research_tasks WHERE memorial_id = ?",
+                (summaries[0].memorial_id,),
+            ).fetchone()
+        assert task_count == 3
+        assert after == preserved
 
     def test_full_save_upgrades_summary_and_preserves_timestamp(
         self, database, monkeypatch

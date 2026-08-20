@@ -17,6 +17,7 @@ from graver import (
     Memorial,
     MemorialMergedException,
     MemorialParseException,
+    queue_memorials as queue_memorials_in_database,
 )
 from graver.constants import (
     APP_NAME,
@@ -255,6 +256,23 @@ def scrape_url(
         log.error(ex)
         raise typer.Exit(1)
     log.info(m.to_json())
+
+
+@app.command()
+def queue_memorials(
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Database containing memorials to queue"
+    ),
+    cemetery_id: int = typer.Option(
+        None, "--cemetery-id", help="Only queue memorials from this cemetery"
+    ),
+    priority: int = typer.Option(0, "--priority", help="Priority for new tasks"),
+):
+    """Create durable research tasks for memorials already in the database."""
+    created, existing = queue_memorials_in_database(
+        db, cemetery_id=cemetery_id, priority=priority
+    )
+    typer.echo(f"Created {created} research tasks; {existing} already present.")
 
 
 def gpsfilter_callback(value: str):
@@ -508,6 +526,7 @@ def search(
     cem = None
     if cemetery_id is not None:
         cem = Cemetery(f"{FINDAGRAVE_BASE_URL}/cemetery/{cemetery_id}")
+        cem.save(db)
 
     results = Memorial.search(cem, **search_terms)
     log.debug(f"Num results = {len(results)}")

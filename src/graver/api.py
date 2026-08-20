@@ -1,3 +1,4 @@
+import importlib.metadata
 import json
 import logging
 import math
@@ -176,13 +177,35 @@ class Cemetery:
 
     @classmethod
     def create_table(cls, database_name="graves.db"):
-        conn = sqlite3.connect(database_name)
-        conn.execute(
-            """CREATE TABLE IF NOT EXISTS cemeteries
-            (cemetery_id INTEGER PRIMARY KEY, url TEXT,
-            name TEXT, location TEXT, coords TEXT, more_info BOOL)"""
-        )
-        conn.close()
+        _initialize_database(database_name)
+
+    def save(self, database_name=None) -> "Cemetery":
+        timestamp = _utc_now_iso()
+        database_name = database_name or os.getenv("DATABASE_NAME", "graves.db")
+        _initialize_database(database_name)
+        with _connect(database_name) as connection:
+            connection.execute(
+                """INSERT INTO cemeteries (
+                    cemetery_id, url, name, location, coords,
+                    first_observed_at, last_observed_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(cemetery_id) DO UPDATE SET
+                    url = excluded.url,
+                    name = excluded.name,
+                    location = excluded.location,
+                    coords = excluded.coords,
+                    last_observed_at = excluded.last_observed_at""",
+                (
+                    self.cemetery_id,
+                    self.findagrave_url,
+                    self.name,
+                    self.location,
+                    self.coords,
+                    timestamp,
+                    timestamp,
+                ),
+            )
+        return self
 
     def scrape_canonical_url(self):
         link = self.soup.find("link", rel=re.compile("canonical"))
@@ -262,14 +285,171 @@ def _utc_now_iso() -> str:
     )
 
 
+def _connect(database_name: str) -> sqlite3.Connection:
+    connection = sqlite3.connect(database_name)
+    connection.execute("PRAGMA foreign_keys = ON")
+    return connection
+
+
+def _package_version() -> str:
+    try:
+        return importlib.metadata.version("graver")
+    except importlib.metadata.PackageNotFoundError:  # pragma: no cover
+        return "unknown"
+
+
+def _initialize_database(database_name="graves.db") -> None:
+    with _connect(database_name) as connection:
+        connection.execute(
+            """CREATE TABLE IF NOT EXISTS graves
+            (
+                memorial_id INTEGER PRIMARY KEY,
+                findagrave_url TEXT,
+                prefix TEXT,
+                name TEXT,
+                suffix TEXT,
+                nickname TEXT,
+                maiden_name TEXT,
+                original_name TEXT,
+                famous BOOL,
+                veteran BOOL,
+                birth TEXT,
+                birth_place TEXT,
+                death TEXT,
+                death_place TEXT,
+                memorial_type TEXT,
+                cemetery_id INTEGER,
+                burial_place TEXT,
+                plot TEXT,
+                coords TEXT,
+                has_bio BOOL,
+                date_added TEXT,
+                detail_level TEXT CHECK (detail_level IN ('summary', 'full')),
+                summary_fetched_at TEXT,
+                full_fetched_at TEXT
+            )"""
+        )
+        grave_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(graves)").fetchall()
+        }
+        grave_migrations = {
+            "cemetery_id": "INTEGER",
+            "date_added": "TEXT",
+            "detail_level": "TEXT CHECK (detail_level IN ('summary', 'full'))",
+            "summary_fetched_at": "TEXT",
+            "full_fetched_at": "TEXT",
+        }
+        for column_name, column_type in grave_migrations.items():
+            if column_name not in grave_columns:
+                connection.execute(
+                    f"ALTER TABLE graves ADD COLUMN {column_name} {column_type}"
+                )
+
+        connection.execute(
+            """CREATE TABLE IF NOT EXISTS cemeteries
+            (
+                cemetery_id INTEGER PRIMARY KEY,
+                url TEXT,
+                name TEXT,
+                location TEXT,
+                coords TEXT,
+                first_observed_at TEXT,
+                last_observed_at TEXT
+            )"""
+        )
+        cemetery_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(cemeteries)").fetchall()
+        }
+        for column_name in ("first_observed_at", "last_observed_at"):
+            if column_name not in cemetery_columns:
+                connection.execute(
+                    f"ALTER TABLE cemeteries ADD COLUMN {column_name} TEXT"
+                )
+
+        connection.execute(
+            """CREATE TABLE IF NOT EXISTS memorial_observations
+            (
+                observation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                memorial_id INTEGER NOT NULL,
+                cemetery_id INTEGER,
+                acquisition_level TEXT NOT NULL
+                    CHECK (acquisition_level IN ('summary', 'full')),
+                observed_at TEXT NOT NULL,
+                fetch_outcome TEXT NOT NULL,
+                parser_version TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                FOREIGN KEY (memorial_id) REFERENCES graves(memorial_id),
+                FOREIGN KEY (cemetery_id) REFERENCES cemeteries(cemetery_id)
+            )"""
+        )
+        connection.execute(
+            """CREATE TABLE IF NOT EXISTS research_tasks
+            (
+                memorial_id INTEGER PRIMARY KEY,
+                status TEXT NOT NULL DEFAULT 'unprocessed' CHECK (status IN (
+                    'unprocessed',
+                    'researching',
+                    'ready_for_full_scrape',
+                    'full_scrape_complete',
+                    'ready_for_review',
+                    'completed',
+                    'unable_to_resolve'
+                )),
+                priority INTEGER NOT NULL DEFAULT 0
+                    CHECK (typeof(priority) = 'integer'),
+                owner TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                last_activity_at TEXT NOT NULL,
+                review_note TEXT,
+                FOREIGN KEY (memorial_id) REFERENCES graves(memorial_id)
+            )"""
+        )
+        connection.execute(
+            """CREATE TRIGGER IF NOT EXISTS memorial_observations_no_update
+            BEFORE UPDATE ON memorial_observations
+            BEGIN
+                SELECT RAISE(ABORT, 'memorial observations are immutable');
+            END"""
+        )
+        connection.execute(
+            """CREATE TRIGGER IF NOT EXISTS memorial_observations_no_delete
+            BEFORE DELETE ON memorial_observations
+            BEGIN
+                SELECT RAISE(ABORT, 'memorial observations are immutable');
+            END"""
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_graves_cemetery_id "
+            "ON graves(cemetery_id)"
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_memorial_observations_memorial_id "
+            "ON memorial_observations(memorial_id)"
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_memorial_observations_cemetery_id "
+            "ON memorial_observations(cemetery_id)"
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_research_tasks_status_priority "
+            "ON research_tasks(status, priority DESC, created_at)"
+        )
+
+
 def _save_grave(
     values: dict,
     data_fields: tuple,
     detail_level: str,
     fetched_at_column: str,
 ) -> None:
+    database_name = os.getenv("DATABASE_NAME", "graves.db")
+    _initialize_database(database_name)
+    timestamp = _utc_now_iso()
     parameters = {name: values[name] for name in data_fields}
-    parameters.update(detail_level=detail_level, fetched_at=_utc_now_iso())
+    parameters.update(detail_level=detail_level, fetched_at=timestamp)
     insert_fields = data_fields + ("detail_level", fetched_at_column)
     placeholders = ", ".join(f":{name}" for name in data_fields)
     placeholders += ", :detail_level, :fetched_at"
@@ -288,8 +468,69 @@ def _save_grave(
         "ON CONFLICT(memorial_id) DO UPDATE SET "
         f"{', '.join(updates)}"
     )
-    with sqlite3.connect(os.getenv("DATABASE_NAME", "graves.db")) as connection:
+    payload = json.dumps(
+        {name: values[name] for name in data_fields}, ensure_ascii=False
+    )
+    with _connect(database_name) as connection:
         connection.execute(sql, parameters)
+        if values["cemetery_id"] is not None:
+            connection.execute(
+                """INSERT INTO cemeteries (
+                    cemetery_id, first_observed_at, last_observed_at
+                ) VALUES (?, ?, ?)
+                ON CONFLICT(cemetery_id) DO UPDATE SET
+                    last_observed_at = excluded.last_observed_at""",
+                (values["cemetery_id"], timestamp, timestamp),
+            )
+        connection.execute(
+            """INSERT INTO memorial_observations (
+                memorial_id, cemetery_id, acquisition_level, observed_at,
+                fetch_outcome, parser_version, payload_json
+            ) VALUES (?, ?, ?, ?, 'success', ?, ?)""",
+            (
+                values["memorial_id"],
+                values["cemetery_id"],
+                detail_level,
+                timestamp,
+                _package_version(),
+                payload,
+            ),
+        )
+
+
+def queue_memorials(
+    database_name: str, cemetery_id: Optional[int] = None, priority: int = 0
+) -> tuple:
+    _initialize_database(database_name)
+    timestamp = _utc_now_iso()
+    where_clause = (
+        "WHERE 1 = 1"
+        if cemetery_id is None
+        else "WHERE cemetery_id = :cemetery_id"
+    )
+    parameters = {
+        "cemetery_id": cemetery_id,
+        "priority": priority,
+        "timestamp": timestamp,
+    }
+    with _connect(database_name) as connection:
+        eligible = connection.execute(
+            f"SELECT COUNT(*) FROM graves {where_clause}", parameters
+        ).fetchone()[0]
+        cursor = connection.execute(
+            f"""INSERT INTO research_tasks (
+                memorial_id, status, priority, created_at, updated_at,
+                last_activity_at
+            )
+            SELECT memorial_id, 'unprocessed', :priority, :timestamp,
+                   :timestamp, :timestamp
+            FROM graves
+            {where_clause}
+            ON CONFLICT(memorial_id) DO NOTHING""",
+            parameters,
+        )
+        created = cursor.rowcount
+    return created, eligible - created
 
 
 @dataclass(frozen=True)
@@ -368,52 +609,7 @@ class Memorial(_MemorialSummaryFields):
 
     @classmethod
     def create_table(cls, database_name="graves.db"):
-        conn = sqlite3.connect(database_name)
-        conn.execute(
-            """CREATE TABLE IF NOT EXISTS graves
-            (
-                memorial_id INTEGER PRIMARY KEY,
-                findagrave_url TEXT,
-                prefix TEXT,
-                name TEXT,
-                suffix TEXT,
-                nickname TEXT,
-                maiden_name TEXT,
-                original_name TEXT,
-                famous BOOL,
-                veteran BOOL,
-                birth TEXT,
-                birth_place TEXT,
-                death TEXT,
-                death_place TEXT,
-                memorial_type TEXT,
-                cemetery_id INTEGER,
-                burial_place TEXT,
-                plot TEXT,
-                coords TEXT,
-                has_bio BOOL,
-                date_added TEXT,
-                detail_level TEXT CHECK (detail_level IN ('summary', 'full')),
-                summary_fetched_at TEXT,
-                full_fetched_at TEXT
-            )"""
-        )
-        columns = {
-            row[1] for row in conn.execute("PRAGMA table_info(graves)").fetchall()
-        }
-        migrations = {
-            "date_added": "TEXT",
-            "detail_level": "TEXT CHECK (detail_level IN ('summary', 'full'))",
-            "summary_fetched_at": "TEXT",
-            "full_fetched_at": "TEXT",
-        }
-        for column_name, column_type in migrations.items():
-            if column_name not in columns:
-                conn.execute(
-                    f"ALTER TABLE graves ADD COLUMN {column_name} {column_type}"
-                )
-        conn.commit()
-        conn.close()
+        _initialize_database(database_name)
 
     def save(self) -> "Memorial":
         _save_grave(self.__dict__, FULL_FIELDS, "full", "full_fetched_at")
@@ -426,7 +622,7 @@ class Memorial(_MemorialSummaryFields):
     @classmethod
     def get_by_id(cls, memorial_id: int):
         dbname = os.getenv("DATABASE_NAME", "graves.db")
-        con = sqlite3.connect(dbname)
+        con = _connect(dbname)
         con.row_factory = sqlite3.Row
 
         cur = con.cursor()

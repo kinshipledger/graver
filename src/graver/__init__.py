@@ -13,6 +13,7 @@ from graver.api import (
     MemorialMergedException,
     MemorialParseException,
     MemorialRemovedException,
+    queue_memorials,
 )
 
 from .constants import *  # noqa
@@ -27,6 +28,7 @@ __all__ = (
     "MemorialMergedException",
     "MemorialParseException",
     "MemorialRemovedException",
+    "queue_memorials",
 )
 
 import logging

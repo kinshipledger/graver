@@ -295,6 +295,41 @@ class TestCliScrapeUrl(TestCli):
         assert result.output == ""
 
 
+class TestCliQueueMemorials(TestCli):
+    def test_queues_without_network_requests(self, helpers, tmp_path, monkeypatch):
+        database = tmp_path / "queue.db"
+        Memorial.create_table(str(database))
+        with sqlite3.connect(database) as connection:
+            connection.executemany(
+                "INSERT INTO graves (memorial_id, cemetery_id) VALUES (?, ?)",
+                [(1, 10), (2, 10), (3, 20)],
+            )
+
+        def fail_network(*args, **kwargs):
+            raise AssertionError("queue-memorials must not use the network")
+
+        monkeypatch.setattr("graver.api.Driver.get", fail_network)
+
+        result = helpers.graver_cli(
+            f"queue-memorials --db '{database}' --cemetery-id 10 --priority 4"
+        )
+
+        assert result.exit_code == 0
+        assert "Created 2 research tasks; 0 already present." in result.output
+        with sqlite3.connect(database) as connection:
+            tasks = connection.execute(
+                "SELECT memorial_id, status, priority FROM research_tasks "
+                "ORDER BY memorial_id"
+            ).fetchall()
+        assert tasks == [(1, "unprocessed", 4), (2, "unprocessed", 4)]
+
+        repeated = helpers.graver_cli(
+            f"queue-memorials --db '{database}' --cemetery-id 10 --priority 1"
+        )
+        assert repeated.exit_code == 0
+        assert "Created 0 research tasks; 2 already present." in repeated.output
+
+
 class TestCliSearch(TestCli):
     def test_saves_results_to_specified_database(
         self, helpers, tmp_path, fake_memorial, monkeypatch
@@ -379,7 +414,11 @@ class TestCliSearch(TestCli):
             )
 
         monkeypatch.setattr(Memorial, "search", mock_search)
-        monkeypatch.setattr("graver.cli.Cemetery", lambda url: object())
+        class FakeCemetery:
+            def save(self, database_name):
+                return self
+
+        monkeypatch.setattr("graver.cli.Cemetery", lambda url: FakeCemetery())
         command = (
             f"search --cemetery-id={cemetery_id} --lastname='{lastname}' "
             f"--deathyear={death_year} --max-results={max_results}"
