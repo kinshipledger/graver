@@ -107,6 +107,69 @@ task such as refreshing candidates for the current person.
 - Do not automate external writes without user approval.
 - Confirm Find a Grave, FamilySearch, and WikiTree access rules before scaling collection or integrations.
 
+## Graver 1.0 contract decisions
+
+Graver 1.0 will define a stable Find a Grave acquisition and research-database
+foundation. FamilySearch and WikiTree may follow in compatible 1.x releases when
+they are additive evidence and candidate layers rather than replacements for the
+foundation. The 1.0 compatibility promise will cover the documented researcher CLI,
+documented Python facade, configuration format, explicit database migration policy,
+versioned machine-readable output, and Python 3.11 through 3.14.
+
+The installed `graver` command and `python -m graver` will both be supported. The
+module entry point will be implemented through `graver.__main__`; the currently
+broken direct execution of `graver.cli` is not a compatibility contract. Acquisition
+search will retain useful researcher capabilities, but its public options will use
+consistent kebab-case researcher terminology. Find a Grave's site-shaped parameter
+names will remain internal mappings. Duplicate and camel-case spellings and hidden
+pre-1.0 task and alias commands will be removed after their normalized replacements
+are established and before the 1.0 release.
+
+Machine-readable command output will use documented, command-specific, versioned
+JSON envelopes rather than raw database rows. The root package will expose only a
+documented public facade. Parsers, SQL and migration helpers, transport mechanics,
+and wildcard constants are internal. `Driver` is transport infrastructure and will
+not be part of the public 1.0 API; a public acquisition client should be introduced
+only when a demonstrated external-caller use case requires one.
+
+Package versions will be normalized without a leading `v`; release tags may retain
+the prefix. Test frameworks, fixtures, typing tools, and coverage or recording tools
+will move out of runtime dependencies, and unused runtime dependencies will be
+removed. The stale Poetry-based workflow will be replaced with uv-based installation,
+offline tests, wheel construction, and validation across Python 3.11 through 3.14.
+
+The protected release branch will become `main`, with `develop` retained for
+integration. Before `master` is retired or renamed, its historical production state
+will receive an archival tag. Branch and tag changes require a later, explicitly
+authorized repository-administration task; this plan does not perform them.
+
+The package version must not change to `1.0.0rc1` until the public contract,
+database lifecycle, generalized subject identity, explicit migrations, JSON
+schemas, dependency cleanup, CLI cleanup, and supported-Python CI matrix are
+complete. A `1.0.0rc1` release will then validate installation, entry points,
+migration and recovery, supported platforms and Python versions, and the documented
+CLI, Python, configuration, database, and JSON contracts before `1.0.0` is released.
+When compatibility priorities conflict, preservation and recoverability of research
+data take precedence over obsolete commands, option aliases, or accidental imports.
+
+## Research subject identity
+
+A Find a Grave memorial ID is an important source identifier and a convenient CLI
+lookup key, but it must not become the permanent identity of a researched person or
+work item. Before 1.0, introduce a stable internal research-subject or person key.
+The model must support a memorial-centered researcher workflow while allowing
+multiple external platform identifiers, multiple memorials or aliases for one
+person, people without a Find a Grave memorial, and later family-level work packets.
+Existing `work` commands may continue accepting a memorial ID when it resolves
+unambiguously to a subject.
+
+Find a Grave graves, aliases, observations, and current memorial-centered tasks must
+be migrated without losing identifiers, provenance, status, priority, ownership,
+notes, timestamps, or immutable history. FamilySearch candidates and WikiTree
+profiles should attach to the stable subject as additive hypotheses and evidence.
+Family-level work should reference subjects rather than changing the meaning of a
+subject key.
+
 ## Research database lifecycle
 
 SQLite research databases are mutable user data, not source artifacts. The default
@@ -126,19 +189,28 @@ historical-geography cases. A binary SQLite fixture is appropriate only when a
 small, purpose-specific historical database is necessary to verify a migration and
 cannot be reconstructed without defeating the test.
 
-Database ownership should become intentional through two complementary researcher
-actions:
+Database ownership should become intentional through distinct operations:
 
 - `graver init` creates and selects `./graves.db`.
 - `graver init DATABASE` creates and selects the named database.
 - `graver use DATABASE` selects an existing database without creating or migrating
   it; `use --show` and `use --clear` inspect or clear that preference.
+- A specialist `graver admin database upgrade DATABASE` workflow inspects an
+  outdated database, creates a verified backup, and performs an explicit,
+  transactional migration with recovery safeguards.
 
 Initialization must refuse to overwrite any existing file, require the parent
 directory to exist, initialize and validate the complete current schema, and save
 the new default only after success. A partial failure must remove only the newly
 created incomplete file and leave the previous selection unchanged. The concise
 success message should be `Initialized and selected research database: PATH`.
+
+Validation, initialization, and migration must remain separate. `use` validates
+without mutation. If the selected database is outdated, it reports the detected
+format and directs the researcher to the specialist upgrade workflow rather than
+altering the database during a read. An upgrade must preserve a recoverable original,
+validate the migrated result before selection, fail safely on an unknown or newer
+format, and never fabricate provenance that the legacy data cannot support.
 
 After `init` is established, implicit database creation by acquisition commands
 should be removed in a separate compatibility milestone. Missing database errors
@@ -233,38 +305,77 @@ must not automatically block an unrelated release until its category is understo
 
 ## Target persistent entities
 
-The eventual SQLite model may include cemeteries, memorials, FamilySearch discovery runs, candidate snapshots, FamilySearch candidates, candidate assessments, sources/evidence, reviewed identity conclusions, WikiTree matches, relationships, and work-queue tasks. Candidate hypotheses and evolving assessments must remain distinguishable from final reviewed conclusions. Every research item must retain stable Find a Grave memorial and cemetery links.
+The eventual SQLite model may include stable research subjects, cemeteries,
+memorials, subject-to-platform identifiers, FamilySearch discovery runs, candidate
+snapshots, FamilySearch candidates, candidate assessments, sources/evidence,
+reviewed identity conclusions, WikiTree matches, relationships, and work-queue
+items. Candidate hypotheses and evolving assessments must remain distinguishable
+from final reviewed conclusions. Find a Grave records must retain stable memorial
+and cemetery links without requiring every subject to have a memorial.
 
 ## Find a Grave alias ownership
 
-A research task remains attached to the memorial ID through which the person was
-discovered. An alias identifies a possible canonical Find a Grave target but does
-not automatically transfer, merge, complete, or delete research work. Source and
-target graves, acquisition observations, tasks, and later conclusions remain
-separate. Alias observations form their own immutable provenance stream, and a
-retraction is an explicit local research decision rather than an inference from a
-retrieval failure.
+In the current schema, a research task remains attached to the memorial ID through
+which the person was discovered. Until the subject-identity migration is complete,
+an alias does not automatically transfer, merge, complete, or delete that work.
+Afterward, source and target graves and their acquisition observations must remain
+separate provenance even when both are associated with one research subject. Alias
+observations form their own immutable provenance stream, and a retraction is an
+explicit local research decision rather than an inference from a retrieval failure.
 
 Initial work states may include `unprocessed`, `researching`, `familysearch_match_found`, `identity_resolved`, `wikitree_match_found`, `wikitree_profile_missing`, `relationship_reconciliation_needed`, `ready_for_review`, `completed`, and `unable_to_resolve`.
 
 ## Roadmap
 
-1. Completed: inspect and preserve the existing scraper and SQLite database.
-2. Completed: add persistent research-management and work-queue capability.
-3. Completed: provide functional person-at-a-time task handling and explicit Find a Grave alias review.
-4. Completed: refine the CLI into a small, task-oriented `work` surface with
-   progressive disclosure; move alias maintenance under `admin aliases` while
-   retaining hidden compatibility commands and the complete Python API.
-5. Complete the explicit research-database lifecycle: add `graver init [DATABASE]`
-   to create and select a new database safely, establish the repository fixture
-   policy with deterministic domain factories, curated edge cases, and seeded Faker
-   volume data; modernize test isolation, network safety, dependency grouping, and
-   test classification; reduce Betamax to a replay-only compatibility layer and
-   evaluate its incremental replacement; add the bounded, explicitly invoked live
-   Find a Grave contract probe; and then remove implicit database creation from
-   acquisition commands in a separately tested compatibility change.
-6. Add repeatable FamilySearch candidate discovery and research storage behind simple researcher workflows, including immutable search runs and candidate snapshots, detection of new or materially changed candidates, candidate status, match signals, evidence, discrepancies, evolving confidence, reasoning, reviewer fields, and immutable decision history.
-7. Add explicit human-reviewed identity conclusions only after FamilySearch evidence gathering: accepted, rejected, or unresolved.
-8. Integrate WikiTree profile search and reconciliation for identities sufficiently supported by reviewed research.
-9. Generate evidence summaries, identity assessments, relationship reconciliation, and WikiTree work packets.
-10. Extend the interface from person-at-a-time to reviewed family work packets.
+Completed foundation:
+
+- Inspected and preserved the existing scraper and SQLite database.
+- Added persistent research-management and work-queue capability.
+- Added functional person-at-a-time task handling and explicit Find a Grave alias
+  review.
+- Refined the CLI into a small, task-oriented `work` surface with progressive
+  disclosure and moved alias maintenance under `admin aliases`, while retaining
+  current internal capabilities and hidden compatibility commands for pre-1.0
+  review.
+
+Pre-1.0 release sequence:
+
+1. Define and document the complete Graver 1.0 CLI, Python, configuration,
+   database, migration, JSON, supported-Python, and compatibility contract.
+2. Add `graver init [DATABASE]` with refusal to overwrite and selection only after
+   successful current-schema creation and validation.
+3. Separate database inspection, validation, initialization, and explicit migration;
+   add the planned `graver admin database upgrade DATABASE` workflow with backup,
+   transactional upgrade, recovery, and unknown/newer-format safeguards.
+4. Introduce a stable research-subject identity and migrate current memorial-centered
+   tasks and provenance without losing existing memorial data.
+5. Modernize network denial, deterministic domain fixtures and Faker, temporary
+   database lifecycle, test layers and markers, replay-only contracts, and the
+   separate bounded live-contract probe.
+6. Separate runtime dependencies from test, typing, fixture, recording, coverage,
+   and development tools; remove unused runtime dependencies.
+7. Normalize acquisition options to kebab-case researcher terminology, remove
+   duplicate and site-shaped public spellings, and remove hidden pre-1.0 task and
+   alias compatibility commands.
+8. Reduce root exports to the documented public Python facade and keep `Driver`,
+   parsers, transport mechanics, SQL helpers, and wildcard constants internal.
+9. Introduce documented, command-specific, versioned JSON schemas and stable
+    machine-readable error behavior.
+10. Support `python -m graver` through `graver.__main__` alongside the console entry
+    point.
+11. Replace stale Poetry CI with uv-based installation, offline tests, wheel checks,
+    and Python 3.11-through-3.14 validation.
+12. Add database migration instructions, 0.1-to-1.0 compatibility notes, public
+    contract documentation, release notes, and the later authorized branch/tag
+    transition plan.
+13. Prepare and validate `1.0.0rc1` without weakening database recovery or offline
+    test guarantees.
+14. Release `1.0.0` after release-candidate findings are resolved.
+15. Add repeatable FamilySearch candidate discovery and research storage behind
+    simple researcher workflows, including immutable search runs and candidate
+    snapshots, change detection, evidence, discrepancies, evolving confidence,
+    reasoning, reviewer fields, and immutable decision history.
+
+Later compatible roadmap work includes explicit reviewed identity conclusions,
+WikiTree profile search and reconciliation, evidence summaries and work packets, and
+the progression from person-at-a-time research to reviewed family work packets.

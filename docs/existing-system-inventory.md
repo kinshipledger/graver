@@ -1,15 +1,24 @@
 # Existing system inventory: `graver`
 
-Inspection dates: 2026-08-11; refreshed 2026-08-19
+Inspection dates: 2026-08-11; refreshed 2026-08-20
 
 ## What is present
 
-`src/graver/` is an independently versioned Python package named `graver` (version `0.1.0`). It is a Find a Grave scraper/library with a Typer command-line interface, a SQLite output path, fixture-backed tests, and a copied local virtual environment.
+`src/graver/` is an independently versioned Python package named `graver`. Its
+project and Commitizen metadata currently use `v0.1.0`, while canonical prose refers
+to `0.1.0`. It is a Find a Grave scraper/library with a Typer command-line
+interface, SQLite persistence, and fixture-backed tests.
 
-The refreshed inspection began from `develop` after commit `b2670a0` (`feat: add
-person-at-a-time research workflow`) with two preserved uncommitted task-interface
-fixes. `MemorialSummary`, immutable acquisitions, the durable queue, and explicit
-person-at-a-time task handling are integrated and tested.
+The current `develop` architecture includes `MemorialSummary`, immutable
+acquisitions, the durable queue, explicit person-at-a-time task handling,
+progressive-disclosure commands, alias provenance, and default-database selection.
+
+The pre-1.0 compatibility audit found no local `main` branch. `origin/HEAD` points
+to `origin/master`; `master` contains the older scraper-era production state, while
+`develop` contains the current acquisition, provenance, queue, alias, progressive-
+disclosure CLI, and default-database architecture. No release tags or changelog are
+present. These are current repository facts, not evidence that the planned branch,
+tag, or release changes have occurred.
 
 ## Current behavior
 
@@ -22,6 +31,9 @@ person-at-a-time task handling are integrated and tested.
 - `work queue`, `work list`, `work next`, `work show`, and `work mark` provide a person-centered, network-free research workflow. `work enrich` retrieves exactly one explicitly approved memorial.
 - `admin aliases list`, `show`, `record`, and `retract` expose specialist Find a Grave redirect maintenance and immutable history without moving tasks or grave data.
 - The earlier top-level task and alias commands remain functional as hidden compatibility aliases. They preserve existing arguments, output, and exit behavior but do not compete with ordinary workflows in root help.
+- The console entry point is `graver = graver.cli:app`. Direct execution through
+  `python -m graver.cli` is broken, and no `graver.__main__` module currently
+  provides `python -m graver`.
 
 ### Retrieval and parsing
 
@@ -43,7 +55,7 @@ memorials discovered from a Morris Hill Cemetery search (Find a Grave cemetery I
 graves
 ```
 
-`graves.memorial_id` is the primary key. The current code can store the memorial URL, parsed name components, Find a Grave flags, birth/death values and places, memorial type, cemetery ID, burial place, plot, coordinates, biography presence, and the acquisition metadata `detail_level`, `summary_fetched_at`, and `full_fetched_at`. The local `many_graves.db` predates those three acquisition columns and the research tables; database initialization adds them safely to a working copy when it is opened through the application.
+`graves.memorial_id` is the primary key. The current code can store the memorial URL, parsed name components, Find a Grave flags, birth/death values and places, memorial type, cemetery ID, burial place, plot, coordinates, biography presence, and the acquisition metadata `detail_level`, `summary_fetched_at`, and `full_fetched_at`. The local `many_graves.db` predates those three acquisition columns and the research tables; the current shared initialization path adds them to a working copy when application operations open it. Schema inspection, creation, and migration are not yet separate lifecycle operations, so ordinary API reads can currently trigger creation or additive migration.
 
 The 334 representative rows are intentionally search summaries, not full memorial-page scrapes. All contain an ID, URL, name, birth/death display values, memorial type, cemetery ID, and burial place; four contain plot text. None contains birth/death places, coordinates, or biography status. After migration, their acquisition fields remain null until they are seen again because the code deliberately avoids guessing the origin of legacy rows. This supports staged enrichment rather than scraping every individual page immediately.
 
@@ -71,6 +83,10 @@ The 334 representative rows are intentionally search summaries, not full memoria
 - Legacy rows are deliberately not assigned a `detail_level` during migration because their acquisition level cannot be inferred reliably. They become classified when subsequently saved through the summary or full persistence path.
 - Legacy rows deliberately do not receive fabricated observation records during migration because their original timestamp and exact observed payload are unknown.
 - Some acquisition commands still reflect scraper implementation terminology. Their information architecture is intentionally deferred; this milestone changes only the research and alias-maintenance surfaces.
+- `research_tasks.memorial_id` is currently both the task primary key and a foreign
+  key to `graves`. That memorial-centered identity cannot yet represent a researched
+  person with multiple memorials, a person without a Find a Grave memorial, or a
+  later family-level work packet.
 
 ## Test and environment status
 
@@ -86,8 +102,13 @@ runtime dependencies are legacy test-infrastructure debt rather than intentional
 long-term design. `requests-mock` is already available and is the preferred boundary
 for method, parameter, retry, and error-path tests.
 
-On 2026-08-20, after adding the progressive-disclosure CLI, the complete suite
-passed in the current project environment: **246 passed**. Black check-only mode
+Runtime dependencies currently include pytest, Faker, Betamax, and a typing package,
+and `dill` has no source usage found by the audit. Test and typing tools have not yet
+been fully separated from application dependencies.
+
+On 2026-08-20, after adding default-database selection and correcting test
+isolation, the complete suite passed in the current project environment:
+**276 passed**. Black check-only mode
 also passed. Codex must not run Flake8 autonomously; human maintainers may run it
 separately before release. Agent validation is limited to tests, Black check-only,
 diff checks, and task-specific verification. A migration and CLI check on a
@@ -112,22 +133,46 @@ they affect the selected person. Full acquisition payloads require `--history` o
 state in the current task model, and uses the queue's deterministic priority,
 activity, and memorial-ID ordering.
 
-The internal Python API remains complete. Hidden compatibility commands are a
-deliberate automation policy rather than deprecated behavior; they can be reviewed
-after downstream users have had an explicit migration window.
+The root package currently re-exports a broad set of models, exceptions, task and
+alias functions, transport infrastructure through `Driver`, and wildcard constants.
+The README does not define that collection as a supported Python API. It is therefore
+an accidental import surface, not yet a suitable 1.0 facade.
 
-## Recommended smallest next change
+Current `--json` paths serialize raw API dictionaries whose fields closely follow
+SQLite rows and internal alias-resolution structures. Those outputs are deterministic
+and useful for current tests, but they are not documented, versioned, command-specific
+1.0 schemas. The hidden compatibility commands remain implemented and tested today;
+their approved pre-1.0 removal has not yet occurred.
+
+## Packaging, CI, and release status
+
+- Both the project version and Commitizen version are `v0.1.0`; normalized package
+  metadata must not include the tag-style `v` prefix.
+- `requires-python` is `>=3.10`, but classifiers still claim Python 3.8 and 3.9 as
+  well as 3.10 through 3.14.
+- The GitHub Actions workflow still installs Poetry, keys its cache from
+  `poetry.lock`, and tests Python 3.8 through 3.12. The repository has moved to uv,
+  has no `poetry.lock`, and does not validate the approved Python 3.11-through-3.14
+  release matrix.
+- No changelog, release workflow, release tags, or locally visible release history
+  defines a current public compatibility contract.
+
+## Approved pre-1.0 direction
 
 Keep the existing scraper and its `graves` table as the **Find a Grave acquisition component**. The additive `cemeteries`, `memorial_observations`, and `research_tasks` layer now provides provenance and a practical queue.
 
-The task-oriented CLI foundation is complete. Before beginning FamilySearch work,
-complete the explicit research-database lifecycle. Add `graver init [DATABASE]` to
-create a new database with the current schema and select it as the saved default.
-With no argument it creates `./graves.db`; with an argument it uses the named path.
-It must refuse to overwrite an existing file, require an existing parent directory,
-leave the prior selection untouched on failure, clean up only a newly created
-partial file, and report `Initialized and selected research database: PATH` after
-successful initialization and validation.
+The task-oriented CLI foundation is complete, but the current memorial-centered
+task identity, raw JSON, broad exports, implicit migration, compatibility aliases,
+dependency boundaries, and stale CI must not be frozen as the 1.0 contract. Before
+beginning FamilySearch work, follow the ordered pre-1.0 roadmap in
+`docs/project-context.md`, beginning with the contract and explicit database
+lifecycle. The planned `graver init [DATABASE]` will create a new database with the
+current schema and select it as the saved default. With no argument it creates
+`./graves.db`; with an argument it uses the named path. It must refuse to overwrite
+an existing file, require an existing parent directory, leave the prior selection
+untouched on failure, clean up only a newly created partial file, and report
+`Initialized and selected research database: PATH` after successful initialization
+and validation.
 
 Keep runtime research databases ignored. Do not commit `graves.db` or
 `many_graves.db` as samples. Store schema and migrations in source control, build
@@ -143,8 +188,17 @@ remove implicit database creation from acquisition commands as a separate
 compatibility change with actionable guidance to use `graver init` or
 `graver use DATABASE`.
 
-Modernize the inherited suite within the same milestone without attempting a large
-cassette rewrite. Define parser/static-response, mocked-transport,
+Validation, initialization, and migration are planned as separate operations.
+`graver use DATABASE` will remain non-mutating; an outdated database will receive
+actionable guidance. The planned specialist surface is
+`graver admin database upgrade DATABASE`, which will require a verified backup,
+transactional migration, validation, and recovery safeguards. None of `init`, the
+specialist upgrade workflow, generalized research subjects, versioned JSON,
+normalized acquisition options, hidden-command removal, or `python -m graver` is
+implemented yet.
+
+The planned testing-modernization milestone should avoid a large cassette rewrite.
+It will define parser/static-response, mocked-transport,
 temporary-database/workflow, and recorded-contract layers. Deny network access by
 default; make existing Betamax cases replay-only and explicitly marked; sanitize all
 recorded traffic; and require a deliberate maintainer-only refresh process. Move new
@@ -180,12 +234,11 @@ signal unreliable. Confirm current Find a Grave terms, robots directives, and
 automation guidance before scheduling it. Do not let an unclassified live-site or
 runner failure automatically block an unrelated release.
 
-FamilySearch workflows should then extend the same `work` surface rather than
-adding one command per persistence entity.
-
-The next milestone should add the FamilySearch candidate-discovery and research
-layer. A candidate is a hypothesis whose status, match signals, supporting and
-conflicting evidence, confidence, and reasoning can evolve during research. A
+After the pre-1.0 sequence and the `1.0.0rc1` validation are complete, FamilySearch
+workflows should extend the same `work` surface rather than adding one command per
+persistence entity. A candidate is a hypothesis whose status, match signals,
+supporting and conflicting evidence, confidence, and reasoning can evolve during
+research. A
 reviewed identity conclusion must come afterward and explicitly record an
 accepted, rejected, or unresolved result. It must not be required before the
 FamilySearch research needed to support it.
