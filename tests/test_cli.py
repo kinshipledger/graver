@@ -621,6 +621,72 @@ class TestCliResearcherSurface(Test):
         for command in ("list", "show", "record", "retract"):
             assert command in aliases.output
 
+    @pytest.mark.parametrize(
+        "command, expected_descriptions",
+        [
+            (
+                "work list --help",
+                (
+                    "Research database to read",
+                    "Filter by research status",
+                    "Maximum people to show",
+                    "machine-readable JSON",
+                ),
+            ),
+            (
+                "work show --help",
+                (
+                    "memorial ID for the person",
+                    "detailed acquisition and redirect",
+                ),
+            ),
+            (
+                "work mark --help",
+                (
+                    "New research status",
+                    "higher numbers are shown",
+                    "Researcher responsible",
+                    "Review note",
+                ),
+            ),
+            (
+                "admin aliases record --help",
+                (
+                    "Memorial ID that redirects elsewhere",
+                    "Redirect type: merged or redirected",
+                    "Research note explaining",
+                ),
+            ),
+            (
+                "search --help",
+                (
+                    "First name to search for",
+                    "Birth year used with",
+                    "Include nicknames",
+                    "Filter by grave coordinates",
+                    "specific search-results",
+                ),
+            ),
+            (
+                "scrape-file --help",
+                ("Text file of memorial IDs or URLs",),
+            ),
+            (
+                "scrape-url --help",
+                ("Find a Grave memorial URL to retrieve",),
+            ),
+        ],
+    )
+    def test_visible_help_describes_arguments_and_options(
+        self, helpers, command, expected_descriptions
+    ):
+        result = helpers.graver_cli(command)
+
+        assert result.exit_code == 0
+        rendered_help = " ".join(result.output.split())
+        for description in expected_descriptions:
+            assert description in rendered_help
+
     def test_work_list_filters_orders_and_marks_redirects(self, helpers, database):
         first = self.summary(name="First", cemetery_id=10).save()
         second = self.summary("carl-sagan", name="Second", cemetery_id=10).save()

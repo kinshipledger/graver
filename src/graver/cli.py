@@ -127,7 +127,7 @@ def graver(
         "--log",
         "--logging",
         callback=logging_callback,
-        help="Set logging level, e.g. --log-level=debug",
+        help="Set message detail: debug, info, warning, error, or critical.",
     ),
 ):
     pass
@@ -217,12 +217,14 @@ def parse_and_save_memorial(url) -> Memorial:
 
 @app.command()
 def scrape_file(
-    input_filename: str,
+    input_filename: str = typer.Argument(
+        ..., help="Text file of memorial IDs or URLs, one per line."
+    ),
     db: str = typer.Option(
         DEFAULT_DB_FILE_NAME, "--db", help="Database name (results will be stored here)"
     ),
 ):
-    """Scrape URLs from a file"""
+    """Retrieve full memorials listed in a text file."""
     log.debug(f"Input file: {input_filename}")
     log.debug(f"Database file: {db}")
 
@@ -263,12 +265,12 @@ def scrape_file(
 
 @app.command()
 def scrape_url(
-    url: str,
+    url: str = typer.Argument(..., help="Find a Grave memorial URL to retrieve."),
     db: str = typer.Option(
         DEFAULT_DB_FILE_NAME, "--db", help="Database name (results will be stored here)"
     ),
 ):
-    """Scrape a specific memorial URL"""
+    """Retrieve one full Find a Grave memorial."""
     if not url_validator(url):
         log.error(f"Invalid or non-memorial URL: [{url}]")
         raise typer.Exit(1)
@@ -680,11 +682,19 @@ def _display_work_task(result: dict, history: bool = False) -> None:
 
 @work_app.command("list")
 def work_list(
-    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
-    status: Optional[str] = typer.Option(None, "--status"),
-    cemetery_id: Optional[int] = typer.Option(None, "--cemetery-id"),
-    limit: int = typer.Option(20, "--limit", min=1),
-    json_output: bool = typer.Option(False, "--json"),
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Research database to read."
+    ),
+    status: Optional[str] = typer.Option(
+        None, "--status", help="Filter by research status."
+    ),
+    cemetery_id: Optional[int] = typer.Option(
+        None, "--cemetery-id", help="Show only people from this cemetery ID."
+    ),
+    limit: int = typer.Option(20, "--limit", min=1, help="Maximum people to show."),
+    json_output: bool = typer.Option(
+        False, "--json", help="Return complete machine-readable JSON."
+    ),
 ):
     """List people in the research queue and what needs attention."""
     try:
@@ -699,12 +709,18 @@ def work_list(
 
 @work_app.command("next")
 def work_next(
-    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Research database to read."
+    ),
     status: Optional[str] = typer.Option(
         "unprocessed", "--status", help="Research status to select."
     ),
-    cemetery_id: Optional[int] = typer.Option(None, "--cemetery-id"),
-    json_output: bool = typer.Option(False, "--json"),
+    cemetery_id: Optional[int] = typer.Option(
+        None, "--cemetery-id", help="Select only people from this cemetery ID."
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Return complete machine-readable JSON."
+    ),
 ):
     """Show the next person needing research."""
     try:
@@ -723,10 +739,18 @@ def work_next(
 
 @work_app.command("show")
 def work_show(
-    memorial_id: int,
-    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
-    history: bool = typer.Option(False, "--history"),
-    json_output: bool = typer.Option(False, "--json"),
+    memorial_id: int = typer.Argument(
+        ..., help="Find a Grave memorial ID for the person to review."
+    ),
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Research database to read."
+    ),
+    history: bool = typer.Option(
+        False, "--history", help="Include detailed acquisition and redirect history."
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Return complete machine-readable JSON."
+    ),
 ):
     """Review one person's current research state."""
     result = _load_task_or_exit(db, memorial_id)
@@ -738,13 +762,27 @@ def work_show(
 
 @work_app.command("mark")
 def work_mark(
-    memorial_id: int,
-    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
-    status: Optional[str] = typer.Option(None, "--status"),
-    priority: Optional[int] = typer.Option(None, "--priority"),
-    owner: Optional[str] = typer.Option(None, "--owner"),
-    note: Optional[str] = typer.Option(None, "--note"),
-    json_output: bool = typer.Option(False, "--json"),
+    memorial_id: int = typer.Argument(
+        ..., help="Find a Grave memorial ID for the person to update."
+    ),
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Research database to update."
+    ),
+    status: Optional[str] = typer.Option(
+        None, "--status", help="New research status for this person."
+    ),
+    priority: Optional[int] = typer.Option(
+        None, "--priority", help="New queue priority; higher numbers are shown first."
+    ),
+    owner: Optional[str] = typer.Option(
+        None, "--owner", help="Researcher responsible for this person."
+    ),
+    note: Optional[str] = typer.Option(
+        None, "--note", help="Review note to retain with this research task."
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Return the updated task as machine-readable JSON."
+    ),
 ):
     """Record a research decision or assignment for one person."""
     before = _load_task_or_exit(db, memorial_id)["task"]
@@ -771,9 +809,15 @@ def work_mark(
 
 @work_app.command("enrich")
 def work_enrich(
-    memorial_id: int,
-    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
-    json_output: bool = typer.Option(False, "--json"),
+    memorial_id: int = typer.Argument(
+        ..., help="Find a Grave memorial ID approved for full retrieval."
+    ),
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Research database to update."
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Return the result as machine-readable JSON."
+    ),
 ):
     """Retrieve the full Find a Grave memorial for an approved person."""
     _enrich_task(memorial_id, db, researcher_output=True, json_output=json_output)
@@ -781,9 +825,15 @@ def work_enrich(
 
 @work_app.command("queue")
 def work_queue(
-    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
-    cemetery_id: Optional[int] = typer.Option(None, "--cemetery-id"),
-    priority: int = typer.Option(0, "--priority"),
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Database containing acquired memorials."
+    ),
+    cemetery_id: Optional[int] = typer.Option(
+        None, "--cemetery-id", help="Queue only people from this cemetery ID."
+    ),
+    priority: int = typer.Option(
+        0, "--priority", help="Initial priority assigned only to newly queued people."
+    ),
 ):
     """Add people already acquired to the research queue."""
     created, existing = queue_memorials_in_database(db, cemetery_id, priority)
@@ -797,11 +847,21 @@ def work_queue(
 
 @aliases_app.command("list")
 def admin_aliases_list(
-    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
-    status: Optional[str] = typer.Option(None, "--status"),
-    target_id: Optional[int] = typer.Option(None, "--target-id"),
-    limit: int = typer.Option(20, "--limit", min=1),
-    json_output: bool = typer.Option(False, "--json"),
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Research database to inspect."
+    ),
+    status: Optional[str] = typer.Option(
+        None, "--status", help="Show only active or retracted redirects."
+    ),
+    target_id: Optional[int] = typer.Option(
+        None, "--target-id", help="Show redirects pointing to this memorial ID."
+    ),
+    limit: int = typer.Option(
+        20, "--limit", min=1, help="Maximum number of redirects to show."
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Return complete machine-readable JSON."
+    ),
 ):
     """List reviewed Find a Grave redirect mappings."""
     list_aliases(db, status, target_id, limit, json_output)
@@ -809,9 +869,15 @@ def admin_aliases_list(
 
 @aliases_app.command("show")
 def admin_aliases_show(
-    memorial_id: int,
-    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
-    json_output: bool = typer.Option(False, "--json"),
+    memorial_id: int = typer.Argument(
+        ..., help="Source memorial ID whose redirect history should be shown."
+    ),
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Research database to inspect."
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Return complete machine-readable JSON."
+    ),
 ):
     """Inspect one redirect and its immutable history."""
     show_alias(memorial_id, db, json_output)
@@ -819,13 +885,25 @@ def admin_aliases_show(
 
 @aliases_app.command("record")
 def admin_aliases_record(
-    source_id: int,
-    target_id: int,
-    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
-    alias_type: str = typer.Option(..., "--type"),
-    source_url: Optional[str] = typer.Option(None, "--source-url"),
-    target_url: Optional[str] = typer.Option(None, "--target-url"),
-    reason: Optional[str] = typer.Option(None, "--reason"),
+    source_id: int = typer.Argument(..., help="Memorial ID that redirects elsewhere."),
+    target_id: int = typer.Argument(
+        ..., help="Memorial ID that is the redirect target."
+    ),
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Research database to update."
+    ),
+    alias_type: str = typer.Option(
+        ..., "--type", help="Redirect type: merged or redirected."
+    ),
+    source_url: Optional[str] = typer.Option(
+        None, "--source-url", help="Observed URL for the source memorial."
+    ),
+    target_url: Optional[str] = typer.Option(
+        None, "--target-url", help="Observed URL for the target memorial."
+    ),
+    reason: Optional[str] = typer.Option(
+        None, "--reason", help="Research note explaining this reviewed mapping."
+    ),
 ):
     """Record a reviewed Find a Grave redirect or merge."""
     record_alias(source_id, target_id, db, alias_type, source_url, target_url, reason)
@@ -833,9 +911,15 @@ def admin_aliases_record(
 
 @aliases_app.command("retract")
 def admin_aliases_retract(
-    source_id: int,
-    db: str = typer.Option(DEFAULT_DB_FILE_NAME, "--db"),
-    reason: str = typer.Option(..., "--reason"),
+    source_id: int = typer.Argument(
+        ..., help="Source memorial ID whose active redirect should be retracted."
+    ),
+    db: str = typer.Option(
+        DEFAULT_DB_FILE_NAME, "--db", help="Research database to update."
+    ),
+    reason: str = typer.Option(
+        ..., "--reason", help="Required explanation for retracting the redirect."
+    ),
 ):
     """Retract an active redirect while preserving its history."""
     retract_alias(source_id, db, reason)
@@ -917,20 +1001,26 @@ def search(
         "--cemetery-id",
         help="The numeric ID of a FindAGrave cemetery/monument to search within",
     ),
-    firstname: str = typer.Option("", "--firstname"),
-    middlename: str = typer.Option("", "--middlename"),
-    lastname: str = typer.Option("", "--lastname"),
+    firstname: str = typer.Option("", "--firstname", help="First name to search for."),
+    middlename: str = typer.Option(
+        "", "--middlename", help="Middle name to search for."
+    ),
+    lastname: str = typer.Option("", "--lastname", help="Last name to search for."),
     fulltext: str = typer.Option(
         "", "--fulltext", help="Search names, dates, locations, and keywords"
     ),
-    birthyear: int = typer.Option(None, "--birthyear"),
+    birthyear: int = typer.Option(
+        None, "--birthyear", help="Birth year used with --birthyearfilter."
+    ),
     birthyearfilter: str = typer.Option(
         "",
         "--birthyearfilter",
         callback=year_filter_callback,
         help="exact, before, after, unknown, or a supported +/- year range",
     ),
-    deathyear: int = typer.Option(None, "--deathyear"),
+    deathyear: int = typer.Option(
+        None, "--deathyear", help="Death year used with --deathyearfilter."
+    ),
     deathyearfilter: str = typer.Option(
         "",
         "--deathyearfilter",
@@ -982,7 +1072,7 @@ def search(
         "death year(d/d-), cemetery(c/c-), date created(dc), date modified(dm), "
         "plot(pl)",
     ),
-    plot: str = typer.Option("", "--plot"),
+    plot: str = typer.Option("", "--plot", help="Text to match in the burial plot."),
     no_cemetery: bool = typer.Option(
         None,
         "--noCemetery",
@@ -1003,9 +1093,15 @@ def search(
         help="Limit search to memorials that have been sponsored on FindAGrave (note: "
         "this is mutually exclusive with --famous)",
     ),
-    cenotaph: bool = typer.Option(None, "--cenotaph", is_flag=False),
-    monument: bool = typer.Option(None, "--monument", is_flag=False),
-    veteran: bool = typer.Option(None, "--isVeteran", is_flag=False),
+    cenotaph: bool = typer.Option(
+        None, "--cenotaph", is_flag=False, help="Include or exclude cenotaph records."
+    ),
+    monument: bool = typer.Option(
+        None, "--monument", is_flag=False, help="Include or exclude monument records."
+    ),
+    veteran: bool = typer.Option(
+        None, "--isVeteran", is_flag=False, help="Include or exclude veteran records."
+    ),
     tags: str = typer.Option(
         "",
         "--tags",
@@ -1013,25 +1109,62 @@ def search(
         help="Memorial tag (currently: 'american revolutionary war')",
     ),
     include_nickname: bool = typer.Option(
-        None, "--includeNickName", callback=name_filter_callback
+        None,
+        "--includeNickName",
+        callback=name_filter_callback,
+        help="Include nicknames when matching the supplied name.",
     ),
     include_maiden_name: bool = typer.Option(
-        None, "--includeMaidenName", callback=name_filter_callback
+        None,
+        "--includeMaidenName",
+        callback=name_filter_callback,
+        help="Include maiden names when matching the supplied name.",
     ),
     include_titles: bool = typer.Option(
-        None, "--includeTitles", callback=name_filter_callback
+        None,
+        "--includeTitles",
+        callback=name_filter_callback,
+        help="Include titles and prefixes when matching the supplied name.",
     ),
-    exact_name: bool = typer.Option(None, "--exactName", callback=name_filter_callback),
+    exact_name: bool = typer.Option(
+        None,
+        "--exactName",
+        callback=name_filter_callback,
+        help="Require an exact match for the supplied name fields.",
+    ),
     fuzzy_names: bool = typer.Option(
-        None, "--fuzzyNames", callback=name_filter_callback
+        None,
+        "--fuzzyNames",
+        callback=name_filter_callback,
+        help="Allow similar spellings for the supplied name fields.",
     ),
     photo_filter: str = typer.Option(
-        None, "--photofilter", callback=photofilter_callback
+        None,
+        "--photofilter",
+        callback=photofilter_callback,
+        help="Filter by photo availability: photos or nophotos.",
     ),
-    gps_filter: str = typer.Option(None, "--gpsfilter", callback=gpsfilter_callback),
-    flowers: bool = typer.Option(None, "--flowers", is_flag=False),
-    has_plot: bool = typer.Option(None, "--hasPlot", is_flag=False),
-    page: int = typer.Option(None, "--page"),
+    gps_filter: str = typer.Option(
+        None,
+        "--gpsfilter",
+        callback=gpsfilter_callback,
+        help="Filter by grave coordinates: gps or nogps.",
+    ),
+    flowers: bool = typer.Option(
+        None,
+        "--flowers",
+        is_flag=False,
+        help="Include or exclude memorials that have virtual flowers.",
+    ),
+    has_plot: bool = typer.Option(
+        None,
+        "--hasPlot",
+        is_flag=False,
+        help="Include or exclude memorials that have burial plot information.",
+    ),
+    page: int = typer.Option(
+        None, "--page", help="Retrieve one specific search-results page."
+    ),
     max_results: int = typer.Option(
         0,
         "--max",
@@ -1039,7 +1172,7 @@ def search(
         help="The maximum number of results to process (0 == no limit)",
     ),
 ):
-    """Scrape memorial search results with specified search parameters"""
+    """Find memorial summaries and save them to the research database."""
     os.environ["DATABASE_NAME"] = db
     Memorial.create_table(db)
 
