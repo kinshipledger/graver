@@ -156,19 +156,488 @@ data take precedence over obsolete commands, option aliases, or accidental impor
 
 A Find a Grave memorial ID is an important source identifier and a convenient CLI
 lookup key, but it must not become the permanent identity of a researched person or
-work item. Before 1.0, introduce a stable internal research-subject or person key.
-The model must support a memorial-centered researcher workflow while allowing
-multiple external platform identifiers, multiple memorials or aliases for one
-person, people without a Find a Grave memorial, and later family-level work packets.
-Existing `work` commands may continue accepting a memorial ID when it resolves
-unambiguously to a subject.
+work item. Before 1.0, introduce a stable internal research-subject key represented
+as a canonical lowercase UUIDv4 string stored as SQLite `TEXT`. A
+`research_subject` is an opaque organizational owner for person-level research
+work, not an assertion that any two records describe the same genealogical person.
+A subject created mechanically during migration is therefore an organizational
+container, not an identity conclusion.
 
-Find a Grave graves, aliases, observations, and current memorial-centered tasks must
-be migrated without losing identifiers, provenance, status, priority, ownership,
-notes, timestamps, or immutable history. FamilySearch candidates and WikiTree
-profiles should attach to the stable subject as additive hypotheses and evidence.
-Family-level work should reference subjects rather than changing the meaning of a
-subject key.
+Schema version 2 will introduce these entities:
+
+- `research_subjects`, keyed by `subject_id`;
+- `subject_memorials`, recording the current subject association for a memorial;
+- immutable `research_subject_events`, recording accurately labeled subject
+  lifecycle and association events;
+- `research_tasks` rebuilt so that each task is owned by a subject; and
+- immutable `research_task_events`, distinct from subject events and protected by
+  no-update and no-delete triggers.
+
+The schema will enforce at most one current subject association for each memorial,
+while permitting one subject to have zero or multiple associated memorials. That
+structural capacity is not authorization to combine records: associating multiple
+memorials with one subject is a reviewed identity decision and must remain
+unavailable until evidence, review, conflict, and correction policies have been
+approved. Manual association and reassociation, subject merge and split, and
+preferred or canonical memorial selection are explicitly deferred. Redirects,
+matching names, dates, or other inferred similarity must never merge subjects.
+
+Find a Grave aliases remain entirely separate from subject membership. Memorial
+observations remain owned by memorials, alias observations remain owned by their
+alias sources, and research tasks become owned by subjects. FamilySearch and
+WikiTree candidates will be hypotheses linked to subjects; only a reviewed
+conclusion may establish an accepted external identity association. Later family
+work packets will group subjects without replacing subject identity.
+
+Ordinary researcher commands will continue to accept memorial IDs as convenient
+lookup keys and will not expose subject UUIDs by default. Until a reviewed preferred
+memorial policy exists, the lowest associated memorial ID is the deterministic
+display fallback for a subject with multiple memorials. This is only a display
+choice, never a canonical identity assertion. Transitional pre-1.0 JSON behavior
+will be preserved through compatibility projection until documented versioned JSON
+envelopes replace it.
+
+### Schema-version-2 migration invariants
+
+The explicit version-1-to-version-2 upgrade must retain the existing mandatory
+backup, ordered migration, and transactional safeguards. The schema version advances
+to 2 only in the same successful transaction as all version-2 changes. Once this
+milestone is implemented, new databases will initialize directly at schema version
+2.
+
+Migration will create exactly one new subject for every existing `graves` row,
+including graves without research tasks, and associate each memorial only with its
+own migration-created subject. This one-subject-per-memorial rule is a mechanical
+preservation strategy, not an identity conclusion. Every existing research task
+will be copied exactly once to its memorial's associated subject, preserving every
+task field and timestamp exactly. Existing grave, cemetery, memorial-observation,
+alias, and alias-observation rows remain unchanged. Alias source and target graves
+remain separate subjects, and a non-local alias target receives no subject.
+
+Migration creates only accurately labeled mechanical provenance. Each migrated
+subject receives the applicable creation and association event, and each existing
+task receives one immutable `task_migrated` event containing an honest snapshot of
+the task at migration time. That event must not claim to reconstruct earlier task
+history. No identity conclusion, evidence assessment, detail level, fetch timestamp,
+observation, alias, task, or historical task change may be fabricated. Failure rolls
+back every version-2 change.
+
+After migration, task creation and changes to status, priority, owner, or review
+note create immutable task events. Events retain a timestamp, an actor or reviewer
+when supplied, a reason where the operation requires one, and structured before and
+after values. A no-op task update creates no event. Task events describe the task's
+work-state history; subject events describe subject lifecycle and memorial
+association history, so the two streams must not be conflated.
+
+This milestone does not implement subject merge or split, manual memorial
+association or reassociation, preferred/canonical memorial decisions, FamilySearch
+or WikiTree persistence, versioned JSON envelopes, or hidden-command removal.
+
+## Public application API and desktop boundary
+
+Cemetery-to-World-Tree is expected to contain a separate installable,
+researcher-facing desktop application. PyQt6 is the leading toolkit candidate, but
+the final toolkit, GUI package name, distribution model, and cross-platform
+installer strategy remain open. The GUI may be independently packaged and
+versioned. Whether it lives in another nested repository or a future top-level
+monorepo is a separate repository-governance decision; no repository restructuring
+is part of this plan.
+
+The desktop application will be a sibling component that depends on Graver as an
+installed library. It must not be part of `graver.cli`, and Graver must never depend
+on it. The GUI owns windows, widgets, navigation, dialogs, presentation state, and
+GUI-specific background-worker integration. It imports only Graver's documented
+public facade and must not access SQLite schema details, private SQL helpers, Typer
+commands, Rich output, parsers, or transport implementation.
+
+```text
+Desktop GUI ─────┐
+Graver CLI       ├──→ Graver public application API
+Other clients    ┘        → domain rules
+                          → repositories and units of work
+                          → acquisition services
+                          → SQLite persistence
+```
+
+The CLI and GUI are peer adapters. Domain rules, transactions, provenance, and
+acquisition semantics must not be reimplemented independently in either adapter.
+The production GUI should begin after Graver 1.0 with a stable database and work-
+queue vertical slice, then grow as compatible FamilySearch and WikiTree services
+arrive. Another desktop toolkit or non-desktop client must remain possible.
+
+### Workspace facade
+
+The leading Graver 1.0 application-API shape is a synchronous, typed workspace
+facade, subject to validation by a small consumer spike:
+
+```python
+workspace = graver.open_workspace(database_path)
+
+workspace.database.inspect()
+workspace.work.list(...)
+workspace.work.next(...)
+workspace.work.show(...)
+workspace.work.update(...)
+workspace.acquisition.search(...)
+workspace.acquisition.enrich(...)
+```
+
+These names illustrate ownership and discoverability; they do not freeze the exact
+public class or method names. A workspace is opened from an explicit database path
+and does not resolve CLI configuration or global defaults. The CLI resolves
+`--db`, `GRAVER_DB`, and saved preferences before opening it. A GUI owns its selected
+workspace path and passes it explicitly.
+
+The workspace owns cohesive access to a database, not a permanently open SQLite
+connection. Connections remain internal and are opened per operation or controlled
+unit of work, never moved between GUI threads, and never returned to callers.
+Public callers receive no connections, cursors, SQLite rows, SQL fragments, or
+persistence-shaped dictionaries. Stateless service functions remain useful as
+testable internal building blocks, but a workspace facade is preferred publicly for
+discoverability, cohesive resource ownership, and GUI ergonomics without requiring
+global state or a long-lived connection.
+
+The core API should remain synchronous initially. Desktop clients can invoke it in
+worker threads and translate neutral callbacks into toolkit signals. Asyncio must
+not be introduced merely in anticipation of a GUI; whether later acquisition needs
+it remains an open decision driven by a concrete integration.
+
+### Public API contract
+
+Before `1.0.0rc1`, Graver must document supported import paths; typed domain models;
+typed command and query objects for nontrivial operations; typed results; a stable
+exception taxonomy; explicit database and transaction ownership; deterministic
+ordering and pagination; stable identifier semantics; nullability and enum-
+extension policy; thread-safety; progress and cooperative cancellation boundaries;
+stale-update detection; injectable acquisition transport, clock, UUID generator,
+and other nondeterministic boundaries; logging behavior; semantic-versioning policy;
+and consumer-oriented examples.
+
+Typed Python objects are the primary in-process contract for GUI and other library
+clients. Raw dictionaries are not the preferred API. Versioned JSON remains a
+separate CLI and machine-readable serialization contract. Both Python results and
+JSON envelopes will project the same application results; raw database rows define
+neither contract, and JSON serialization belongs outside domain and persistence
+layers. Transitional CLI JSON compatibility remains intact until the versioned-
+envelope milestone.
+
+Application services return typed information or raise documented typed exceptions.
+They must not print, render Rich content, invoke Typer, prompt, call `sys.exit`,
+import Qt, emit Qt signals, assume an event loop, or return terminal-formatted
+strings. Standard-library logging is appropriate when needed, with presentation
+left to the client.
+
+The planned exception hierarchy must let clients distinguish invalid requests or
+domain transitions; missing subjects or tasks; missing or invalid databases;
+required upgrades and newer-than-supported schemas; backup or migration failures;
+configuration failures; blocked external access; required authentication; rate
+limits; unavailable external services; timeouts and transport failures; changed or
+unparseable source pages; cancellation; stale-data conflicts; and busy or locked
+databases. Each exception exposes a stable machine classification, structured
+context, and a safe human summary without leaking tracebacks, credentials, cookies,
+or raw sensitive responses.
+
+### Progress, cancellation, and concurrency
+
+Long operations report toolkit-neutral typed events through ordinary Python
+callbacks or protocols. Events identify the operation, stage, completed count,
+optional total, and safe message or context. A callback runs in the calling worker's
+thread; a GUI adapter translates it into Qt signals, while the CLI adapts the same
+events into terminal progress.
+
+Cancellation uses a neutral token or protocol and is checked before requests,
+between pages or items, and before a transaction begins. It must not interrupt a
+transaction where invariants could be violated, and a committed operation must not
+be reported as cancelled. Partial external observations are persisted only under
+explicit provenance rules.
+
+Operations document whether they are read-only or mutating. Mutations use short,
+explicit transactions. No SQLite connection is shared across threads. Task updates
+accept an expected version, timestamp, or equivalent concurrency token so stale GUI
+state cannot silently overwrite newer work; results include enough identity and
+version information to refresh. Busy or locked database failures receive typed
+handling. WAL mode may be evaluated later but is not the public concurrency
+contract. The exact concurrency-token representation remains open.
+
+### Service areas and adapter responsibilities
+
+Application services should follow researcher goals rather than mirror tables:
+
+- database lifecycle and workspace opening;
+- research-subject lookup;
+- work selection, listing, inspection, and mutation;
+- memorial summary/full acquisition and provenance;
+- alias diagnostics and reviewed maintenance;
+- future FamilySearch discovery and assessment;
+- future WikiTree reconciliation; and
+- future family work packets.
+
+Acquisition remains memorial-specific; person-level work belongs to subjects. The
+CLI owns option parsing, database-precedence resolution, terminal and Rich
+presentation, progress bars, approved confirmations, exit-code translation, and CLI
+JSON serialization. Application services own validation, domain transitions,
+transactions, schema requirements, provenance, acquisition semantics, subject/task
+ownership, and typed errors and results. Parity tests must prove that CLI commands
+use the same application operations available to GUI clients rather than duplicating
+behavior.
+
+Subject-oriented implementation must avoid creating a temporary raw public API.
+Within that milestone, work proceeds in this order:
+
+1. Implement schema version 2 and safe migration.
+2. Add subject-oriented internal repositories and application services.
+3. Add immutable subject and task events.
+4. Preserve memorial-ID resolution as a compatibility adapter.
+5. Move `work` CLI operations onto the subject-oriented application services.
+6. Keep persistence rows and raw SQL private.
+7. Add typed results and exceptions for migrated work operations.
+8. Preserve current human CLI behavior and the tutorial through adapter tests.
+
+The entire eventual facade need not land in the schema-migration commit, but every
+new subject operation must move toward it instead of adding another root-level raw
+function. After those steps, migration must be verified against a temporary copy of
+the representative database and the canonical current-state inventory updated only
+with behavior actually implemented.
+
+### Documentation and contract validation
+
+The public facade requires a canonical `docs/api.md` or equivalent guide covering
+supported imports, workspace lifecycle, queries and commands, results and
+exceptions, progress and cancellation, threading, transactions, temporary-database
+and injected-transport examples, compatibility boundaries, and a GUI-consumer
+example. Docstrings alone are insufficient.
+
+Contract tests must cover supported imports; typed requests and results; exception
+classification and context; absence of service output, exits, and prompts; absence
+of Typer, Rich, or Qt below adapters; deterministic ordering and pagination;
+progress-event ordering; cancellation before requests and at safe transaction
+boundaries; stale-update rejection; thread-isolated database operations; mocked
+transport injection; CLI use of application services; Python and JSON projections
+of the same results; wheel installation and public API use; and compatibility of the
+documented facade after 1.0.
+
+Before `1.0.0rc1`, a separate top-level consumer spike will install Graver from its
+built wheel and import only documented APIs. It is not the production GUI and adds
+no Qt dependency to Graver. It will open and validate a temporary database, list
+work, display one subject and memorial, update one task with optimistic concurrency,
+exercise typed errors, receive mocked-acquisition progress, and safely cancel a
+mocked long operation without direct SQLite or private imports. It may use PyQt6 if
+that remains preferred. Its findings may refine the facade before the release
+candidate.
+
+After Graver 1.0, the production GUI should grow incrementally through workspace
+selection, initialization and upgrade guidance; work queue and subject detail; one-
+person acquisition and provenance review; status, notes, and conflict handling;
+FamilySearch candidate discovery and evidence assessment; reviewed identity
+conclusions; WikiTree reconciliation and work packets; and family-level workflows.
+
+## Provider-governed background acquisition
+
+The canonical [access and acquisition policy](access-policy.md) governs current
+project-maintained acquisition behavior and accepted contributions. The architecture
+below is planned work and must remain subordinate to that policy.
+
+This section records an architectural policy finding, not legal advice. On
+2026-08-21, planning reviewed the
+[Ancestry Terms and Conditions](https://www.ancestry.com/c/legal/termsandconditions),
+identified there as effective 2026-05-12, and the
+[Ancestry Community Rules](https://www.ancestry.com/c/legal/community-rules).
+Both apply to services that include Find a Grave. Without extensively quoting or
+attempting a definitive legal interpretation, Graver adopts the conservative policy
+that unattended acquisition is unavailable unless its intended use has an explicit
+authorization basis. Current terms, technical documentation, robots policies, and
+provider instructions must be reviewed again before implementation, before enabling
+an integration, and before each applicable release.
+
+Request spacing does not establish permission. Rate limits, randomized jitter,
+exponential backoff, resumability, quiet hours, and request budgets are operational
+safeguards only. They do not override terms of service, robots policies, access
+controls, or provider instructions. A user's acknowledgement of provider terms does
+not authorize Graver to implement access the provider prohibits.
+
+Graver will plan three complementary acquisition modes:
+
+1. Interactive person-at-a-time or small supervised acquisition.
+2. Bulk import from authorized files, exports, or datasets.
+3. Durable background acquisition only for providers and projects where the
+   intended automation is explicitly permitted.
+
+Unattended acquisition is enabled only for an official API, authorized export or
+import, licensed dataset, or documented or written permission covering the intended
+use. Find a Grave unattended full-record acquisition remains disabled pending that
+authorization. Ordinary researcher-directed single-record acquisition remains a
+separate capability and is still subject to the applicable terms and instructions.
+Graver must not implement CAPTCHA or challenge solving, proxy or IP rotation,
+browser-fingerprint manipulation, user-agent cycling, credential sharing, or other
+circumvention.
+
+Before any provider adapter or unattended operation is implemented or enabled, a
+pre-implementation gate requires a dated review of current provider terms and
+technical documentation, a documented authorization basis, maintainer approval,
+legal review when the intended use is uncertain, and contract tests using mocked
+transports rather than live bulk traffic. Contributions intended to circumvent
+access controls or facilitate unauthorized systematic downloading will not be
+accepted.
+
+### `cloudscraper25` dependency and transport audit
+
+On 2026-08-21, a no-network audit reviewed Graver's source, lockfile, tests, and the
+installed `cloudscraper25` 2.7.0 distribution metadata and license. Primary package
+references are the
+[`cloudscraper25` source repository](https://github.com/zinzied/cloudscraper25) and
+[`cloudscraper25` package page](https://pypi.org/project/cloudscraper25/). The
+installed distribution declares the MIT license and identifies version 2.7.0; the
+locked artifacts were published 2025-05-27. Its metadata labels the package
+production/stable but lists Python classifiers only through 3.9. Maintenance,
+security advisories, and supported-Python claims must be rechecked from those
+primary sources before dependency changes because this offline audit did not query
+current hosting-service state.
+
+At the time of the audit, Graver imported `cloudscraper25` in `graver.api`. The default
+`Driver` calls `cloudscraper25.create_scraper()` without restrictive options and
+then uses the resulting Requests-compatible session only through `get`, including
+query parameters, ordinary redirect behavior, response status, headers, and body.
+Graver implements its own status retry loop and `Retry-After` handling. It does not
+set an explicit request timeout at this boundary. Session cookies and generated
+headers may be inherited from the dependency, but Graver has no documented need for
+Cloudflare-specific cookies or headers.
+
+No Graver source configures proxy rotation, stealth mode, CAPTCHA services,
+fingerprint settings, browser impersonation, or a challenge interpreter explicitly.
+However, the default scraper itself automatically detects and handles supported
+challenges. The installed package also ships Cloudflare challenge and Turnstile
+handling, JavaScript interpreters, browser/user-agent emulation, stealth and proxy
+management, fingerprint behavior, and CAPTCHA-service integrations. Its transitive
+runtime dependencies include Requests, requests-toolbelt, js2py, PyCryptodome,
+pyOpenSSL, pyparsing, and websocket-client. Those unused capabilities and their
+dependency surface are inconsistent with Graver's fail-closed provider policy even
+though Graver does not explicitly configure most of them.
+
+Current tests inject a Betamax Requests session for recorded parser contracts and
+use `requests-mock` for retry and failure behavior. Some `Driver` tests construct
+the default session, but assertions exercise ordinary Requests-compatible HTTP
+semantics rather than challenge solving or other unique `cloudscraper25` behavior.
+No test establishes that Graver requires browser impersonation, challenge handling,
+proxy rotation, CAPTCHA support, fingerprint manipulation, or another capability a
+conventional client cannot provide.
+
+Audit result: **remove**, now implemented. Graver's demonstrated requirements are a
+conventional session, cookies where legitimately supplied, explicit transparent
+headers, redirects, explicit timeouts, conservative bounded retries, and injectable
+transports. A maintained conventional client such as Requests or httpx can
+reasonably provide those capabilities without the unused circumvention-oriented
+surface. The approved replacement occurred before provider-governed background
+acquisition and `1.0.0rc1`, with transport and parser contract tests kept offline.
+The replacement decision does not authorize automated access; provider
+authorization remains an independent gate. Graver now uses an internal synchronous
+transport boundary backed by Requests, with an explicit Graver user agent, finite
+connect and read timeouts, Graver-owned response and error types, bounded transient
+retries, and fail-closed handling for access challenges, `403`, and repeated `429`
+responses.
+The broader transport remains internal and injectable; Requests types do not define
+the planned public application API.
+
+### Import-first bulk capability
+
+The first scalable path should be a typed import service for official exports,
+licensed datasets, and authorized researcher-supplied files without live scraping.
+It will retain explicit source, licensing or
+authorization, and provenance metadata; validate inputs; provide a dry-run summary;
+report duplicates and conflicts; import transactionally; and support idempotent
+resume where practical. Summary-versus-full classification must follow known source
+metadata only. Imports must never fabricate observations, acquisition timestamps,
+or detail classifications.
+
+Import results must be suitable for both CLI and GUI adapters. Adapters may later
+support CSV, JSON, SQLite, or approved provider exports, but the first implementation
+will select the smallest useful authorized format after inspecting real use cases
+rather than promising every format. Public visibility of data does not itself grant
+redistribution rights; licensing and authorization responsibility must remain clear
+to the researcher.
+
+### Provider-neutral durable jobs
+
+The planned background-work subsystem is independent of Find a Grave and of CLI or
+GUI presentation. Candidate entities are a job, job item, attempt, provider-policy
+snapshot, schedule metadata, progress checkpoint, and pause/cancellation state.
+Jobs must contain declarative operation specifications, never runnable Python code
+or arbitrary shell commands.
+
+Each job retains a stable identifier, operation type, explicit target set or query
+snapshot, creation time and requester, provider, policy and authorization basis,
+status, total items, completed/failed/skipped/blocked counts, next eligible time,
+request budget, last progress and failure, and immutable attempt history. Provider
+policy snapshots retain the terms URL, review date, authorization basis, permitted
+rate and execution window, budgets, and any deterministic jitter configuration.
+
+Execution initially permits at most one worker per database and one concurrent
+request. It uses provider-specific minimum
+intervals, hourly and daily budgets, optional permitted execution windows, durable
+checkpoints, idempotent restart, and bounded work per invocation. Before activation,
+the client presents an estimated request count and duration. Jobs support pause,
+resume, cancel, and inspection; use cooperative cancellation at safe boundaries;
+keep database transactions short; share no SQLite connection across threads; and
+continue only while their provider policy permits the operation.
+
+No universal production delay is approved. Provider permission determines whether
+live automation is allowed and, if so, its operational limits. Random jitter may
+smooth authorized traffic only when it remains subordinate to the permitted minimum
+interval, never raises traffic beyond budgets, is injectable and deterministic in
+tests, and is recorded as policy configuration. It cannot establish authorization
+or substitute for hourly and daily limits.
+
+### Fail-closed stop and retry policy
+
+The runner immediately pauses a job and requires human review on a CAPTCHA,
+Cloudflare or other access challenge, authentication change or `401`, `403`,
+explicit access-block message, policy uncertainty or a robots/provider-policy change,
+repeated `429`, or repeated parsing failures that suggest a source-schema change.
+No automatic mechanism may work around a provider block.
+
+For `429`, the runner honors `Retry-After` when present and pauses rather than
+repeatedly probing. A bounded cooldown is required, and repeated occurrences require
+human review. Genuinely transient timeouts and `5xx` responses may use bounded
+exponential backoff with a fixed attempt limit. Every attempt is recorded, and
+repeated failure must never result in faster retries.
+
+### Scheduling, API, and client integration
+
+Scheduling is an adapter over the durable job application service, initially using
+this bounded invocation model:
+
+```text
+scheduler invokes bounded job runner
+  → runner processes eligible items within its budget
+  → runner checkpoints and exits
+```
+
+Cron, launchd, Task Scheduler, a local CI-like scheduler, or a future GUI scheduler
+can invoke the same service without requiring Graver to ship a permanent daemon.
+Exact CLI names remain provisional; a progressive-disclosure `graver jobs ...`
+surface is plausible, with ordinary help focused on goals and status and advanced
+policy diagnostics kept under administrative surfaces.
+
+The workspace facade will expose typed job specifications, statuses, progress,
+cancellation, structured provider-block outcomes, request-budget estimates, and
+immutable attempt history through an illustrative `workspace.jobs` service. It
+returns no terminal rendering or Qt types. CLI and GUI adapters call the same job
+services, and production GUI scheduling remains an adapter rather than a second job
+engine.
+
+Job specifications, logs, events, and exports must contain no credentials. External
+content storage is minimized; diagnostic responses are redacted; source terms,
+authorization metadata, stable source URLs, acquisition timestamps, outcomes, and
+user-visible retention behavior are preserved. Public availability creates no
+assumption that redistribution is allowed.
+
+Offline contract tests will cover deterministic scheduler eligibility, hourly and
+daily budgets, single concurrency, injected deterministic jitter, pause/resume and
+restart, idempotent checkpoints, crash recovery, safe cancellation, `Retry-After`,
+circuit breaking for challenges, CAPTCHA, `401`, `403`, and repeated `429`, bounded
+transient retries, no retry on access blocks, progress events, CLI/API parity, GUI-
+consumer compatibility, immutable attempts, and import validation and provenance.
+They must deny real network access. The live contract probe remains separate and
+must never exercise bulk behavior.
 
 ## Research database lifecycle
 
@@ -329,53 +798,75 @@ Initial work states may include `unprocessed`, `researching`, `familysearch_matc
 
 Completed foundation:
 
-- Inspected and preserved the existing scraper and SQLite database.
-- Added persistent research-management and work-queue capability.
-- Added functional person-at-a-time task handling and explicit Find a Grave alias
-  review.
-- Refined the CLI into a small, task-oriented `work` surface with progressive
-  disclosure and moved alias maintenance under `admin aliases`, while retaining
-  current internal capabilities and hidden compatibility commands for pre-1.0
-  review.
+1. Inspected and preserved the scraper and SQLite persistence foundation.
+2. Added the task-oriented CLI, alias maintenance, database selection,
+   initialization, explicit backed-up upgrades, and the researcher tutorial.
+3. Replaced `cloudscraper25` with a conventional Requests-backed internal transport,
+   explicit timeouts and transparent identification, bounded retries, and
+   fail-closed access handling.
 
-Pre-1.0 release sequence:
+Pre-1.0 sequence:
 
-1. Define and document the complete Graver 1.0 CLI, Python, configuration,
-   database, migration, JSON, supported-Python, and compatibility contract.
-2. Add `graver init [DATABASE]` with refusal to overwrite and selection only after
-   successful current-schema creation and validation.
-3. Separate database inspection, validation, initialization, and explicit migration;
-   add the planned `graver admin database upgrade DATABASE` workflow with backup,
-   transactional upgrade, recovery, and unknown/newer-format safeguards.
-4. Introduce a stable research-subject identity and migrate current memorial-centered
-   tasks and provenance without losing existing memorial data.
-5. Modernize network denial, deterministic domain fixtures and Faker, temporary
-   database lifecycle, test layers and markers, replay-only contracts, and the
-   separate bounded live-contract probe.
-6. Separate runtime dependencies from test, typing, fixture, recording, coverage,
-   and development tools; remove unused runtime dependencies.
-7. Normalize acquisition options to kebab-case researcher terminology, remove
-   duplicate and site-shaped public spellings, and remove hidden pre-1.0 task and
-   alias compatibility commands.
-8. Reduce root exports to the documented public Python facade and keep `Driver`,
-   parsers, transport mechanics, SQL helpers, and wildcard constants internal.
-9. Introduce documented, command-specific, versioned JSON schemas and stable
-    machine-readable error behavior.
-10. Support `python -m graver` through `graver.__main__` alongside the console entry
-    point.
-11. Replace stale Poetry CI with uv-based installation, offline tests, wheel checks,
+4. Implement schema version 2 research-subject ownership, one-subject-per-memorial
+   migration, and immutable subject and task history without identity inference.
+5. Build subject-oriented application services and retain memorial-ID lookup through
+   a compatibility adapter, moving new operations toward the workspace facade.
+6. Modernize offline test boundaries, default network denial, deterministic domain
+   fixtures and Faker, temporary lifecycle, markers, replay-only contracts, and the
+   bounded live-contract probe.
+7. Define the public Graver workspace facade, typed requests and results, exception
+   taxonomy, transaction and threading contract, progress, cancellation, stale-
+   update handling, injectable transport and nondeterminism, and semantic-versioning
+   policy.
+8. Move researcher-directed acquisition and CLI workflows onto those application
+   services, validate the shared boundaries, and add CLI/API parity tests
+   while preserving the tutorial's human workflow.
+9. Validate researcher-directed acquisition against the current access policy, then
+   complete each provider's authorization and policy gate. Any pre-1.0 import support
+   must use authorized data, and no unattended Find a Grave enrichment is enabled.
+10. Define import-first boundaries and provider-neutral background-job services
+    before any public job API is frozen. Provider-specific unattended adapters remain
+    unavailable unless their authorization gate is satisfied.
+11. Separate runtime and test dependencies, remove unused dependencies, and restrict
+   package exports to the documented facade with `Driver` and implementation
+   mechanics internal.
+12. Add command-specific versioned JSON envelopes as adapter projections of the same
+   typed application results.
+13. Normalize acquisition options and remove duplicate, site-shaped, and hidden
+    pre-1.0 compatibility paths.
+14. Support `python -m graver` through `graver.__main__`.
+15. Replace stale Poetry CI with uv-based installation, wheel tests, offline tests,
     and Python 3.11-through-3.14 validation.
-12. Add database migration instructions, 0.1-to-1.0 compatibility notes, public
-    contract documentation, release notes, and the later authorized branch/tag
-    transition plan.
-13. Prepare and validate `1.0.0rc1` without weakening database recovery or offline
-    test guarantees.
-14. Release `1.0.0` after release-candidate findings are resolved.
-15. Add repeatable FamilySearch candidate discovery and research storage behind
-    simple researcher workflows, including immutable search runs and candidate
-    snapshots, change detection, evidence, discrepancies, evolving confidence,
-    reasoning, reviewer fields, and immutable decision history.
+16. Publish the public API guide, database and 0.1 migration instructions,
+    compatibility and release notes, and the later authorized branch/tag plan.
+17. Build the separate consumer spike against the installed wheel, validating the
+    documented facade without private imports or direct SQLite access. It may
+    exercise mocked jobs but performs no live bulk acquisition.
+18. Resolve spike findings and complete any required provider-neutral job-service
+    contracts without enabling an unauthorized provider adapter. Prepare
+    `1.0.0rc1` without weakening migration,
+    provenance, concurrency, or offline-test guarantees.
+19. Validate the release candidate and release Graver `1.0.0` after its findings are
+    resolved.
 
-Later compatible roadmap work includes explicit reviewed identity conclusions,
-WikiTree profile search and reconciliation, evidence summaries and work packets, and
-the progression from person-at-a-time research to reviewed family work packets.
+Post-1.0 compatible sequence:
+
+20. Begin the production desktop GUI with workspace/database lifecycle, work queue,
+    subject detail, and one-person acquisition/provenance review.
+21. Add repeatable FamilySearch candidate discovery through the same application
+    API, including immutable search runs, snapshots, change detection, evidence,
+    discrepancies, confidence, reasoning, reviewer fields, and decision history.
+22. Implement import-first bulk acquisition for the smallest demonstrated authorized
+    formats not already supported in 1.0.
+23. Add provider-authorized background acquisition only after a repeated policy and
+    permission review; production GUI scheduling uses the same durable job service.
+24. Extend GUI and CLI evidence-research workflows over those services.
+25. Add explicit reviewed identity conclusions.
+26. Add WikiTree reconciliation, evidence summaries, and family work packets.
+27. Extend the production GUI across the complete reviewed research workflow.
+
+Open decisions include the final GUI toolkit and package name, nested-repository
+versus future-monorepo governance, exact facade class and method names, the exact
+concurrency token, whether concrete later acquisition needs asyncio, GUI packaging
+and distribution, and cross-platform installer strategy. The approved dependency
+direction remains a separate GUI component using only Graver's documented API.

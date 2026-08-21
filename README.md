@@ -8,6 +8,12 @@ graver
 
 Scrape and Retrieve [FindAGrave](http://findagrave.com) memorial data and save them to an SQL database.
 
+Graver supports responsible, researcher-directed acquisition and
+provider-authorized data workflows. It is not designed to bypass access controls or
+conceal automated activity. Users remain responsible for complying with applicable
+laws, provider terms, and access policies. See the project
+[access policy](docs/access-policy.md) for the acquisition and contribution rules.
+
 Project direction and verified implementation status are maintained in the
 canonical [project context](docs/project-context.md),
 [existing-system inventory](docs/existing-system-inventory.md), and

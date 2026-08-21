@@ -1,6 +1,6 @@
 # Existing system inventory: `graver`
 
-Inspection dates: 2026-08-11; refreshed 2026-08-20
+Inspection dates: 2026-08-11; refreshed 2026-08-21
 
 ## What is present
 
@@ -43,13 +43,54 @@ tag, or release changes have occurred.
   `python -m graver.cli` is broken, and no `graver.__main__` module currently
   provides `python -m graver`.
 
+Graver currently has no durable background-job engine, scheduler, or unattended
+bulk-enrichment mode. Full memorial enrichment is intentionally person-at-a-time and
+requires the current task approval. Search-summary acquisition does not authorize or
+enable mass full-page enrichment. Provider permission for unattended Find a Grave
+acquisition has not been established.
+
 ### Retrieval and parsing
 
-- A reusable requests session supplies a browser-like User-Agent.
-- Retry behavior covers HTTP 500, 502, 503, 504, and 599 (three retries by default, with a 500 ms delay).
+- An internal synchronous transport backed by `requests.Session` supplies a
+  transparent `graver/<version>` User-Agent, preserves ordinary cookies and
+  redirects, and applies explicit 5-second connect and 30-second read timeouts.
+- Current retry behavior covers HTTP 408, 429, 500, 502, 503, 504, and 599, with
+  five retries by default and a 500 ms base delay for transient statuses. The
+  `429` path permits one bounded retry, honors a numeric `Retry-After` up to 60
+  seconds or uses exponential backoff, then stops for human review if rate limiting
+  repeats. A `403` or recognized challenge page stops immediately without retry or
+  bypass behavior.
 - Full memorial parsing handles canonical URLs, ordinary 404s, removed memorials, and merged memorial redirects.
 - Cemetery search supports counting results and follows 20-result pages.
 - The test suite uses recorded HTTP cassettes rather than live Find a Grave requests.
+
+A no-network dependency audit on 2026-08-21 reviewed the source usage, lockfile,
+tests, and installed package metadata and MIT license. The primary references are
+the [`cloudscraper25` repository](https://github.com/zinzied/cloudscraper25) and
+[PyPI project](https://pypi.org/project/cloudscraper25/). The lockfile identifies
+version 2.7.0 artifacts published 2025-05-27 and transitive dependencies on Requests,
+requests-toolbelt, js2py, PyCryptodome, pyOpenSSL, pyparsing, and websocket-client.
+The package metadata advertises challenge and Turnstile handling, browser/user-agent
+emulation, stealth and proxy features, fingerprint behavior, JavaScript
+interpreters, and CAPTCHA-service integrations. Graver does not configure those
+features explicitly, but default scraper construction enables automatic challenge
+handling.
+
+Current Graver tests require only a Requests-compatible injectable session and
+ordinary retry, error, response, and parser behavior. They do not demonstrate a
+need for challenge handling, proxy rotation, browser impersonation, CAPTCHA support,
+fingerprint manipulation, or any other unique package capability. The installed
+metadata labels the package production/stable and lists Python classifiers through
+3.9. Because the audit made no network requests, it did not establish the package's
+current maintenance or security-advisory status.
+
+The approved audit result, **remove**, is now implemented. `cloudscraper25` is no
+longer a runtime dependency or production/test import. Requests is an explicit
+runtime dependency behind a small Graver-owned transport protocol and response
+model; third-party session, response, and exception types do not form the planned
+public application contract. Tests can inject the internal transport directly or
+continue supplying Requests-compatible Betamax sessions. The replacement does not
+authorize automated provider access.
 
 ## Current SQLite databases
 
@@ -204,6 +245,33 @@ and useful for current tests, but they are not documented, versioned, command-sp
 1.0 schemas. The hidden compatibility commands remain implemented and tested today;
 their approved pre-1.0 removal has not yet occurred.
 
+No desktop GUI currently exists. Current CLI and Python boundaries still expose a
+mixture of persistence-shaped dictionaries, root-level functions, SQLite-oriented
+details, and CLI-coupled presentation behavior. The broad root exports described
+above are not a stable 1.0 application API. No workspace facade, typed public result
+layer, neutral progress or cancellation protocol, optimistic concurrency control,
+or GUI integration has been implemented.
+
+The approved target is a separate installable desktop component, with PyQt6 as the
+leading but not mandated toolkit candidate, depending only on Graver's documented
+public application facade. In that target design, SQLite connections and schema
+details remain internal, connections are scoped per operation or unit of work and
+never shared across GUI threads, and CLI and GUI remain peer adapters. The facade,
+its exact names, and its typed contracts are planned work, not current behavior.
+The completed researcher tutorial supplies a useful behavioral acceptance workflow
+for future CLI/application-API/GUI parity tests.
+
+Provider-governed jobs, authorized imports, scheduling adapters, policy snapshots,
+request budgets, durable checkpoints, and immutable attempt history are approved
+planning concepts only. No such service or public command currently exists. The
+canonical [access and acquisition policy](access-policy.md) now governs
+project-maintained acquisition behavior and accepted contributions. The
+planned policy keeps unattended Find a Grave enrichment disabled without written
+permission, an approved API, an authorized export, or another documented provider
+mechanism permitting it. Rate limits, jitter, backoff, resumability, quiet hours,
+and budgets are operational safeguards only and do not create authorization or
+override provider terms, policies, controls, or instructions.
+
 ## Packaging, CI, and release status
 
 - Both the project version and Commitizen version are `v0.1.0`; normalized package
@@ -226,9 +294,10 @@ are complete, but the current memorial-centered
 task identity, raw JSON, broad exports, compatibility aliases,
 dependency boundaries, and stale CI must not be frozen as the 1.0 contract. Before
 beginning FamilySearch work, follow the ordered pre-1.0 roadmap in
-`docs/project-context.md`, beginning with the contract and explicit database
-lifecycle. `graver init [DATABASE]` now creates a new database with the current
-schema and selects it as the saved default. With no argument it creates
+`docs/project-context.md`; the next planned work is schema-version-2 subject
+ownership and the application-service boundary. `graver init [DATABASE]` now
+creates a new database with the current schema and selects it as the saved default.
+With no argument it creates
 `./graves.db`; with an argument it uses the named path. It refuses to overwrite an
 existing filesystem entry, requires an existing parent directory, leaves the prior
 selection untouched on failure, and cleans up only its own newly created partial
@@ -258,6 +327,71 @@ migration, and validates the result without automatically restoring over user da
 Generalized research subjects, versioned JSON,
 normalized acquisition options, hidden-command removal, and `python -m graver` are
 not implemented yet.
+
+The approved next schema milestone is version 2, but none of it is current behavior
+yet. It will use canonical lowercase UUIDv4 `TEXT` subject IDs and add
+`research_subjects`, `subject_memorials`, immutable `research_subject_events`,
+subject-keyed `research_tasks`, and immutable `research_task_events`. A subject is an
+opaque organizational owner for person-level research, not a genealogical identity
+conclusion. Migration will mechanically create one subject for every grave and
+associate only that memorial with it, including for graves without tasks. It will
+not merge records because of aliases, redirects, names, dates, or similarity.
+
+The planned association constraint permits at most one current subject per memorial
+and structurally permits a subject to have zero or multiple memorials. Multiple-
+memorial association is nevertheless a reviewed identity decision and will remain
+unavailable until its evidence and correction policy exists. Memorial observations
+remain memorial-owned, alias observations remain alias-source-owned, and tasks
+become subject-owned. Aliases do not confer subject membership. FamilySearch and
+WikiTree candidates will be subject-linked hypotheses, while later family work
+packets will group subjects rather than replace them.
+
+The version-1-to-version-2 migration plan preserves the mandatory explicit backup,
+ordered transaction, and rollback behavior. It copies each task exactly once with
+all fields and timestamps unchanged, leaves existing acquisition and alias data
+unchanged, and advances the schema version only within the successful transaction.
+It creates only honestly labeled mechanical provenance: subject creation and
+association events and one `task_migrated` snapshot for each migrated task. That
+snapshot does not reconstruct prior task history. Subsequent task creation and
+status, priority, owner, or review-note changes will create immutable task events;
+no-op updates will not. Subject and task events retain distinct meanings.
+
+Ordinary CLI output will keep subject UUIDs internal and preserve memorial IDs as
+researcher lookup keys. The lowest associated memorial ID is only a deterministic
+temporary display fallback where no reviewed preferred memorial exists; it is not
+canonical identity. Existing pre-1.0 JSON will be compatibility-projected until the
+separate versioned-envelope milestone. Merge, split, manual association or
+reassociation, preferred memorial selection, external-platform persistence,
+versioned envelopes, and hidden-command removal remain explicitly deferred.
+
+The public application-service facade is now planned alongside the subject-oriented
+API work rather than as a late packaging-only cleanup. New subject operations should
+use internal repositories and typed application services, keep persistence rows and
+SQL private, and move the `work` CLI toward the same operations future GUI clients
+will call. A synchronous workspace opened from an explicit database path is the
+leading design because it offers cohesive ownership and discoverability without a
+long-lived connection; the CLI, not the workspace, continues to resolve database
+configuration and precedence.
+
+Before the release candidate, the planned facade must define typed requests,
+results, exceptions, progress, cancellation, threading, transaction ownership,
+stale-update handling, deterministic ordering, identifier and enum policies,
+injectable transport and nondeterminism, logging, supported imports, and public
+documentation. A separate top-level consumer spike against the built wheel will
+validate those contracts before `1.0.0rc1`; it is not a production GUI. Production
+GUI work follows Graver 1.0 and begins with the stable workspace/work-queue vertical
+slice before expanding alongside FamilySearch, reviewed identity, WikiTree, and
+family-work services.
+
+After the typed application boundary and researcher-directed acquisition have been
+validated, provider authorization gates and import-first/provider-neutral job
+abstractions are planned before any public background-job API is frozen. Authorized
+structured-data import may provide a scalable path without scraping. Any live
+background runner remains provider-gated, single-request by default, budgeted,
+resumable, fail-closed on access challenges, and shared by CLI and GUI through the
+application service. A scheduler will invoke bounded work and exit rather than
+requiring a permanent daemon at first. These are future architectural constraints,
+not implemented acquisition behavior.
 
 For pre-1.0 compatibility, acquisition and write paths still initialize a missing or
 empty database with the current schema. They no longer migrate recognized legacy
@@ -328,8 +462,9 @@ changes, discrepancies, and required decisions presented contextually.
 Find a Grave aliases remain platform-redirection provenance only. They may inform
 FamilySearch candidate research but do not automatically assert genealogical
 identity. WikiTree integration, relationship reconciliation, and work packets
-should follow reviewed identity research. Do not introduce unattended
-cemetery-wide enrichment yet.
+should follow reviewed identity research. Find a Grave unattended full-record or
+cemetery-wide acquisition remains disabled unless the documented authorization gate
+is satisfied.
 
 ## Before implementation
 
