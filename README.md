@@ -13,6 +13,10 @@ canonical [project context](docs/project-context.md),
 [existing-system inventory](docs/existing-system-inventory.md), and
 [initial inspection guide](docs/initial-inspection.md).
 
+New to Graver? Follow the [researcher tutorial](docs/tutorial.md) for a small,
+safe, end-to-end workflow from database creation through one approved memorial
+enrichment.
+
 
 ## Scraping
 [FindAGrave](http://findagrave.com) is a free website providing access to and an opportunity to input cemetery information to an online database of cemetery records (over 226 million and counting). Often when doing genealogy research, you don't want to rely on a webpage's future and so you want to download the information to your local filesystem. ```graver```takes a list of Find A Grave memorial IDs or FindAGrave URLs, scrapes relevant genealogical data, and stores the contents in a SQLite3 database.

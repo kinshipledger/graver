@@ -12,6 +12,7 @@ from click.testing import Result
 
 import graver.api
 from graver import (
+    Driver,
     Memorial,
     MemorialMergedException,
     MemorialParseException,
@@ -987,6 +988,120 @@ class TestCliResearcherSurface(Test):
 
 
 class TestCliSearch(TestCli):
+    def test_researcher_tutorial_workflow_is_offline(
+        self,
+        helpers,
+        tmp_path,
+        monkeypatch,
+        isolate_graver_configuration,
+    ) -> None:
+        """Exercise the documented workflow without contacting Find a Grave."""
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("GRAVER_DB", raising=False)
+        tutorial_database = (tmp_path / "tutorial.db").resolve()
+        values = Test.load_memorial_from_json("george-washington")
+        summary = MemorialSummary.from_dict(values)
+        full = Memorial.from_dict(values)
+        search_calls = []
+        full_calls = []
+
+        def mocked_search(*args, **kwargs):
+            search_calls.append(kwargs)
+            return [summary]
+
+        def mocked_full_acquisition(url):
+            full_calls.append(url)
+            return full
+
+        def unexpected_network(*_args, **_kwargs):
+            pytest.fail("the tutorial workflow attempted an unexpected network call")
+
+        monkeypatch.setattr(Memorial, "search", mocked_search)
+        monkeypatch.setattr(Memorial, "parse", mocked_full_acquisition)
+        monkeypatch.setattr(Driver, "get", unexpected_network)
+
+        initialized = helpers.graver_cli("init tutorial.db")
+        selected = helpers.graver_cli("use --show")
+        searched = helpers.graver_cli("search --id 1075 --max-results 1")
+        queued = helpers.graver_cli("work queue")
+        listed = helpers.graver_cli("work list --limit 10")
+        next_person = helpers.graver_cli("work next")
+        initial = helpers.graver_cli("work show 1075 --json")
+        refused = helpers.graver_cli("work enrich 1075")
+        approved = helpers.graver_cli(
+            "work mark 1075 --status ready_for_full_scrape "
+            "--note 'Approved during the tutorial'"
+        )
+        approved_tasks = graver.api.list_research_tasks(
+            str(tutorial_database),
+            status="ready_for_full_scrape",
+            cemetery_id=None,
+            limit=20,
+        )
+        enriched = helpers.graver_cli("work enrich 1075")
+        final = helpers.graver_cli("work show 1075 --json")
+
+        assert all(
+            result.exit_code == 0
+            for result in (
+                initialized,
+                selected,
+                searched,
+                queued,
+                listed,
+                next_person,
+                initial,
+                approved,
+                enriched,
+                final,
+            )
+        )
+        assert refused.exit_code == 1
+        assert "not approved for enrichment" in refused.output
+        assert str(tutorial_database) in initialized.output
+        assert str(tutorial_database) in selected.output
+        assert json.loads(isolate_graver_configuration.read_text())[
+            "default_database"
+        ] == str(tutorial_database)
+        assert len(search_calls) == 1
+        assert search_calls[0]["memorialid"] == "1075"
+        assert search_calls[0]["max_results"] == 1
+        assert "Added 1 person" in queued.output
+        assert "1075 | George Washington" in listed.output
+        assert "Person: George Washington" in next_person.output
+
+        initial_record = json.loads(initial.output)
+        assert initial_record["grave"]["detail_level"] == "summary"
+        assert initial_record["task"]["status"] == "unprocessed"
+        assert len(initial_record["observations"]) == 1
+        assert initial_record["observations"][0]["acquisition_level"] == "summary"
+        assert [task["memorial_id"] for task in approved_tasks] == [1075]
+        assert full_calls == [summary.findagrave_url]
+
+        final_record = json.loads(final.output)
+        assert final_record["task"]["status"] == "full_scrape_complete"
+        assert final_record["grave"]["detail_level"] == "full"
+        assert final_record["grave"]["full_fetched_at"]
+        assert final_record["grave"]["findagrave_url"] == summary.findagrave_url
+        assert final_record["grave"]["cemetery_id"] == summary.cemetery_id
+        assert [
+            observation["acquisition_level"]
+            for observation in final_record["observations"]
+        ] == ["summary", "full"]
+        assert all(
+            observation["fetch_outcome"] == "success"
+            for observation in final_record["observations"]
+        )
+        assert (
+            sum(
+                task["status"] == "full_scrape_complete"
+                for task in graver.api.list_research_tasks(
+                    str(tutorial_database), status=None, cemetery_id=None, limit=20
+                )
+            )
+            == 1
+        )
+
     def test_saves_results_to_specified_database(
         self, helpers, tmp_path, fake_memorial, monkeypatch
     ) -> None:
