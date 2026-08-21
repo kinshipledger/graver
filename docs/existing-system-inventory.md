@@ -32,6 +32,10 @@ tag, or release changes have occurred.
   `./graves.db`, requires an existing parent directory, and refuses every existing
   filesystem entry.
 - `use DATABASE`, `use --show`, and `use --clear` manage one researcher-facing default database selection without creating, migrating, or deleting databases. Explicit `--db` and `GRAVER_DB` remain higher-precedence temporary selections.
+- `admin database upgrade DATABASE` read-only inspects a recognized older schema,
+  creates a verified deterministic sibling backup, applies ordered migrations in a
+  transaction, and validates schema, integrity, and foreign keys. Current databases
+  are a no-op; backup collisions, unknown schemas, and newer versions fail safely.
 - `work queue`, `work list`, `work next`, `work show`, and `work mark` provide a person-centered, network-free research workflow. `work enrich` retrieves exactly one explicitly approved memorial.
 - `admin aliases list`, `show`, `record`, and `retract` expose specialist Find a Grave redirect maintenance and immutable history without moving tasks or grave data.
 - The earlier top-level task and alias commands remain functional as hidden compatibility aliases. They preserve existing arguments, output, and exit behavior but do not compete with ordinary workflows in root help.
@@ -50,18 +54,56 @@ tag, or release changes have occurred.
 ## Current SQLite databases
 
 The local `src/graver/graves.db` is an ignored runtime byproduct of early human
-command-line development, not a supported sample or repository fixture. The
-ignored, untracked representative `src/graver/many_graves.db` contains 334 distinct
-memorials discovered from a Morris Hill Cemetery search (Find a Grave cemetery ID
-`2181249`). It has one table:
+command-line development, not a supported sample or repository fixture.
+
+On 2026-08-20, a read-only inspection recorded the latest local representative
+snapshot of the ignored `many_graves.db`. It was a 155,648-byte regular file, not a
+symlink, with SHA-256
+`affb436218b5ba2b7ac13448b12f6bddfd5fc99ff9ed21bf9c2a14d8360c678c`.
+It contained 334 `graves` rows and 334 distinct memorial IDs, plus six application
+tables:
 
 ```text
+cemeteries
 graves
+memorial_alias_observations
+memorial_aliases
+memorial_observations
+research_tasks
 ```
 
-`graves.memorial_id` is the primary key. The current code can store the memorial URL, parsed name components, Find a Grave flags, birth/death values and places, memorial type, cemetery ID, burial place, plot, coordinates, biography presence, and the acquisition metadata `detail_level`, `summary_fetched_at`, and `full_fetched_at`. The local `many_graves.db` predates those three acquisition columns and the research tables; the current shared initialization path adds them to a working copy when application operations open it. Schema inspection, creation, and migration are not yet separate lifecycle operations, so ordinary API reads can currently trigger creation or additive migration.
+The additive `graves` columns were already present, but the database had no
+`graver_schema` metadata and was classified as **current pre-version-metadata**.
+One row had a non-null `detail_level`, no rows had a summary fetch timestamp, one
+row had a full fetch timestamp, and one memorial observation already existed. It
+contained no aliases, alias observations, or research tasks. SQLite integrity was
+`ok`, and the foreign-key check returned no violations.
 
-The 334 representative rows are intentionally search summaries, not full memorial-page scrapes. All contain an ID, URL, name, birth/death display values, memorial type, cemetery ID, and burial place; four contain plot text. None contains birth/death places, coordinates, or biography status. After migration, their acquisition fields remain null until they are seen again because the code deliberately avoids guessing the origin of legacy rows. This supports staged enrichment rather than scraping every individual page immediately.
+This differs from the database's earlier historical summary-only, `graves`-only
+shape. The ignored file is mutable researcher data and had previously been opened
+through application workflows; the inspection does not attribute its changes to a
+particular earlier command. This dated snapshot is evidence about the current
+migration implementation, not a repository contract or a promise that the local
+database will remain unchanged.
+
+`graves.memorial_id` is the primary key. The current code can store the memorial
+URL, parsed name components, Find a Grave flags, birth/death values and places,
+memorial type, cemetery ID, burial place, plot, coordinates, biography presence,
+and the acquisition metadata `detail_level`, `summary_fetched_at`, and
+`full_fetched_at`.
+
+New databases contain application-owned schema metadata at version 1. Read-only
+inspection distinguishes the known 0.1 full grave shape, the representative
+summary-only legacy shape, structurally current pre-metadata databases, current
+versioned databases, future versions, empty databases, unrelated SQLite files, and
+unknown or malformed inputs. Required structural evidence is necessary before a
+legacy classification is assigned.
+
+The population originated as 334 cemetery-search summaries. Its current mutable
+state includes the acquisition values and observation counted above; unclassified
+legacy rows remain unclassified because Graver does not infer their acquisition
+origin. This supports staged enrichment rather than scraping every individual page
+immediately.
 
 ### What it preserves well
 
@@ -80,9 +122,10 @@ The 334 representative rows are intentionally search summaries, not full memoria
 
 ### Important limitations
 
-- No `cemeteries` table exists in the supplied database, even though the code can create one; cemetery metadata is not written by the existing commands.
+- The current local snapshot has a `cemeteries` table, but its presence is not a
+  stable fixture guarantee because the ignored database remains mutable user data.
 - `graves` remains a current-state acquisition table rather than immutable observation history. The new upserts protect richer data but do not retain earlier versions of changed source values.
-- A small additive migration mechanism, fetch timestamps, successful and failed acquisition observations, foreign keys, supporting indexes, initial work-queue state, and alias provenance now exist.
+- Ordered explicit migration, fetch timestamps, successful and failed acquisition observations, foreign keys, supporting indexes, initial work-queue state, and alias provenance now exist.
 - Family relationships, source evidence, FamilySearch matches, WikiTree matches, identity conclusions, and cemetery-tag decisions are not modeled.
 - Legacy rows are deliberately not assigned a `detail_level` during migration because their acquisition level cannot be inferred reliably. They become classified when subsequently saved through the summary or full persistence path.
 - Legacy rows deliberately do not receive fabricated observation records during migration because their original timestamp and exact observed payload are unknown.
@@ -114,12 +157,26 @@ On 2026-08-20, after adding explicit new-database initialization, the complete s
 passed in the current project environment: **295 passed**. Black check-only mode
 also passed. Codex must not run Flake8 autonomously; human maintainers may run it
 separately before release. Agent validation is limited to tests, Black check-only,
-diff checks, and task-specific verification. A migration and CLI check on a
-temporary copy of `many_graves.db` preserved all 334 rows and distinct
-memorial IDs, queued 334 tasks idempotently, exercised the researcher workflow,
-and fabricated zero aliases or acquisition observations. SQLite integrity and
-foreign-key checks passed. The original database checksum remained
-`7b952c7f1202c7f3b8260edc4b466c6f334052c801ba7596ebfa23bea912a3cc`.
+diff checks, and task-specific verification.
+
+On 2026-08-20, the completed explicit-upgrade implementation was also verified
+against a temporary byte-identical copy of the read-only local snapshot described
+above. Upgrade from current pre-version-metadata to schema version 1 succeeded. All
+334 graves and distinct memorial IDs remained, and hashes of every existing table's
+ordered row values were unchanged. The upgrade fabricated no observations, aliases,
+alias observations, research tasks, detail levels, or fetch timestamps. SQLite
+integrity remained `ok`, and the foreign-key check returned no violations.
+
+The verified backup retained the pre-metadata schema and identical logical row
+values. Its file checksum differed because SQLite's backup API may create a
+different consistent page image; byte identity is not required for logical backup
+identity. The original source checksum remained
+`affb436218b5ba2b7ac13448b12f6bddfd5fc99ff9ed21bf9c2a14d8360c678c`
+before and after verification.
+
+`many_graves.db` remains ignored mutable user data and must not be committed. It is
+neither a test fixture nor a stable project input. Repeatable automated migration
+tests must continue to use generated or deliberately sanitized historical fixtures.
 
 ## Researcher CLI structure
 
@@ -164,9 +221,9 @@ their approved pre-1.0 removal has not yet occurred.
 
 Keep the existing scraper and its `graves` table as the **Find a Grave acquisition component**. The additive `cemeteries`, `memorial_observations`, and `research_tasks` layer now provides provenance and a practical queue.
 
-The task-oriented CLI foundation and explicit new-database initialization are
-complete, but the current memorial-centered
-task identity, raw JSON, broad exports, implicit migration, compatibility aliases,
+The task-oriented CLI foundation and explicit database initialization and migration
+are complete, but the current memorial-centered
+task identity, raw JSON, broad exports, compatibility aliases,
 dependency boundaries, and stale CI must not be frozen as the 1.0 contract. Before
 beginning FamilySearch work, follow the ordered pre-1.0 roadmap in
 `docs/project-context.md`, beginning with the contract and explicit database
@@ -192,16 +249,20 @@ removing implicit database creation from acquisition commands remains a separate
 compatibility change with actionable guidance to use `graver init` or
 `graver use DATABASE`.
 
-New-database initialization and read-only validation are now separate operations.
-Further separation of schema inspection from legacy migration remains planned.
-`graver use DATABASE` remains non-mutating; a future outdated-schema check will
-provide actionable guidance. The planned specialist surface is
-`graver admin database upgrade DATABASE`, which will require a verified backup,
-transactional migration, validation, and recovery safeguards. The specialist
-upgrade workflow, generalized research subjects, versioned JSON,
+Schema inspection, new-database initialization, current-schema validation, and
+legacy migration are now separate operations. `graver use DATABASE`, selection,
+ordinary CLI reads, and API reads remain non-mutating; outdated schemas receive
+actionable guidance for `graver admin database upgrade DATABASE`. That explicit
+specialist workflow creates a verified backup, performs ordered transactional
+migration, and validates the result without automatically restoring over user data.
+Generalized research subjects, versioned JSON,
 normalized acquisition options, hidden-command removal, and `python -m graver` are
-not implemented yet. Explicit initialization does not change these current
-migration limitations.
+not implemented yet.
+
+For pre-1.0 compatibility, acquisition and write paths still initialize a missing or
+empty database with the current schema. They no longer migrate recognized legacy
+databases implicitly. Removing that remaining implicit creation behavior is still a
+separate roadmap milestone.
 
 The planned testing-modernization milestone should avoid a large cassette rewrite.
 It will define parser/static-response, mocked-transport,
@@ -272,7 +333,10 @@ cemetery-wide enrichment yet.
 
 ## Before implementation
 
-- Use `many_graves.db` as the initial representative cemetery-search dataset while seeking additional cemeteries to assess cross-cemetery and duplicate behavior.
+- Use read-only snapshots of `many_graves.db` only for explicitly authorized manual
+  representative checks while seeking additional cemeteries to assess
+  cross-cemetery and duplicate behavior; use generated or sanitized fixtures for
+  repeatable automated tests.
 - Treat local `graves.db` and `many_graves.db` files as ignored researcher data, not
   repository samples or fixtures.
 - Maintain the reproducible environment defined by `pyproject.toml`, `requirements.txt`, and `uv.lock`.

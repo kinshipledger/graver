@@ -1,9 +1,11 @@
 import json
 import os
 import sqlite3
+import hashlib
 from pathlib import Path
 
 import pytest
+from click import unstyle
 
 from graver import Memorial
 from graver import config as graver_config
@@ -17,7 +19,16 @@ CURRENT_TABLES = {
     "memorial_aliases",
     "memorial_observations",
     "research_tasks",
+    "graver_schema",
 }
+
+
+def normalized_cli_output(output: str) -> str:
+    """Remove terminal styling/layout and collapse presentation whitespace."""
+    without_layout = unstyle(output).translate(
+        str.maketrans({character: " " for character in "│─╭╮╰╯"})
+    )
+    return " ".join(without_layout.split())
 
 
 def test_create_database_builds_complete_current_schema(tmp_path):
@@ -153,9 +164,9 @@ def test_validation_failure_removes_only_new_partial_file(tmp_path, monkeypatch)
     path = tmp_path / "research.db"
 
     def fail_validation(_database):
-        raise graver_config.GraverConfigurationError("simulated validation failure")
+        raise graver_database.DatabaseInspectionError("simulated validation failure")
 
-    monkeypatch.setattr(graver_database, "_validate_graver_database", fail_validation)
+    monkeypatch.setattr(graver_database, "validate_current_database", fail_validation)
 
     with pytest.raises(
         graver_database.DatabaseInitializationError,
@@ -297,3 +308,307 @@ def test_cli_init_is_network_free(helpers, tmp_path, monkeypatch):
     result = helpers.graver_cli(f"init '{tmp_path / 'research.db'}'")
 
     assert result.exit_code == 0
+
+
+def make_legacy_database(path: Path, full: bool = False) -> Path:
+    extra = (
+        ", original_name TEXT, birth_place TEXT, death_place TEXT, has_bio BOOL"
+        if full
+        else ""
+    )
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            "CREATE TABLE graves (memorial_id INTEGER PRIMARY KEY, "
+            "findagrave_url TEXT, name TEXT, birth TEXT, death TEXT, "
+            f"legacy_note TEXT{extra})"
+        )
+        connection.executemany(
+            "INSERT INTO graves (memorial_id, name, legacy_note) VALUES (?, ?, ?)",
+            [(11, "First Person", "keep one"), (22, "Second Person", "keep two")],
+        )
+    return path
+
+
+def digest(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+@pytest.mark.parametrize(
+    ("kind", "state"),
+    [
+        ("summary", "legacy_summary"),
+        ("full", "legacy_0_1"),
+        ("current_unversioned", "current_unversioned"),
+        ("current", "current"),
+        ("empty", "empty"),
+        ("unrelated", "non_graver"),
+        ("unknown", "unknown"),
+        ("newer", "newer"),
+    ],
+)
+def test_read_only_schema_inspection_classifies_supported_shapes(tmp_path, kind, state):
+    path = tmp_path / f"{kind}.db"
+    if kind in {"summary", "full"}:
+        make_legacy_database(path, full=kind == "full")
+    elif kind == "current_unversioned":
+        with sqlite3.connect(path) as connection:
+            graver_database._create_current_schema(connection)
+    elif kind in {"current", "newer"}:
+        graver_database.create_database(str(path))
+        if kind == "newer":
+            with sqlite3.connect(path) as connection:
+                connection.execute(
+                    "UPDATE graver_schema SET version = ?",
+                    (graver_database.CURRENT_SCHEMA_VERSION + 1,),
+                )
+    elif kind == "empty":
+        with sqlite3.connect(path):
+            pass
+    elif kind == "unrelated":
+        with sqlite3.connect(path) as connection:
+            connection.execute("CREATE TABLE notes (value TEXT)")
+    else:
+        with sqlite3.connect(path) as connection:
+            connection.execute("CREATE TABLE graves (memorial_id INTEGER PRIMARY KEY)")
+    before = digest(path)
+    before_mtime = path.stat().st_mtime_ns
+
+    inspection = graver_database.inspect_database(str(path))
+
+    assert inspection.state == state
+    assert digest(path) == before
+    assert path.stat().st_mtime_ns == before_mtime
+
+
+@pytest.mark.parametrize("kind", ["missing", "directory", "symlink", "malformed"])
+def test_inspection_rejects_unsafe_inputs(tmp_path, kind):
+    path = tmp_path / "research.db"
+    if kind == "directory":
+        path.mkdir()
+    elif kind == "symlink":
+        path.symlink_to(tmp_path / "target.db")
+    elif kind == "malformed":
+        path.write_text("not sqlite")
+    with pytest.raises(graver_database.DatabaseInspectionError):
+        graver_database.inspect_database(str(path))
+
+
+def test_upgrade_current_database_is_noop_without_backup(tmp_path):
+    path = graver_database.create_database(str(tmp_path / "research.db"))
+    before = digest(path)
+
+    result = graver_database.upgrade_database(str(path))
+
+    assert result.changed is False
+    assert result.backup_path is None
+    assert digest(path) == before
+    assert not graver_database.backup_path_for(path).exists()
+
+
+@pytest.mark.parametrize("full", [False, True])
+def test_upgrade_legacy_preserves_rows_values_and_creates_verified_backup(
+    tmp_path, full
+):
+    path = make_legacy_database(tmp_path / "legacy.db", full=full)
+    result = graver_database.upgrade_database(str(path))
+
+    assert result.changed is True
+    assert result.backup_path is not None
+    assert graver_database.inspect_database(str(path)).current
+    with sqlite3.connect(path) as connection:
+        assert connection.execute(
+            "SELECT memorial_id, name, legacy_note FROM graves ORDER BY memorial_id"
+        ).fetchall() == [
+            (11, "First Person", "keep one"),
+            (22, "Second Person", "keep two"),
+        ]
+        assert connection.execute(
+            "SELECT COUNT(detail_level), COUNT(summary_fetched_at), "
+            "COUNT(full_fetched_at) FROM graves"
+        ).fetchone() == (0, 0, 0)
+        assert connection.execute(
+            "SELECT COUNT(*) FROM memorial_observations"
+        ).fetchone() == (0,)
+        assert connection.execute(
+            "SELECT COUNT(*) FROM memorial_aliases"
+        ).fetchone() == (0,)
+        assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+        assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+    assert graver_database.inspect_database(str(result.backup_path)).state == (
+        "legacy_0_1" if full else "legacy_summary"
+    )
+    with sqlite3.connect(result.backup_path) as backup_connection:
+        assert backup_connection.execute(
+            "SELECT memorial_id, name, legacy_note FROM graves ORDER BY memorial_id"
+        ).fetchall() == [
+            (11, "First Person", "keep one"),
+            (22, "Second Person", "keep two"),
+        ]
+
+
+def test_upgrade_current_unversioned_adds_only_metadata(tmp_path):
+    path = tmp_path / "unversioned.db"
+    with sqlite3.connect(path) as connection:
+        graver_database._create_current_schema(connection)
+        connection.execute("INSERT INTO graves (memorial_id, name) VALUES (7, 'Keep')")
+
+    graver_database.upgrade_database(str(path))
+
+    with sqlite3.connect(path) as connection:
+        assert connection.execute(
+            "SELECT memorial_id, name FROM graves"
+        ).fetchall() == [(7, "Keep")]
+        assert connection.execute("SELECT version FROM graver_schema").fetchone() == (
+            1,
+        )
+
+
+def test_upgrade_refuses_backup_collision_without_mutating_source(tmp_path):
+    path = make_legacy_database(tmp_path / "legacy.db")
+    backup = graver_database.backup_path_for(path)
+    backup.write_text("preserve")
+    before = digest(path)
+
+    with pytest.raises(
+        graver_database.DatabaseUpgradeError, match="Backup already exists"
+    ):
+        graver_database.upgrade_database(str(path))
+
+    assert digest(path) == before
+    assert backup.read_text() == "preserve"
+
+
+def test_backup_failure_leaves_source_unchanged(tmp_path, monkeypatch):
+    path = make_legacy_database(tmp_path / "legacy.db")
+    before = digest(path)
+
+    def fail_backup(_source, _backup):
+        raise graver_database.DatabaseUpgradeError("simulated backup failure")
+
+    monkeypatch.setattr(graver_database, "_create_verified_backup", fail_backup)
+    with pytest.raises(graver_database.DatabaseUpgradeError, match="backup failure"):
+        graver_database.upgrade_database(str(path))
+
+    assert digest(path) == before
+    assert graver_database.inspect_database(str(path)).state == "legacy_summary"
+
+
+def test_migration_failure_rolls_back_and_preserves_backup(tmp_path, monkeypatch):
+    path = make_legacy_database(tmp_path / "legacy.db")
+    before = digest(path)
+
+    def fail_migration(connection):
+        connection.execute("ALTER TABLE graves ADD COLUMN should_rollback TEXT")
+        raise sqlite3.OperationalError("simulated migration failure")
+
+    monkeypatch.setitem(graver_database.MIGRATIONS, 0, fail_migration)
+    with pytest.raises(graver_database.DatabaseUpgradeError, match="recovery") as error:
+        graver_database.upgrade_database(str(path))
+
+    assert digest(path) == before
+    assert error.value.backup_path.exists()
+    with sqlite3.connect(path) as connection:
+        assert "should_rollback" not in {
+            row[1] for row in connection.execute("PRAGMA table_info(graves)")
+        }
+
+
+def test_validation_failure_preserves_backup_and_reports_recovery(
+    tmp_path, monkeypatch
+):
+    path = make_legacy_database(tmp_path / "legacy.db")
+
+    def fail_validation(_connection):
+        raise graver_database.DatabaseUpgradeError("simulated validation failure")
+
+    monkeypatch.setattr(
+        graver_database, "_validate_migrated_connection", fail_validation
+    )
+    with pytest.raises(graver_database.DatabaseUpgradeError, match="recovery") as error:
+        graver_database.upgrade_database(str(path))
+    assert error.value.backup_path.exists()
+    assert graver_database.inspect_database(str(path)).state == "legacy_summary"
+
+
+def test_post_migration_validation_failure_preserves_upgraded_data_and_backup(
+    tmp_path, monkeypatch
+):
+    path = make_legacy_database(tmp_path / "legacy.db")
+
+    def fail_final_validation(_database):
+        raise graver_database.DatabaseInspectionError("simulated final failure")
+
+    monkeypatch.setattr(
+        graver_database, "validate_current_database", fail_final_validation
+    )
+    with pytest.raises(graver_database.DatabaseUpgradeError, match="recovery") as error:
+        graver_database.upgrade_database(str(path))
+
+    assert error.value.backup_path.exists()
+    with sqlite3.connect(path) as connection:
+        assert connection.execute("SELECT version FROM graver_schema").fetchone() == (
+            1,
+        )
+        assert connection.execute("SELECT COUNT(*) FROM graves").fetchone() == (2,)
+
+
+def test_upgrade_rejects_newer_schema_without_backup(tmp_path):
+    path = graver_database.create_database(str(tmp_path / "future.db"))
+    with sqlite3.connect(path) as connection:
+        connection.execute("UPDATE graver_schema SET version = 99")
+    before = digest(path)
+
+    with pytest.raises(graver_database.DatabaseUpgradeError, match="newer"):
+        graver_database.upgrade_database(str(path))
+
+    assert digest(path) == before
+    assert not graver_database.backup_path_for(path).exists()
+
+
+def test_cli_upgrade_reports_source_target_backup_and_preserves_preference(
+    helpers, tmp_path, isolate_graver_configuration, monkeypatch
+):
+    path = make_legacy_database(tmp_path / "legacy.db")
+    isolate_graver_configuration.parent.mkdir(parents=True, exist_ok=True)
+    isolate_graver_configuration.write_text(json.dumps({"theme": "plain"}))
+
+    result = helpers.graver_cli(f"admin database upgrade '{path}'")
+
+    assert result.exit_code == 0
+    assert "legacy summary-only schema" in result.output
+    assert "schema version 1" in result.output
+    assert "Verified backup:" in result.output
+    assert json.loads(isolate_graver_configuration.read_text()) == {"theme": "plain"}
+
+
+def test_ordinary_read_rejects_legacy_without_mutation(helpers, tmp_path):
+    path = make_legacy_database(tmp_path / "legacy.db")
+    before = digest(path)
+
+    with pytest.raises(graver_database.DatabaseInspectionError) as service_error:
+        graver_database.validate_current_database(str(path))
+
+    assert str(path.resolve()) in str(service_error.value)
+    assert "admin database upgrade" in str(service_error.value)
+
+    result = helpers.graver_cli(f"work list --db '{path}'")
+    rendered = normalized_cli_output(result.output)
+
+    assert result.exit_code != 0
+    assert "admin database upgrade" in rendered
+    assert path.name in rendered
+    assert "Traceback" not in result.output
+    assert digest(path) == before
+
+
+def test_database_upgrade_help_is_specialist_and_meaningful(helpers):
+    admin = helpers.graver_cli("admin --help")
+    database = helpers.graver_cli("admin database --help")
+    upgrade = helpers.graver_cli("admin database upgrade --help")
+
+    assert admin.exit_code == database.exit_code == upgrade.exit_code == 0
+    assert "database" in admin.output
+    assert "upgrade" in database.output
+    assert "Existing Graver database to back up and upgrade" in " ".join(
+        upgrade.output.split()
+    )

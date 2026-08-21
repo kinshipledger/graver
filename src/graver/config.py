@@ -2,26 +2,16 @@
 
 import json
 import os
-import sqlite3
 import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Optional
-from urllib.parse import quote
 
 
 DEFAULT_DATABASE = "graves.db"
 DATABASE_ENVIRONMENT_VARIABLE = "GRAVER_DB"
 DATABASE_CONFIG_KEY = "default_database"
-REQUIRED_GRAVE_COLUMNS = {
-    "memorial_id",
-    "findagrave_url",
-    "name",
-    "birth",
-    "death",
-    "cemetery_id",
-}
 
 
 class GraverConfigurationError(Exception):
@@ -101,45 +91,14 @@ def _write_configuration(configuration: dict, config_path: Path) -> None:
 
 
 def validate_graver_database(database: str) -> Path:
-    """Validate an existing Graver SQLite database without changing it."""
-    path = Path(database).expanduser().resolve()
-    if not path.exists():
-        raise GraverConfigurationError(f"Database does not exist: {path}")
-    if not path.is_file():
-        raise GraverConfigurationError(f"Database is not a file: {path}")
+    """Validate a current Graver database without changing it."""
+    # Imported lazily because database initialization reuses configuration constants.
+    from graver.database import DatabaseInspectionError, validate_current_database
 
-    uri = f"file:{quote(str(path), safe='/')}?mode=ro"
     try:
-        with sqlite3.connect(uri, uri=True) as connection:
-            connection.execute("PRAGMA query_only = ON")
-            table = connection.execute(
-                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='graves'"
-            ).fetchone()
-            if table is None:
-                raise GraverConfigurationError(
-                    f"SQLite file is not a Graver database (missing graves table): {path}"
-                )
-            columns = {
-                row[1] for row in connection.execute("PRAGMA table_info(graves)")
-            }
-            missing = REQUIRED_GRAVE_COLUMNS - columns
-            if missing:
-                raise GraverConfigurationError(
-                    "SQLite file is not a usable Graver database "
-                    f"(missing graves columns: {', '.join(sorted(missing))}): {path}"
-                )
-            integrity = connection.execute("PRAGMA quick_check").fetchone()
-            if integrity is None or integrity[0] != "ok":
-                raise GraverConfigurationError(
-                    f"SQLite database failed its integrity check: {path}"
-                )
-    except GraverConfigurationError:
-        raise
-    except sqlite3.Error as ex:
-        raise GraverConfigurationError(
-            f"File is not a usable SQLite database: {path}. {ex}"
-        ) from ex
-    return path
+        return validate_current_database(database)
+    except DatabaseInspectionError as ex:
+        raise GraverConfigurationError(str(ex)) from ex
 
 
 def select_default_database(database: str, config_path: Optional[Path] = None) -> Path:

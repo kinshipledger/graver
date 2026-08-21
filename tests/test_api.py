@@ -11,6 +11,7 @@ import requests
 from urllib3 import exceptions
 
 import graver.api
+import graver.database
 from bs4 import BeautifulSoup
 from graver import (
     Cemetery,
@@ -411,15 +412,21 @@ class TestCemetery(TestApi):
 
 
 class TestDatabaseOps(TestApi):
-    def test_create_table_migrates_additive_columns(self, tmp_path):
+    def test_explicit_upgrade_migrates_additive_columns(self, tmp_path):
         database_name = tmp_path / "legacy.db"
         with sqlite3.connect(database_name) as connection:
-            connection.execute("CREATE TABLE graves (memorial_id INTEGER PRIMARY KEY)")
+            connection.execute(
+                """CREATE TABLE graves (
+                    memorial_id INTEGER PRIMARY KEY, findagrave_url TEXT,
+                    name TEXT, birth TEXT, death TEXT, original_name TEXT,
+                    birth_place TEXT, death_place TEXT, has_bio BOOL
+                )"""
+            )
             connection.executemany(
                 "INSERT INTO graves (memorial_id) VALUES (?)", [(123,), (456,), (789,)]
             )
 
-        Memorial.create_table(str(database_name))
+        graver.database.upgrade_database(str(database_name))
 
         with sqlite3.connect(database_name) as connection:
             columns = {
@@ -1105,8 +1112,9 @@ class TestMemorialAliases:
                 "UPDATE memorial_aliases SET target_memorial_id=? WHERE source_memorial_id=?",
                 (first.memorial_id, first.memorial_id),
             )
-        with pytest.raises(MemorialAliasError, match="cycle"):
-            resolve_memorial_alias(database.name, first.memorial_id)
+        with graver.api._connect(database.name) as connection:
+            with pytest.raises(MemorialAliasError, match="cycle"):
+                graver.api._resolve_alias(connection, first.memorial_id)
 
     def test_merged_attempt_is_atomic_on_alias_observation_failure(
         self, database, monkeypatch

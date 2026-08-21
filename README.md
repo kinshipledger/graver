@@ -78,8 +78,7 @@ uv run graver init research.db
 
 With no argument, `init` creates `./graves.db`. A supplied path creates the named
 database. Initialization refuses to overwrite any existing path, and it selects the
-new database only after creation and validation succeed. Database upgrades are
-planned but are not yet implemented.
+new database only after creation and validation succeed.
 
 Choose an existing Graver database once, then use ordinary research commands
 without repeating its path:
@@ -97,6 +96,25 @@ an explicit `--db`, the `GRAVER_DB` environment variable, the saved selection,
 then the existing `graves.db` default. `--db` is a temporary override for one
 command and never changes the saved selection. An unavailable saved or environment
 database is reported instead of silently falling back.
+
+### Upgrade an older database
+
+Selection and ordinary reads never migrate a database. If Graver reports that an
+older database needs an upgrade, run the specialist maintenance command explicitly:
+
+```shell
+uv run graver admin database upgrade /path/to/research.db
+```
+
+Upgrade first inspects the database read-only, then creates a verified sibling
+backup before applying ordered migrations transactionally. A current database is
+reported as current without being rewritten or backed up. If the deterministic
+backup path already exists, Graver refuses to replace it; preserve or rename that
+backup before retrying. Failed post-backup upgrades retain the backup and report
+recovery guidance, but restoration remains a deliberate human action.
+
+Use `graver init` only to create a new database. Use `graver use DATABASE` to select
+an existing compatible database without changing its schema.
 
 ### Scrape
 ```sh

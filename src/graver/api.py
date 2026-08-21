@@ -523,13 +523,28 @@ def _create_current_schema(connection: sqlite3.Connection) -> None:
 
 
 def _initialize_database(database_name="graves.db") -> None:
-    """Retain existing create-or-migrate behavior for pre-1.0 compatibility."""
-    with _connect(database_name) as connection:
-        _create_graves_table(connection)
-        _migrate_graves_table(connection)
-        _create_cemeteries_table(connection)
-        _migrate_cemeteries_table(connection)
-        _create_research_schema(connection)
+    """Retain implicit creation for writes, but never implicitly migrate."""
+    from graver.database import initialize_current_schema, validate_current_database
+
+    if not os.path.exists(database_name):
+        with _connect(database_name) as connection:
+            initialize_current_schema(connection)
+        return
+    from graver.database import inspect_database
+
+    inspection = inspect_database(database_name)
+    if inspection.state == "empty":
+        with _connect(database_name) as connection:
+            initialize_current_schema(connection)
+        return
+    validate_current_database(database_name)
+
+
+def _require_current_database(database_name: str) -> None:
+    """Require a current existing database for a read without side effects."""
+    from graver.database import validate_current_database
+
+    validate_current_database(database_name)
 
 
 def _save_grave(
@@ -663,7 +678,7 @@ def _resolve_alias(
 
 
 def resolve_memorial_alias(database_name: str, memorial_id: int) -> dict:
-    _initialize_database(database_name)
+    _require_current_database(database_name)
     with _connect(database_name) as connection:
         return _resolve_alias(connection, memorial_id)
 
@@ -816,7 +831,7 @@ def retract_memorial_alias(
 
 
 def alias_history(database_name: str, source_memorial_id: int) -> list:
-    _initialize_database(database_name)
+    _require_current_database(database_name)
     with _connect(database_name) as connection:
         connection.row_factory = sqlite3.Row
         rows = connection.execute(
@@ -833,7 +848,7 @@ def alias_history(database_name: str, source_memorial_id: int) -> list:
 
 
 def reverse_alias_lookup(database_name: str, target_memorial_id: int) -> list:
-    _initialize_database(database_name)
+    _require_current_database(database_name)
     with _connect(database_name) as connection:
         rows = connection.execute(
             "SELECT source_memorial_id FROM memorial_aliases "
@@ -862,7 +877,7 @@ def list_memorial_aliases(
     target_memorial_id: Optional[int] = None,
     limit: int = 20,
 ) -> list:
-    _initialize_database(database_name)
+    _require_current_database(database_name)
     if status is not None and status not in MEMORIAL_ALIAS_STATUSES:
         raise MemorialAliasError(f"Invalid alias status: {status}")
     if limit < 1:
@@ -898,7 +913,7 @@ def list_memorial_aliases(
 
 
 def get_memorial_alias(database_name: str, memorial_id: int) -> dict:
-    _initialize_database(database_name)
+    _require_current_database(database_name)
     history = alias_history(database_name, memorial_id)
     with _connect(database_name) as connection:
         connection.row_factory = sqlite3.Row
@@ -937,7 +952,7 @@ def list_research_tasks(
     cemetery_id: Optional[int] = None,
     limit: int = 20,
 ) -> list:
-    _initialize_database(database_name)
+    _require_current_database(database_name)
     if status is not None and status not in RESEARCH_TASK_STATUSES:
         raise ValueError(f"Invalid task status: {status}")
     if limit < 1:
@@ -978,7 +993,7 @@ def list_research_tasks(
 
 
 def show_research_task(database_name: str, memorial_id: int) -> dict:
-    _initialize_database(database_name)
+    _require_current_database(database_name)
     with _connect(database_name) as connection:
         connection.row_factory = sqlite3.Row
         grave = connection.execute(
@@ -1355,6 +1370,7 @@ class Memorial(_MemorialSummaryFields):
     @classmethod
     def get_by_id(cls, memorial_id: int):
         dbname = os.getenv("DATABASE_NAME", "graves.db")
+        _require_current_database(dbname)
         con = _connect(dbname)
         con.row_factory = sqlite3.Row
 

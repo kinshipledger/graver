@@ -40,7 +40,13 @@ from graver.constants import (
     FINDAGRAVE_BASE_URL,
     MEMORIAL_CANONICAL_URL_FORMAT,
 )
-from graver.database import DatabaseInitializationError, create_database
+from graver.database import (
+    DatabaseInitializationError,
+    DatabaseLifecycleError,
+    DatabaseUpgradeError,
+    create_database,
+    upgrade_database,
+)
 
 
 log = logging.getLogger(__name__)
@@ -122,9 +128,35 @@ app = typer.Typer(
 work_app = typer.Typer(help="Choose, review, and advance people in the research queue.")
 admin_app = typer.Typer(help="Perform advanced maintenance and diagnostics.")
 aliases_app = typer.Typer(help="Review and maintain Find a Grave redirects.")
+database_app = typer.Typer(help="Maintain research database schemas and backups.")
 app.add_typer(work_app, name="work")
 app.add_typer(admin_app, name="admin")
 admin_app.add_typer(aliases_app, name="aliases")
+admin_app.add_typer(database_app, name="database")
+
+
+@database_app.command("upgrade")
+def admin_database_upgrade(
+    database: str = typer.Argument(
+        ..., help="Existing Graver database to back up and upgrade."
+    ),
+):
+    """Back up and upgrade an older research database to the current schema."""
+    try:
+        result = upgrade_database(database)
+    except DatabaseUpgradeError as ex:
+        typer.echo(str(ex), err=True)
+        raise typer.Exit(1)
+    if not result.changed:
+        typer.echo(
+            f"Research database is already current at schema version "
+            f"{result.version}: {result.path}"
+        )
+        return
+    typer.echo(
+        f"Upgraded {result.source.source_label} to schema version {result.version}: "
+        f"{result.path}\nVerified backup: {result.backup_path}"
+    )
 
 
 @app.callback()
@@ -692,7 +724,7 @@ def _display_work_list(tasks: list) -> None:
 def _load_task_or_exit(db: str, memorial_id: int) -> dict:
     try:
         return show_research_task(db, memorial_id)
-    except (NotFound, ResearchTaskNotFound) as ex:
+    except (NotFound, ResearchTaskNotFound, DatabaseLifecycleError) as ex:
         typer.echo(str(ex), err=True)
         raise typer.Exit(1)
 

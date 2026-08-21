@@ -94,7 +94,10 @@ def test_validation_does_not_modify_or_migrate_database(tmp_path):
     before_digest = database_digest(database)
     before_mtime = database.stat().st_mtime_ns
 
-    assert graver_config.validate_graver_database(str(database)) == database.resolve()
+    with pytest.raises(
+        graver_config.GraverConfigurationError, match="admin database upgrade"
+    ):
+        graver_config.validate_graver_database(str(database))
 
     assert database_digest(database) == before_digest
     assert database.stat().st_mtime_ns == before_mtime
