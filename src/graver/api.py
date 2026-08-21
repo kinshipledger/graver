@@ -13,12 +13,19 @@ from time import sleep
 from typing import Any, Dict, List, Optional, cast
 from urllib.parse import parse_qsl, urlparse, urlunparse
 
-import cloudscraper25
 from bs4 import BeautifulSoup, Tag
-from requests.exceptions import RequestException
 from tqdm import tqdm
 
 from .constants import FINDAGRAVE_BASE_URL, FINDAGRAVE_ROWS_PER_PAGE
+from .transport import (
+    DEFAULT_TIMEOUT,
+    HttpTransport,
+    RequestsTransport,
+    TransportAccessBlocked,
+    TransportError,
+    TransportRateLimited,
+    TransportResponse,
+)
 
 
 log = logging.getLogger(__name__)
@@ -85,23 +92,42 @@ class Driver:
         self.num_retries = 0
         self.max_retries: int = int(kwargs.get("max_retries", 5))
         self.retry_ms: int = int(kwargs.get("retry_ms", 500))
-        self.session = kwargs.get("session", cloudscraper25.create_scraper())
+        self.max_retry_after: float = float(kwargs.get("max_retry_after", 60.0))
+        self.timeout: tuple[float, float] = kwargs.get("timeout", DEFAULT_TIMEOUT)
+        supplied_transport = kwargs.get("transport")
+        if supplied_transport is not None:
+            self.transport: HttpTransport = supplied_transport
+        elif (session := kwargs.get("session")) is not None:
+            self.transport = RequestsTransport(session=session, timeout=self.timeout)
+        else:
+            self.transport = RequestsTransport(timeout=self.timeout)
 
-    def get(self, url: str, **kwargs) -> Any:
+    def get(self, url: str, **kwargs) -> TransportResponse:
         retries = 0
         backoff_sec = self.retry_ms / 1000
-        response = self.session.get(url, **kwargs)
+        response = self.transport.get(url, **kwargs)
+        _raise_for_access_control(response, url)
         while (
-            response.status_code in Driver.recoverable_errors.keys()
+            response.status_code in Driver.recoverable_errors
             and retries < self.max_retries
         ):
+            if response.status_code == 429 and retries >= 1:
+                raise TransportRateLimited(
+                    f"Find a Grave repeatedly limited access to {url}; "
+                    "stop for human review before retrying."
+                )
             retries += 1
             timeout_sec = backoff_sec
             if response.status_code == 429:
                 retry_after = response.headers.get("Retry-After")
                 if retry_after is not None:
                     try:
-                        timeout_sec = float(retry_after)
+                        retry_after_seconds = float(retry_after)
+                        if not math.isfinite(retry_after_seconds):
+                            raise ValueError
+                        timeout_sec = min(
+                            max(0.0, retry_after_seconds), self.max_retry_after
+                        )
                     except ValueError:
                         log.warning(
                             "Driver: invalid Retry-After header %r; using "
@@ -118,9 +144,41 @@ class Driver:
             )
 
             sleep(timeout_sec)
-            response = self.session.get(url, **kwargs)
+            response = self.transport.get(url, **kwargs)
+            _raise_for_access_control(response, url)
         self.num_retries += retries
+        if response.status_code == 429:
+            raise TransportRateLimited(
+                f"Find a Grave repeatedly limited access to {url}; "
+                "stop for human review before retrying."
+            )
         return response
+
+    def close(self) -> None:
+        close = getattr(self.transport, "close", None)
+        if close is not None:
+            close()
+
+
+def _raise_for_access_control(response: TransportResponse, url: str) -> None:
+    if response.status_code == 403 or _looks_like_access_challenge(response):
+        raise TransportAccessBlocked(
+            f"Find a Grave denied or challenged access to {url}; "
+            "Graver will not attempt to bypass the provider's controls."
+        )
+
+
+def _looks_like_access_challenge(response: TransportResponse) -> bool:
+    """Recognize common access-control pages only to stop, never to solve them."""
+
+    content = response.text.casefold()
+    markers = (
+        "<title>just a moment...</title>",
+        'id="challenge-form"',
+        "id='challenge-form'",
+        "cf-chl-widget",
+    )
+    return any(marker in content for marker in markers)
 
 
 @dataclass
@@ -1450,7 +1508,7 @@ class _MemorialParser:
                             response.raise_for_status()
                     else:
                         response.raise_for_status()
-            except RequestException as ex:
+            except TransportError as ex:
                 raise MemorialParseException(ex) from ex
 
         if self.scrape:
@@ -1956,7 +2014,10 @@ class _SearchWorker:
                 rs.extend(results)
                 progress.update(len(results))
 
-        return ResultSet(response.request.url, rs)
+        request_url = getattr(response, "request_url", None)
+        if request_url is None:
+            request_url = response.request.url
+        return ResultSet(request_url, rs)
 
     def scrape_count(self, soup: BeautifulSoup) -> int:
         count = 0

@@ -36,6 +36,7 @@ from graver import (
     show_research_task,
     update_research_task,
 )
+from graver.transport import TransportRateLimited
 from tests.test import Test
 
 
@@ -75,6 +76,7 @@ class TestDriver(TestApi):
         "headers, expected_sleep",
         [
             ({"Retry-After": "2"}, [2.0]),
+            ({"Retry-After": "120"}, [60.0]),
             ({}, [0.02]),
         ],
     )
@@ -97,9 +99,7 @@ class TestDriver(TestApi):
         assert response.status_code == 200
         assert sleeps == expected_sleep
 
-    def test_driver_uses_exponential_backoff_for_repeated_rate_limits(
-        self, requests_mock, monkeypatch
-    ):
+    def test_driver_stops_after_repeated_rate_limits(self, requests_mock, monkeypatch):
         url = "https://www.findagrave.com/memorial/429"
         sleeps = []
         monkeypatch.setattr(graver.api, "sleep", sleeps.append)
@@ -108,14 +108,13 @@ class TestDriver(TestApi):
             [
                 {"status_code": 429, "reason": "Too Many Requests"},
                 {"status_code": 429, "reason": "Too Many Requests"},
-                {"status_code": 200, "reason": "OK"},
             ],
         )
 
-        response = Driver(retry_ms=10, max_retries=2).get(url)
+        with pytest.raises(TransportRateLimited, match="human review"):
+            Driver(retry_ms=10, max_retries=2).get(url)
 
-        assert response.status_code == 200
-        assert sleeps == [0.02, 0.04]
+        assert sleeps == [0.02]
 
     @pytest.mark.parametrize("url", ["https://www.findagrave.com/memorial/544"])
     @pytest.mark.parametrize(
@@ -154,9 +153,7 @@ class TestDriver(TestApi):
                 {"status_code": 403, "reason": "Forbidden"},
             ],
         )
-        with pytest.raises(
-            MemorialParseException, match=f"403 Client Error: Forbidden for url: {url}"
-        ):
+        with pytest.raises(MemorialParseException, match="will not attempt to bypass"):
             Memorial.parse(url)
 
     @pytest.mark.parametrize(
@@ -172,7 +169,7 @@ class TestDriver(TestApi):
                 exceptions.MaxRetryError(None, url, None), None
             ),
         )
-        with pytest.raises(MemorialParseException, match="Max retries exceeded"):
+        with pytest.raises(MemorialParseException, match="Request timed out"):
             Memorial.parse(url)
 
 

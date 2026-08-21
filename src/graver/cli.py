@@ -47,6 +47,7 @@ from graver.database import (
     create_database,
     upgrade_database,
 )
+from graver.transport import TransportError
 
 
 log = logging.getLogger(__name__)
@@ -1299,12 +1300,16 @@ def search(
 
     log.debug(f"Search terms = {search_terms}")
 
-    cem = None
-    if cemetery_id is not None:
-        cem = Cemetery(f"{FINDAGRAVE_BASE_URL}/cemetery/{cemetery_id}")
-        cem.save(db)
+    try:
+        cem = None
+        if cemetery_id is not None:
+            cem = Cemetery(f"{FINDAGRAVE_BASE_URL}/cemetery/{cemetery_id}")
+            cem.save(db)
 
-    results = Memorial.search(cem, **search_terms)
+        results = Memorial.search(cem, **search_terms)
+    except TransportError as ex:
+        log.error(ex)
+        raise typer.Exit(1)
     log.debug(f"Num results = {len(results)}")
     if len(results) > 0:
         for idx, m in enumerate(results):

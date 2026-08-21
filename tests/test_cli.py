@@ -19,6 +19,7 @@ from graver import (
     MemorialSummary,
 )
 from graver.constants import APP_NAME
+from graver.transport import TransportAccessBlocked
 
 from .test import Test
 
@@ -988,6 +989,25 @@ class TestCliResearcherSurface(Test):
 
 
 class TestCliSearch(TestCli):
+    def test_access_block_is_reported_without_traceback(
+        self, helpers, tmp_path, monkeypatch, caplog
+    ) -> None:
+        database = tmp_path / "blocked.db"
+
+        def blocked(*_args, **_kwargs):
+            raise TransportAccessBlocked(
+                "Find a Grave challenged access; stop for human review."
+            )
+
+        monkeypatch.setattr(Memorial, "search", blocked)
+
+        result = helpers.graver_cli(f"search --db '{database}'")
+
+        assert result.exit_code == 1
+        assert "stop for human review" in caplog.text
+        assert "Traceback" not in result.output
+        assert "Traceback" not in caplog.text
+
     def test_researcher_tutorial_workflow_is_offline(
         self,
         helpers,
