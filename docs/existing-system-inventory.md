@@ -42,7 +42,7 @@ retired by the release-workflow transition. No release tags exist yet.
   `python -m graver.cli` is broken, and no `graver.__main__` module currently
   provides `python -m graver`.
 
-Graver currently has no durable background-job engine, scheduler, or unattended
+graver currently has no durable background-job engine, scheduler, or unattended
 bulk-enrichment mode. Full memorial enrichment is intentionally person-at-a-time and
 requires the current task approval. Search-summary acquisition does not authorize or
 enable mass full-page enrichment. Provider permission for unattended Find a Grave
@@ -71,11 +71,11 @@ version 2.7.0 artifacts published 2025-05-27 and transitive dependencies on Requ
 requests-toolbelt, js2py, PyCryptodome, pyOpenSSL, pyparsing, and websocket-client.
 The package metadata advertises challenge and Turnstile handling, browser/user-agent
 emulation, stealth and proxy features, fingerprint behavior, JavaScript
-interpreters, and CAPTCHA-service integrations. Graver does not configure those
+interpreters, and CAPTCHA-service integrations. graver does not configure those
 features explicitly, but default scraper construction enables automatic challenge
 handling.
 
-Current Graver tests require only a Requests-compatible injectable session and
+Current graver tests require only a Requests-compatible injectable session and
 ordinary retry, error, response, and parser behavior. They do not demonstrate a
 need for challenge handling, proxy rotation, browser impersonation, CAPTCHA support,
 fingerprint manipulation, or any other unique package capability. The installed
@@ -86,7 +86,7 @@ current maintenance or security-advisory status.
 On 2026-08-21, GitHub reported 20 Dependabot vulnerabilities on the repository's
 default branch (8 high, 9 moderate, and 3 low) after a historical push. This is a
 dated hosting-service observation, not a claim that every alert affects the current
-locked environment or is exploitable in Graver. The alerts still require
+locked environment or is exploitable in graver. The alerts still require
 explicit review rather than dismissal based on reachability assumptions. A planned
 pre-1.0 dependency-security and software-supply-chain milestone will reconcile the
 default branch, identify affected direct and transitive packages,
@@ -97,7 +97,7 @@ an explicit documented risk decision.
 
 The approved audit result, **remove**, is now implemented. `cloudscraper25` is no
 longer a runtime dependency or production/test import. Requests is an explicit
-runtime dependency behind a small Graver-owned transport protocol and response
+runtime dependency behind a small graver-owned transport protocol and response
 model; third-party session, response, and exception types do not form the planned
 public application contract. Tests can inject the internal transport directly or
 continue supplying Requests-compatible Betamax sessions. The replacement does not
@@ -153,7 +153,7 @@ structural evidence is necessary before a legacy classification is assigned.
 
 The population originated as 334 cemetery-search summaries. Its current mutable
 state includes the acquisition values and observation counted above; unclassified
-legacy rows remain unclassified because Graver does not infer their acquisition
+legacy rows remain unclassified because graver does not infer their acquisition
 origin. This supports staged enrichment rather than scraping every individual page
 immediately.
 
@@ -274,7 +274,7 @@ API. No workspace facade, typed public result layer, neutral progress or cancell
 protocol, optimistic concurrency control, or GUI integration has been implemented.
 
 The approved target is a separate installable desktop component, with PyQt6 as the
-leading but not mandated toolkit candidate, depending only on Graver's documented
+leading but not mandated toolkit candidate, depending only on graver's documented
 public application facade. In that target design, SQLite connections and schema
 details remain internal, connections are scoped per operation or unit of work and
 never shared across GUI threads, and CLI and GUI remain peer adapters. The facade,
@@ -403,7 +403,7 @@ hygiene and documentation** milestone will run before the workspace facade is
 frozen. It is planned work, not current behavior, and remains separate from the
 completed version-2 migration. It will establish explicit public imports and
 `__all__` exports, complete
-public type contracts and Graver-owned results and exceptions, and useful Google-
+public type contracts and graver-owned results and exceptions, and useful Google-
 style docstrings across the supported boundary. Typer, Rich, SQLite connections and
 rows, SQL helpers, parsers, Requests objects, `Driver`, and transport implementation
 types will remain outside the public facade.
@@ -434,7 +434,7 @@ stale-update handling, deterministic ordering, identifier and enum policies,
 injectable transport and nondeterminism, logging, supported imports, and public
 documentation. A separate top-level consumer spike against the built wheel will
 validate those contracts before `1.0.0rc1`; it is not a production GUI. Production
-GUI work follows Graver 1.0 and begins with the stable workspace/work-queue vertical
+GUI work follows graver 1.0 and begins with the stable workspace/work-queue vertical
 slice before expanding alongside FamilySearch, reviewed identity, WikiTree, and
 family-work services.
 
@@ -447,6 +447,23 @@ resumable, fail-closed on access challenges, and shared by CLI and GUI through t
 application service. A scheduler will invoke bounded work and exit rather than
 requiring a permanent daemon at first. These are future architectural constraints,
 not implemented acquisition behavior.
+
+graver currently has no GEDCOM parser, import snapshot, family-relationship model,
+GEDCOM comparison service, subject-mapping workflow, or export capability. Current
+schema-version-2 subjects and tasks are therefore not yet a family graph. No current
+database or CLI behavior should be described as GEDCOM-compatible.
+
+GEDCOM remains an exploratory nice-to-have, not a pre-1.0 release criterion or
+active schema/API dependency. Its value will be re-evaluated at the 1.0 release-
+candidate review, after the first production GUI work-queue vertical slice has been
+road-tested, and when a concrete researcher need emerges. If later approved, work
+begins with offline immutable inspection and repeatable comparison using synthetic
+or sanitized fixtures. Imported records remain dataset-scoped assertions and cannot
+automatically create accepted subject mappings, relationships, facts, or identity
+conclusions. Reviewed mappings, relationship workflows, privacy-filtered selective
+export, GEDZIP, and broader compatibility remain separately gated possibilities in
+the canonical
+[GEDCOM integration architecture](gedcom-integration.md).
 
 For pre-1.0 compatibility, acquisition and write paths still initialize a missing or
 empty database with the current schema. They no longer migrate recognized legacy

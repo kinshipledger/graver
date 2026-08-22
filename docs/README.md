@@ -9,6 +9,10 @@ using the implemented command-line workflow.
 The [access policy](access-policy.md) defines current project governance for
 responsible acquisition behavior and contributions.
 
+The [GEDCOM integration architecture](gedcom-integration.md) records a deliberately
+optional, periodically re-evaluated direction for immutable import, comparison,
+relationships, privacy, and selective export.
+
 The outer project-level `docs/*.md` paths are local compatibility symbolic links
 for tools and conversations that begin at the parent project root. Future
 inventory, context, and roadmap changes must be made only in this directory.

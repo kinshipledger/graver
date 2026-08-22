@@ -1,6 +1,6 @@
-# Contributing to Graver
+# Contributing to graver
 
-Thank you for helping improve Graver. Please read the
+Thank you for helping improve graver. Please read the
 [access policy](docs/access-policy.md) before proposing acquisition or provider
 integration changes.
 
@@ -45,6 +45,18 @@ Put disposable JSON and other researcher-generated exports under `scratch/` or
 
 [Release Please](https://github.com/googleapis/release-please) is the sole tool for
 preparing versions, changelog sections, tags, and GitHub Releases. Its workflow is
-manual while Graver is pre-1.0. A maintainer reviews the generated release pull
+manual while graver is pre-1.0. A maintainer reviews the generated release pull
 request for meaningful user and developer notes before merging it. Package-index
 publication, if later added, is a separate trusted workflow.
+
+## Project name and terminology
+
+The canonical project name is **graver**, styled in lowercase even at the start
+of a sentence. Use backticks when referring to the literal command, package,
+module, or another code identifier—for example, `graver init`—but ordinary prose
+does not need code styling simply because it names graver.
+
+The name graver covers the core library, application services, and command-line
+tool. Cemetery-to-World-Tree is the broader project context. A future desktop
+application may have a separate product name; do not assume or establish that
+name in graver documentation before it is chosen.

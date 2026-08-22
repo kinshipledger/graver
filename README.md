@@ -8,7 +8,7 @@ graver
 
 Scrape and Retrieve [FindAGrave](http://findagrave.com) memorial data and save them to an SQL database.
 
-Graver supports responsible, researcher-directed acquisition and
+graver supports responsible, researcher-directed acquisition and
 provider-authorized data workflows. It is not designed to bypass access controls or
 conceal automated activity. Users remain responsible for complying with applicable
 laws, provider terms, and access policies. See the project
@@ -18,12 +18,15 @@ Project direction and verified implementation status are maintained in the
 canonical [project context](docs/project-context.md),
 [existing-system inventory](docs/existing-system-inventory.md), and
 [initial inspection guide](docs/initial-inspection.md).
+The optional, periodically re-evaluated relationship-aware interchange direction is
+described in the
+[GEDCOM integration architecture](docs/gedcom-integration.md).
 
 Project changes and releases are documented in the [changelog](CHANGELOG.md).
 Developers should also read the [contribution guide](CONTRIBUTING.md) and
 [security policy](SECURITY.md).
 
-New to Graver? Follow the [researcher tutorial](docs/tutorial.md) for a small,
+New to graver? Follow the [researcher tutorial](docs/tutorial.md) for a small,
 safe, end-to-end workflow from database creation through one approved memorial
 enrichment.
 
@@ -94,7 +97,7 @@ With no argument, `init` creates `./graves.db`. A supplied path creates the name
 database. Initialization refuses to overwrite any existing path, and it selects the
 new database only after creation and validation succeed.
 
-Choose an existing Graver database once, then use ordinary research commands
+Choose an existing graver database once, then use ordinary research commands
 without repeating its path:
 
 ```shell
@@ -103,7 +106,7 @@ uv run graver use --show
 uv run graver use --clear
 ```
 
-`use` stores the resolved absolute path in Graver's per-user configuration file;
+`use` stores the resolved absolute path in graver's per-user configuration file;
 it selects an existing database and does not create or migrate it. Database
 selection follows this order:
 an explicit `--db`, the `GRAVER_DB` environment variable, the saved selection,
@@ -113,7 +116,7 @@ database is reported instead of silently falling back.
 
 ### Upgrade an older database
 
-Selection and ordinary reads never migrate a database. If Graver reports that an
+Selection and ordinary reads never migrate a database. If graver reports that an
 older database needs an upgrade, run the specialist maintenance command explicitly:
 
 ```shell
@@ -123,7 +126,7 @@ uv run graver admin database upgrade /path/to/research.db
 Upgrade first inspects the database read-only, then creates a verified sibling
 backup before applying ordered migrations transactionally. A current database is
 reported as current without being rewritten or backed up. If the deterministic
-backup path already exists, Graver refuses to replace it; preserve or rename that
+backup path already exists, graver refuses to replace it; preserve or rename that
 backup before retrying. Failed post-backup upgrades retain the backup and report
 recovery guidance, but restoration remains a deliberate human action.
 

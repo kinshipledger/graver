@@ -1,4 +1,4 @@
-# Research one Find a Grave memorial with Graver
+# Research one Find a Grave memorial with graver
 
 This tutorial is for genealogical researchers who are comfortable entering
 commands but do not need to know Python or SQLite. It creates a dedicated
@@ -22,7 +22,7 @@ Find a Grave search
   → enriched current record
 ```
 
-Graver does not automatically retrieve every full memorial page. Summary
+graver does not automatically retrieve every full memorial page. Summary
 searches can establish a useful research queue with fewer requests; a researcher
 then decides which one person merits a full retrieval. This reduces load on Find
 a Grave and prevents unattended bulk enrichment.
@@ -36,7 +36,7 @@ graver --version
 graver --help
 ```
 
-Success means the first command reports Graver's installed version and the
+Success means the first command reports graver's installed version and the
 second lists commands including `init`, `use`, `search`, and `work`. At any point,
 append `--help` at the level you need, for example `graver work --help` or
 `graver work enrich --help`.
@@ -59,7 +59,7 @@ The `init` success message identifies the absolute path:
 Initialized and selected research database: /.../graver-tutorial/tutorial.db
 ```
 
-`use --show` should report that same absolute path. Both Graver commands are
+`use --show` should report that same absolute path. Both graver commands are
 offline. Keep the path: it distinguishes this practice database from other
 research databases.
 
@@ -95,7 +95,7 @@ substitute a memorial ID you already know, or use a narrow cemetery query shown
 by `graver search --help`; keep `--max-results` small.
 
 Search results are summary records. They may contain a name, dates, source URL,
-and cemetery context, but they are not evidence that Graver observed the full
+and cemetery context, but they are not evidence that graver observed the full
 memorial page.
 
 ## 4. Queue and inspect a person
@@ -131,7 +131,7 @@ graver work mark 1075 --status ready_for_full_scrape \
 graver work show 1075
 ```
 
-Success means Graver reports that the status and note were updated. The second
+Success means graver reports that the status and note were updated. The second
 command should show `ready_for_full_scrape` and offer `graver work enrich 1075`
 as the next action. Only this one task was approved.
 
@@ -142,7 +142,7 @@ graver work enrich 1075
 ```
 
 Success includes the stable message `The full memorial was retrieved` and a
-completed task state. Graver retrieves only the approved memorial—no related
+completed task state. graver retrieves only the approved memorial—no related
 memorials and no other queued people.
 
 Inspect the result offline:
@@ -173,7 +173,7 @@ optional field was populated.
 
 ## 6. Stop and resume safely
 
-Graver persists the queue, task state, current memorial data, and observations in
+graver persists the queue, task state, current memorial data, and observations in
 `tutorial.db`. You may close the terminal and later resume with:
 
 ```shell
@@ -190,7 +190,7 @@ option temporarily overrides the selection but does not replace it.
 ## 7. Optional cleanup
 
 Keeping `tutorial.db` for later practice is safe. If you decide to remove it,
-first display and record the exact absolute path, then clear only Graver's saved
+first display and record the exact absolute path, then clear only graver's saved
 preference:
 
 ```shell
@@ -219,13 +219,13 @@ network access, and never contacts Find a Grave.
 
 | Symptom | Safe next step |
 | --- | --- |
-| `graver: command not found` | Confirm Graver was installed in the current environment. In a source checkout, try `uv run graver --help`. |
-| Unsupported Python or incomplete installation | Reinstall using the project's documented uv workflow, then rerun `graver --version`. Retain the Python, uv, and Graver versions if asking for help. |
+| `graver: command not found` | Confirm graver was installed in the current environment. In a source checkout, try `uv run graver --help`. |
+| Unsupported Python or incomplete installation | Reinstall using the project's documented uv workflow, then rerun `graver --version`. Retain the Python, uv, and graver versions if asking for help. |
 | `tutorial.db` already exists | `init` will not overwrite it. Keep it and select it with `graver use tutorial.db` if it is compatible, or choose a new explicit filename. |
 | No selected database | Run `graver use --show`, then `graver use /absolute/path/to/tutorial.db`. |
-| Missing or invalid database path | Check the exact path and filename. `use` requires an existing, usable Graver database and will not silently fall back. |
+| Missing or invalid database path | Check the exact path and filename. `use` requires an existing, usable graver database and will not silently fall back. |
 | Database requires explicit upgrade | Preserve the reported path and run `graver admin database upgrade DATABASE` only when you intend to create a backup and migrate that database. |
-| Backup collision during upgrade | Preserve or rename the existing deterministic backup; Graver will not overwrite it or begin migration. |
+| Backup collision during upgrade | Preserve or rename the existing deterministic backup; graver will not overwrite it or begin migration. |
 | No search results | Recheck the current `graver search --help`, try a known memorial ID or narrow cemetery query, and keep the result limit small. Do not loop rapid retries. |
 | Cloudflare challenge or access block | Stop. Wait and use Find a Grave normally in a browser if appropriate; do not repeatedly automate retries. |
 | Timeout or Find a Grave outage | Stop and try later. Offline commands can still inspect already persisted work. |
@@ -235,4 +235,4 @@ network access, and never contacts Find a Grave.
 | Enrichment succeeds but optional fields are absent | This is valid: full acquisition records what the page supplied; it does not invent missing facts. |
 | Unsure whether failure is local or live | If `init`, `use --show`, and `work show` succeed but `search` or `enrich` fails, the problem may be live access or a site/schema change. If offline commands fail, retain their exact error and selected database path. |
 | Need command details | Use `graver --help`, `graver COMMAND --help`, or nested help such as `graver work show --help`. |
-| Reporting a problem | Retain the command (remove secrets), Graver/Python versions, semantic error text, selected database path, whether the step was offline or live, and whether Cloudflare appeared. Do not publish private genealogy data or configuration contents. |
+| Reporting a problem | Retain the command (remove secrets), graver/Python versions, semantic error text, selected database path, whether the step was offline or live, and whether Cloudflare appeared. Do not publish private genealogy data or configuration contents. |

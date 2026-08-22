@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Graver has not yet published a supported production release. Security fixes are
+graver has not yet published a supported production release. Security fixes are
 made on `main` during pre-1.0 development. Supported-version details will be added
 before the first release candidate.
 
