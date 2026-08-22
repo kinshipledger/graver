@@ -1,9 +1,12 @@
 """Explicit database creation, read-only inspection, and ordered upgrades."""
 
 import os
+import json
 import sqlite3
 import stat
+import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
@@ -12,21 +15,28 @@ from graver.api import (
     _create_cemeteries_table,
     _create_current_schema,
     _create_research_schema,
+    _create_subject_schema,
     _migrate_cemeteries_table,
     _migrate_graves_table,
 )
 from graver.config import DEFAULT_DATABASE
 
 
-CURRENT_SCHEMA_VERSION = 1
+CURRENT_SCHEMA_VERSION = 2
 SCHEMA_TABLE = "graver_schema"
-CURRENT_TABLES = {
+VERSION_1_TABLES = {
     "cemeteries",
     "graves",
     "memorial_alias_observations",
     "memorial_aliases",
     "memorial_observations",
     "research_tasks",
+}
+CURRENT_TABLES = VERSION_1_TABLES | {
+    "research_subjects",
+    "subject_memorials",
+    "research_subject_events",
+    "research_task_events",
 }
 CURRENT_GRAVE_COLUMNS = {
     "memorial_id",
@@ -47,12 +57,30 @@ CURRENT_INDEXES = {
     "idx_research_tasks_status_priority",
     "idx_memorial_aliases_target_status",
     "idx_memorial_alias_observations_source",
+    "idx_subject_memorials_subject",
+    "idx_research_subject_events_subject",
+    "idx_research_task_events_subject",
 }
 CURRENT_TRIGGERS = {
     "memorial_observations_no_update",
     "memorial_observations_no_delete",
     "memorial_alias_observations_no_update",
     "memorial_alias_observations_no_delete",
+    "research_subject_events_no_update",
+    "research_subject_events_no_delete",
+    "research_task_events_no_update",
+    "research_task_events_no_delete",
+}
+VERSION_1_INDEXES = CURRENT_INDEXES - {
+    "idx_subject_memorials_subject",
+    "idx_research_subject_events_subject",
+    "idx_research_task_events_subject",
+}
+VERSION_1_TRIGGERS = CURRENT_TRIGGERS - {
+    "research_subject_events_no_update",
+    "research_subject_events_no_delete",
+    "research_task_events_no_update",
+    "research_task_events_no_delete",
 }
 LEGACY_REQUIRED_COLUMNS = {"memorial_id", "findagrave_url", "name", "birth", "death"}
 LEGACY_FULL_MARKERS = {"original_name", "birth_place", "death_place", "has_bio"}
@@ -94,6 +122,7 @@ class SchemaInspection:
             "legacy_0_1": "legacy 0.1 schema",
             "legacy_summary": "legacy summary-only schema",
             "current_unversioned": "current pre-version-metadata schema",
+            "outdated": f"schema version {self.version}",
             "current": f"schema version {self.version}",
         }
         return labels.get(self.state, self.state.replace("_", " "))
@@ -144,18 +173,68 @@ def _columns(connection: sqlite3.Connection, table: str) -> set[str]:
     return {row[1] for row in connection.execute(f"PRAGMA table_info({table})")}
 
 
-def _structurally_current(connection: sqlite3.Connection) -> bool:
+def _schema_objects(connection: sqlite3.Connection) -> tuple[set[str], set[str]]:
     objects = connection.execute(
         "SELECT type, name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"
     ).fetchall()
     indexes = {name for kind, name in objects if kind == "index"}
     triggers = {name for kind, name in objects if kind == "trigger"}
+    return indexes, triggers
+
+
+def _structurally_version_1(connection: sqlite3.Connection) -> bool:
+    indexes, triggers = _schema_objects(connection)
+    task_columns = _columns(connection, "research_tasks")
+    return (
+        VERSION_1_TABLES <= _tables(connection)
+        and CURRENT_GRAVE_COLUMNS <= _columns(connection, "graves")
+        and "memorial_id" in task_columns
+        and "subject_id" not in task_columns
+        and VERSION_1_INDEXES <= indexes
+        and VERSION_1_TRIGGERS <= triggers
+    )
+
+
+def _structurally_current(connection: sqlite3.Connection) -> bool:
+    indexes, triggers = _schema_objects(connection)
     return (
         CURRENT_TABLES <= _tables(connection)
         and CURRENT_GRAVE_COLUMNS <= _columns(connection, "graves")
+        and "subject_id" in _columns(connection, "research_tasks")
+        and "memorial_id" not in _columns(connection, "research_tasks")
         and CURRENT_INDEXES <= indexes
         and CURRENT_TRIGGERS <= triggers
+        and _subject_invariants_hold(connection)
     )
+
+
+def _subject_invariants_hold(connection: sqlite3.Connection) -> bool:
+    checks = (
+        """SELECT 1 FROM graves g LEFT JOIN subject_memorials sm
+           ON sm.memorial_id=g.memorial_id WHERE sm.memorial_id IS NULL LIMIT 1""",
+        """SELECT 1 FROM subject_memorials sm LEFT JOIN research_subjects s
+           ON s.subject_id=sm.subject_id WHERE s.subject_id IS NULL LIMIT 1""",
+        """SELECT 1 FROM research_tasks t LEFT JOIN research_subjects s
+           ON s.subject_id=t.subject_id WHERE s.subject_id IS NULL LIMIT 1""",
+        """SELECT 1 FROM research_subjects s
+           WHERE NOT EXISTS (
+               SELECT 1 FROM research_subject_events e
+               WHERE e.subject_id=s.subject_id AND e.event_type='subject_created'
+           ) LIMIT 1""",
+        """SELECT 1 FROM subject_memorials sm
+           WHERE NOT EXISTS (
+               SELECT 1 FROM research_subject_events e
+               WHERE e.subject_id=sm.subject_id
+                 AND e.memorial_id=sm.memorial_id
+                 AND e.event_type='memorial_associated'
+           ) LIMIT 1""",
+        """SELECT 1 FROM research_tasks t
+           WHERE NOT EXISTS (
+               SELECT 1 FROM research_task_events e
+               WHERE e.subject_id=t.subject_id
+           ) LIMIT 1""",
+    )
+    return all(connection.execute(sql).fetchone() is None for sql in checks)
 
 
 def _inspect_connection(path: Path, connection: sqlite3.Connection) -> SchemaInspection:
@@ -173,6 +252,8 @@ def _inspect_connection(path: Path, connection: sqlite3.Connection) -> SchemaIns
         version = rows[0][1]
         if version > CURRENT_SCHEMA_VERSION:
             return SchemaInspection(path, "newer", version)
+        if version == 1 and _structurally_version_1(connection):
+            return SchemaInspection(path, "outdated", version)
         if version != CURRENT_SCHEMA_VERSION or not _structurally_current(connection):
             return SchemaInspection(path, "unknown", version)
         return SchemaInspection(path, "current", version)
@@ -180,6 +261,8 @@ def _inspect_connection(path: Path, connection: sqlite3.Connection) -> SchemaIns
         return SchemaInspection(path, "non_graver")
     grave_columns = _columns(connection, "graves")
     if _structurally_current(connection):
+        return SchemaInspection(path, "current_unversioned", 2)
+    if _structurally_version_1(connection):
         return SchemaInspection(path, "current_unversioned")
     if not LEGACY_REQUIRED_COLUMNS <= grave_columns:
         return SchemaInspection(path, "unknown")
@@ -218,7 +301,12 @@ def validate_current_database(database: str) -> Path:
             f"Database schema version {inspection.version} is newer than this Graver "
             f"supports ({CURRENT_SCHEMA_VERSION}): {path}"
         )
-    if inspection.state in {"legacy_0_1", "legacy_summary", "current_unversioned"}:
+    if inspection.state in {
+        "legacy_0_1",
+        "legacy_summary",
+        "current_unversioned",
+        "outdated",
+    }:
         raise DatabaseInspectionError(
             f"Database requires an explicit upgrade ({inspection.source_label}): "
             f"{path}. Run `graver admin database upgrade {path}` to upgrade it safely."
@@ -328,7 +416,107 @@ def _migration_0_to_1(connection: sqlite3.Connection) -> None:
     _record_schema_version(connection, 1)
 
 
-MIGRATIONS = {0: _migration_0_to_1}
+def _migration_timestamp() -> str:
+    return (
+        datetime.now(timezone.utc)
+        .isoformat(timespec="microseconds")
+        .replace("+00:00", "Z")
+    )
+
+
+def _migration_subject_id() -> str:
+    return str(uuid.uuid4())
+
+
+def _migration_1_to_2(connection: sqlite3.Connection) -> None:
+    """Create mechanical subjects and re-key tasks without identity inference."""
+    timestamp = _migration_timestamp()
+    connection.execute("DROP INDEX IF EXISTS idx_research_tasks_status_priority")
+    connection.execute("ALTER TABLE research_tasks RENAME TO research_tasks_v1")
+    _create_subject_schema(connection)
+
+    memorial_subjects = {}
+    for (memorial_id,) in connection.execute(
+        "SELECT memorial_id FROM graves ORDER BY memorial_id"
+    ):
+        subject_id = _migration_subject_id()
+        memorial_subjects[memorial_id] = subject_id
+        connection.execute(
+            "INSERT INTO research_subjects (subject_id, created_at) VALUES (?, ?)",
+            (subject_id, timestamp),
+        )
+        connection.execute(
+            """INSERT INTO subject_memorials
+               (memorial_id, subject_id, associated_at, association_reason)
+               VALUES (?, ?, ?, 'migration')""",
+            (memorial_id, subject_id, timestamp),
+        )
+        connection.execute(
+            """INSERT INTO research_subject_events
+               (subject_id, event_type, occurred_at, reason, after_json)
+               VALUES (?, 'subject_created', ?, 'schema_v2_migration', ?)""",
+            (
+                subject_id,
+                timestamp,
+                json.dumps(
+                    {"subject_id": subject_id, "creation": "mechanical_migration"},
+                    sort_keys=True,
+                ),
+            ),
+        )
+        connection.execute(
+            """INSERT INTO research_subject_events
+               (subject_id, event_type, occurred_at, reason, memorial_id, after_json)
+               VALUES (?, 'memorial_associated', ?, 'schema_v2_migration', ?, ?)""",
+            (
+                subject_id,
+                timestamp,
+                memorial_id,
+                json.dumps(
+                    {
+                        "memorial_id": memorial_id,
+                        "association": "mechanical_migration",
+                    },
+                    sort_keys=True,
+                ),
+            ),
+        )
+
+    connection.row_factory = sqlite3.Row
+    tasks = connection.execute(
+        "SELECT * FROM research_tasks_v1 ORDER BY memorial_id"
+    ).fetchall()
+    for task in tasks:
+        subject_id = memorial_subjects[task["memorial_id"]]
+        connection.execute(
+            """INSERT INTO research_tasks
+               (subject_id, status, priority, owner, created_at, updated_at,
+                last_activity_at, review_note)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                subject_id,
+                task["status"],
+                task["priority"],
+                task["owner"],
+                task["created_at"],
+                task["updated_at"],
+                task["last_activity_at"],
+                task["review_note"],
+            ),
+        )
+        snapshot = {key: task[key] for key in task.keys()}
+        connection.execute(
+            """INSERT INTO research_task_events
+               (subject_id, event_type, occurred_at, reason, after_json)
+               VALUES (?, 'task_migrated', ?, 'schema_v2_migration', ?)""",
+            (subject_id, timestamp, json.dumps(snapshot, sort_keys=True)),
+        )
+    connection.row_factory = None
+    connection.execute("DROP TABLE research_tasks_v1")
+    connection.execute(f"UPDATE {SCHEMA_TABLE} SET version = 2 WHERE singleton = 1")
+
+
+MIGRATIONS = {0: _migration_0_to_1, 1: _migration_1_to_2}
 
 
 def backup_path_for(path: Path) -> Path:
@@ -386,7 +574,12 @@ def upgrade_database(database: str) -> DatabaseUpgradeResult:
             f"Database schema version {source.version} is newer than supported "
             f"version {CURRENT_SCHEMA_VERSION}: {path}"
         )
-    if source.state not in {"legacy_0_1", "legacy_summary", "current_unversioned"}:
+    if source.state not in {
+        "legacy_0_1",
+        "legacy_summary",
+        "current_unversioned",
+        "outdated",
+    }:
         raise DatabaseUpgradeError(
             f"Database schema is not a recognized upgrade source "
             f"({source.source_label}): {path}"
@@ -398,7 +591,9 @@ def upgrade_database(database: str) -> DatabaseUpgradeResult:
             connection.execute("PRAGMA foreign_keys = ON")
             connection.execute("BEGIN IMMEDIATE")
             try:
-                version = 0
+                version = source.version or 0
+                if source.state == "current_unversioned" and version == 2:
+                    _record_schema_version(connection, 2)
                 while version < CURRENT_SCHEMA_VERSION:
                     migration = MIGRATIONS.get(version)
                     if migration is None:

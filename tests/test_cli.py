@@ -402,6 +402,10 @@ class TestCliQueueMemorials(TestCli):
                 "INSERT INTO graves (memorial_id, cemetery_id) VALUES (?, ?)",
                 [(1, 10), (2, 10), (3, 20)],
             )
+            for memorial_id in (1, 2, 3):
+                graver.api._ensure_subject_for_memorial(
+                    connection, memorial_id, "fixture"
+                )
 
         def fail_network(*args, **kwargs):
             raise AssertionError("queue-memorials must not use the network")
@@ -416,8 +420,10 @@ class TestCliQueueMemorials(TestCli):
         assert "Created 2 research tasks; 0 already present." in result.output
         with sqlite3.connect(database) as connection:
             tasks = connection.execute(
-                "SELECT memorial_id, status, priority FROM research_tasks "
-                "ORDER BY memorial_id"
+                """SELECT sm.memorial_id, t.status, t.priority
+                   FROM research_tasks t
+                   JOIN subject_memorials sm ON sm.subject_id=t.subject_id
+                   ORDER BY sm.memorial_id"""
             ).fetchall()
         assert tasks == [(1, "unprocessed", 4), (2, "unprocessed", 4)]
 
@@ -480,6 +486,7 @@ class TestCliResearchTasks(Test):
         missing_memorial = helpers.graver_cli(f"show-task 999 --db '{database.name}'")
         with sqlite3.connect(database.name) as connection:
             connection.execute("INSERT INTO graves (memorial_id) VALUES (999)")
+            graver.api._ensure_subject_for_memorial(connection, 999, "fixture")
         missing_task = helpers.graver_cli(f"show-task 999 --db '{database.name}'")
 
         assert missing_memorial.exit_code != 0
@@ -871,6 +878,8 @@ class TestCliResearcherSurface(Test):
         )
 
         assert "alias" not in ordinary_result.output.lower()
+        assert "subject_id" not in ordinary_result.output
+        assert "subject_id" not in history_result.output
         assert "payload" not in ordinary_result.output
         assert "Detailed provenance" in history_result.output
         assert ordinary.name in history_result.output
@@ -880,6 +889,7 @@ class TestCliResearcherSurface(Test):
             redirected.memorial_id,
             999999,
         ]
+        assert "subject_id" not in json_result.output
 
     def test_work_mark_preserves_fields_and_noop_timestamps(self, helpers, database):
         summary = self.summary().save()

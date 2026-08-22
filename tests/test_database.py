@@ -2,12 +2,14 @@ import json
 import os
 import sqlite3
 import hashlib
+import uuid
 from pathlib import Path
 
 import pytest
 from click import unstyle
 
 from graver import Memorial
+from graver import api as graver_api
 from graver import config as graver_config
 from graver import database as graver_database
 
@@ -19,6 +21,10 @@ CURRENT_TABLES = {
     "memorial_aliases",
     "memorial_observations",
     "research_tasks",
+    "research_subjects",
+    "subject_memorials",
+    "research_subject_events",
+    "research_task_events",
     "graver_schema",
 }
 
@@ -46,24 +52,35 @@ def test_create_database_builds_complete_current_schema(tmp_path):
         triggers = {name for kind, name in objects if kind == "trigger"}
 
         assert tables == CURRENT_TABLES
+        assert connection.execute("SELECT version FROM graver_schema").fetchone() == (
+            2,
+        )
         assert {
             "idx_graves_cemetery_id",
             "idx_research_tasks_status_priority",
             "idx_memorial_alias_observations_source",
+            "idx_subject_memorials_subject",
+            "idx_research_subject_events_subject",
+            "idx_research_task_events_subject",
         } <= indexes
         assert {
             "memorial_observations_no_update",
             "memorial_observations_no_delete",
             "memorial_alias_observations_no_update",
             "memorial_alias_observations_no_delete",
+            "research_subject_events_no_update",
+            "research_subject_events_no_delete",
+            "research_task_events_no_update",
+            "research_task_events_no_delete",
         } == triggers
         assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         with pytest.raises(sqlite3.IntegrityError):
             connection.execute(
                 "INSERT INTO research_tasks "
-                "(memorial_id, created_at, updated_at, last_activity_at) "
-                "VALUES (999, 'now', 'now', 'now')"
+                "(subject_id, created_at, updated_at, last_activity_at) "
+                "VALUES ('00000000-0000-4000-8000-000000000000', "
+                "'now', 'now', 'now')"
             )
 
 
@@ -329,6 +346,16 @@ def make_legacy_database(path: Path, full: bool = False) -> Path:
     return path
 
 
+def make_version_1_database(path: Path, metadata: bool = True) -> Path:
+    with sqlite3.connect(path) as connection:
+        graver_api._create_graves_table(connection)
+        graver_api._create_cemeteries_table(connection)
+        graver_api._create_research_schema(connection, task_schema_version=1)
+        if metadata:
+            graver_database._record_schema_version(connection, 1)
+    return path
+
+
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -339,6 +366,8 @@ def digest(path: Path) -> str:
         ("summary", "legacy_summary"),
         ("full", "legacy_0_1"),
         ("current_unversioned", "current_unversioned"),
+        ("version_1_unversioned", "current_unversioned"),
+        ("version_1", "outdated"),
         ("current", "current"),
         ("empty", "empty"),
         ("unrelated", "non_graver"),
@@ -353,6 +382,8 @@ def test_read_only_schema_inspection_classifies_supported_shapes(tmp_path, kind,
     elif kind == "current_unversioned":
         with sqlite3.connect(path) as connection:
             graver_database._create_current_schema(connection)
+    elif kind in {"version_1", "version_1_unversioned"}:
+        make_version_1_database(path, metadata=kind == "version_1")
     elif kind in {"current", "newer"}:
         graver_database.create_database(str(path))
         if kind == "newer":
@@ -432,6 +463,15 @@ def test_upgrade_legacy_preserves_rows_values_and_creates_verified_backup(
         assert connection.execute(
             "SELECT COUNT(*) FROM memorial_aliases"
         ).fetchone() == (0,)
+        assert connection.execute(
+            "SELECT COUNT(*) FROM research_subjects"
+        ).fetchone() == (2,)
+        assert connection.execute(
+            "SELECT COUNT(*) FROM subject_memorials"
+        ).fetchone() == (2,)
+        assert connection.execute("SELECT COUNT(*) FROM research_tasks").fetchone() == (
+            0,
+        )
         assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
     assert graver_database.inspect_database(str(result.backup_path)).state == (
@@ -450,17 +490,122 @@ def test_upgrade_current_unversioned_adds_only_metadata(tmp_path):
     path = tmp_path / "unversioned.db"
     with sqlite3.connect(path) as connection:
         graver_database._create_current_schema(connection)
-        connection.execute("INSERT INTO graves (memorial_id, name) VALUES (7, 'Keep')")
 
     graver_database.upgrade_database(str(path))
 
     with sqlite3.connect(path) as connection:
-        assert connection.execute(
-            "SELECT memorial_id, name FROM graves"
-        ).fetchall() == [(7, "Keep")]
+        assert connection.execute("SELECT COUNT(*) FROM graves").fetchone() == (0,)
         assert connection.execute("SELECT version FROM graver_schema").fetchone() == (
-            1,
+            2,
         )
+
+
+def test_upgrade_version_1_creates_mechanical_subjects_and_preserves_tasks(tmp_path):
+    path = make_version_1_database(tmp_path / "version-1.db")
+    with sqlite3.connect(path) as connection:
+        connection.executemany(
+            "INSERT INTO graves (memorial_id, name) VALUES (?, ?)",
+            [(11, "First Person"), (22, "Second Person")],
+        )
+        connection.execute(
+            """INSERT INTO research_tasks
+               (memorial_id, status, priority, owner, created_at, updated_at,
+                last_activity_at, review_note)
+               VALUES (11, 'researching', 7, 'reviewer', 'created', 'updated',
+                       'active', 'preserve exactly')"""
+        )
+        connection.execute(
+            """INSERT INTO memorial_aliases
+               (source_memorial_id, target_memorial_id, alias_type, status,
+                first_observed_at, last_observed_at, updated_at)
+               VALUES (11, 22, 'merged', 'active', 'first', 'last', 'updated')"""
+        )
+        connection.execute(
+            """INSERT INTO memorial_alias_observations
+               (source_memorial_id, target_memorial_id, alias_type, event_type,
+                observed_at, parser_version, payload_json)
+               VALUES (11, 22, 'merged', 'observed', 'observed', '0.1', '{}')"""
+        )
+
+    result = graver_database.upgrade_database(str(path))
+
+    assert result.source.state == "outdated"
+    assert result.source.version == 1
+    with sqlite3.connect(path) as connection:
+        connection.row_factory = sqlite3.Row
+        subjects = connection.execute(
+            "SELECT subject_id FROM research_subjects ORDER BY subject_id"
+        ).fetchall()
+        associations = connection.execute(
+            "SELECT memorial_id, subject_id FROM subject_memorials ORDER BY memorial_id"
+        ).fetchall()
+        task = connection.execute("SELECT * FROM research_tasks").fetchone()
+        migrated_event = connection.execute(
+            "SELECT * FROM research_task_events WHERE event_type='task_migrated'"
+        ).fetchone()
+
+        assert len(subjects) == len(associations) == 2
+        assert len({row["subject_id"] for row in associations}) == 2
+        assert all(uuid.UUID(row["subject_id"]).version == 4 for row in subjects)
+        assert task["subject_id"] == associations[0]["subject_id"]
+        assert tuple(task[key] for key in task.keys() if key != "subject_id") == (
+            "researching",
+            7,
+            "reviewer",
+            "created",
+            "updated",
+            "active",
+            "preserve exactly",
+        )
+        assert json.loads(migrated_event["after_json"])["memorial_id"] == 11
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM research_subject_events"
+            ).fetchone()[0]
+            == 4
+        )
+        assert (
+            connection.execute("SELECT COUNT(*) FROM memorial_aliases").fetchone()[0]
+            == 1
+        )
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM memorial_alias_observations"
+            ).fetchone()[0]
+            == 1
+        )
+        assert (
+            connection.execute("SELECT COUNT(*) FROM memorial_observations").fetchone()[
+                0
+            ]
+            == 0
+        )
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM subject_memorials WHERE memorial_id=22 "
+                "AND subject_id=(SELECT subject_id FROM subject_memorials WHERE memorial_id=11)"
+            ).fetchone()[0]
+            == 0
+        )
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM subject_memorials WHERE memorial_id=999"
+            ).fetchone()[0]
+            == 0
+        )
+        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+            connection.execute("DELETE FROM research_task_events")
+        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+            connection.execute("UPDATE research_subject_events SET reason='changed'")
+
+    with sqlite3.connect(result.backup_path) as backup:
+        assert backup.execute("SELECT version FROM graver_schema").fetchone() == (1,)
+        assert "research_subjects" not in {
+            row[0]
+            for row in backup.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
 
 
 def test_upgrade_refuses_backup_collision_without_mutating_source(tmp_path):
@@ -476,6 +621,36 @@ def test_upgrade_refuses_backup_collision_without_mutating_source(tmp_path):
 
     assert digest(path) == before
     assert backup.read_text() == "preserve"
+
+
+def test_version_1_migration_failure_rolls_back_all_subject_changes(
+    tmp_path, monkeypatch
+):
+    path = make_version_1_database(tmp_path / "version-1.db")
+    with sqlite3.connect(path) as connection:
+        connection.execute("INSERT INTO graves (memorial_id) VALUES (11)")
+    before = digest(path)
+
+    original = graver_database.MIGRATIONS[1]
+
+    def fail_after_subject_changes(connection):
+        original(connection)
+        raise sqlite3.OperationalError("simulated version-2 failure")
+
+    monkeypatch.setitem(graver_database.MIGRATIONS, 1, fail_after_subject_changes)
+    with pytest.raises(graver_database.DatabaseUpgradeError, match="recovery") as error:
+        graver_database.upgrade_database(str(path))
+
+    assert digest(path) == before
+    assert error.value.backup_path.exists()
+    assert graver_database.inspect_database(str(path)).state == "outdated"
+    with sqlite3.connect(path) as connection:
+        assert "research_subjects" not in {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
 
 
 def test_backup_failure_leaves_source_unchanged(tmp_path, monkeypatch):
@@ -547,7 +722,7 @@ def test_post_migration_validation_failure_preserves_upgraded_data_and_backup(
     assert error.value.backup_path.exists()
     with sqlite3.connect(path) as connection:
         assert connection.execute("SELECT version FROM graver_schema").fetchone() == (
-            1,
+            2,
         )
         assert connection.execute("SELECT COUNT(*) FROM graves").fetchone() == (2,)
 
@@ -576,7 +751,7 @@ def test_cli_upgrade_reports_source_target_backup_and_preserves_preference(
 
     assert result.exit_code == 0
     assert "legacy summary-only schema" in result.output
-    assert "schema version 1" in result.output
+    assert "schema version 2" in result.output
     assert "Verified backup:" in result.output
     assert json.loads(isolate_graver_configuration.read_text()) == {"theme": "plain"}
 

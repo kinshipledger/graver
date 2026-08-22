@@ -485,17 +485,22 @@ class TestDatabaseOps(TestApi):
             with pytest.raises(sqlite3.IntegrityError):
                 connection.execute(
                     """INSERT INTO research_tasks (
-                        memorial_id, status, priority, created_at, updated_at,
+                        subject_id, status, priority, created_at, updated_at,
                         last_activity_at
-                    ) VALUES (999, 'unprocessed', 0, 'now', 'now', 'now')"""
+                    ) VALUES ('00000000-0000-4000-8000-000000000000',
+                              'unprocessed', 0, 'now', 'now', 'now')"""
                 )
-            connection.execute("INSERT INTO graves (memorial_id) VALUES (1)")
+            connection.execute(
+                """INSERT INTO research_subjects (subject_id, created_at)
+                   VALUES ('00000000-0000-4000-8000-000000000001', 'now')"""
+            )
             with pytest.raises(sqlite3.IntegrityError):
                 connection.execute(
                     """INSERT INTO research_tasks (
-                        memorial_id, status, priority, created_at, updated_at,
+                        subject_id, status, priority, created_at, updated_at,
                         last_activity_at
-                    ) VALUES (1, 'invalid', 0, 'now', 'now', 'now')"""
+                    ) VALUES ('00000000-0000-4000-8000-000000000001',
+                              'invalid', 0, 'now', 'now', 'now')"""
                 )
 
         assert {
@@ -675,11 +680,13 @@ class TestDatabaseOps(TestApi):
             connection.execute(
                 """UPDATE research_tasks SET status = 'researching', owner = 'owner',
                    priority = 99, review_note = 'keep', updated_at = 'updated',
-                   last_activity_at = 'active' WHERE memorial_id = ?""",
+                   last_activity_at = 'active' WHERE subject_id =
+                   (SELECT subject_id FROM subject_memorials WHERE memorial_id = ?)""",
                 (summaries[0].memorial_id,),
             )
             preserved = connection.execute(
-                "SELECT * FROM research_tasks WHERE memorial_id = ?",
+                """SELECT * FROM research_tasks WHERE subject_id =
+                   (SELECT subject_id FROM subject_memorials WHERE memorial_id = ?)""",
                 (summaries[0].memorial_id,),
             ).fetchone()
 
@@ -691,7 +698,8 @@ class TestDatabaseOps(TestApi):
                 "SELECT COUNT(*) FROM research_tasks"
             ).fetchone()[0]
             after = connection.execute(
-                "SELECT * FROM research_tasks WHERE memorial_id = ?",
+                """SELECT * FROM research_tasks WHERE subject_id =
+                   (SELECT subject_id FROM subject_memorials WHERE memorial_id = ?)""",
                 (summaries[0].memorial_id,),
             ).fetchone()
         assert task_count == 3
@@ -706,16 +714,23 @@ class TestDatabaseOps(TestApi):
                     for number in range(1, 26)
                 ],
             )
+            for number in range(1, 26):
+                graver.api._ensure_subject_for_memorial(connection, number, "fixture")
         queue_memorials(database.name)
         with sqlite3.connect(database.name) as connection:
             connection.execute(
-                "UPDATE research_tasks SET status = 'researching' WHERE memorial_id = 1"
+                """UPDATE research_tasks SET status = 'researching' WHERE subject_id =
+                   (SELECT subject_id FROM subject_memorials WHERE memorial_id = 1)"""
             )
             connection.execute(
-                "UPDATE research_tasks SET priority = 5, last_activity_at = 'later' WHERE memorial_id = 3"
+                """UPDATE research_tasks SET priority = 5, last_activity_at = 'later'
+                   WHERE subject_id = (SELECT subject_id FROM subject_memorials
+                                       WHERE memorial_id = 3)"""
             )
             connection.execute(
-                "UPDATE research_tasks SET priority = 5, last_activity_at = 'earlier' WHERE memorial_id = 2"
+                """UPDATE research_tasks SET priority = 5, last_activity_at = 'earlier'
+                   WHERE subject_id = (SELECT subject_id FROM subject_memorials
+                                       WHERE memorial_id = 2)"""
             )
 
         tasks = list_research_tasks(database.name)
@@ -781,6 +796,7 @@ class TestDatabaseOps(TestApi):
             show_research_task(database.name, 999)
         with sqlite3.connect(database.name) as connection:
             connection.execute("INSERT INTO graves (memorial_id) VALUES (999)")
+            graver.api._ensure_subject_for_memorial(connection, 999, "fixture")
         with pytest.raises(ResearchTaskNotFound, match="Research task 999"):
             show_research_task(database.name, 999)
 
@@ -802,11 +818,20 @@ class TestDatabaseOps(TestApi):
             database.name, summary.memorial_id, status="researching"
         )
 
+        with sqlite3.connect(database.name) as connection:
+            task_events = connection.execute(
+                """SELECT event_type, before_json, after_json
+                   FROM research_task_events ORDER BY event_id"""
+            ).fetchall()
+
         assert changed["priority"] == 7
         assert changed["owner"] == "owner"
         assert changed["review_note"] == "keep"
         assert changed["updated_at"] == changed["last_activity_at"] == "new-time"
         assert noop == changed
+        assert [event[0] for event in task_events] == ["task_created", "task_updated"]
+        assert json.loads(task_events[-1][1])["status"] == "unprocessed"
+        assert json.loads(task_events[-1][2])["status"] == "researching"
         with pytest.raises(ValueError, match="Invalid task status"):
             update_research_task(
                 database.name, summary.memorial_id, status="not-a-status"

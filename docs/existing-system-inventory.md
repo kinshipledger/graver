@@ -12,6 +12,8 @@ interface, SQLite persistence, and fixture-backed tests.
 The current `develop` architecture includes `MemorialSummary`, immutable
 acquisitions, the durable queue, explicit person-at-a-time task handling,
 progressive-disclosure commands, alias provenance, and default-database selection.
+Schema version 2 adds stable research subjects, subject-owned tasks, immutable
+subject/task events, and memorial-ID compatibility for existing researcher workflows.
 
 The pre-1.0 compatibility audit found no local `main` branch. `origin/HEAD` points
 to `origin/master`; `master` contains the older scraper-era production state, while
@@ -133,12 +135,12 @@ memorial type, cemetery ID, burial place, plot, coordinates, biography presence,
 and the acquisition metadata `detail_level`, `summary_fetched_at`, and
 `full_fetched_at`.
 
-New databases contain application-owned schema metadata at version 1. Read-only
+New databases contain application-owned schema metadata at version 2. Read-only
 inspection distinguishes the known 0.1 full grave shape, the representative
-summary-only legacy shape, structurally current pre-metadata databases, current
-versioned databases, future versions, empty databases, unrelated SQLite files, and
-unknown or malformed inputs. Required structural evidence is necessary before a
-legacy classification is assigned.
+summary-only legacy shape, structurally current pre-metadata databases, explicit
+version-1 databases requiring upgrade, current version-2 databases, future versions,
+empty databases, unrelated SQLite files, and unknown or malformed inputs. Required
+structural evidence is necessary before a legacy classification is assigned.
 
 The population originated as 334 cemetery-search summaries. Its current mutable
 state includes the acquisition values and observation counted above; unclassified
@@ -156,7 +158,12 @@ immediately.
 - Safe SQLite upserts: a later summary refresh cannot downgrade a `full` row or clear full-page-only fields.
 - Immutable JSON observations for each new summary or full acquisition, written atomically with the current-state `graves` upsert.
 - Cemetery metadata with first/last observed timestamps; a memorial save can create a metadata-light cemetery stub without an extra request.
-- A durable, indexed research queue with constrained statuses, priorities, ownership/review fields, and timestamps.
+- Stable lowercase UUIDv4 research subjects, one current subject association per
+  memorial, and subject-owned tasks with constrained statuses, priorities,
+  ownership/review fields, and timestamps.
+- Immutable subject and task events. Schema migration labels mechanical subject
+  creation and association honestly and creates one `task_migrated` snapshot per
+  existing task without claiming prior history.
 - Database-enforced observation immutability and foreign-key integrity on application connections.
 - Explicit current-state memorial aliases plus immutable alias observations. Active chains resolve transitively with cycle prevention and defensive read-time detection.
 - Alias ownership remains with the discovered/source memorial: redirects do not transfer, merge, complete, or delete research tasks.
@@ -171,10 +178,11 @@ immediately.
 - Legacy rows are deliberately not assigned a `detail_level` during migration because their acquisition level cannot be inferred reliably. They become classified when subsequently saved through the summary or full persistence path.
 - Legacy rows deliberately do not receive fabricated observation records during migration because their original timestamp and exact observed payload are unknown.
 - Some acquisition commands still reflect scraper implementation terminology. Their information architecture is intentionally deferred; this milestone changes only the research and alias-maintenance surfaces.
-- `research_tasks.memorial_id` is currently both the task primary key and a foreign
-  key to `graves`. That memorial-centered identity cannot yet represent a researched
-  person with multiple memorials, a person without a Find a Grave memorial, or a
-  later family-level work packet.
+- `research_tasks` is now keyed by `subject_id`; `subject_memorials` keeps existing
+  memorial-ID lookup convenient. The schema can represent a subject with zero or
+  multiple memorials, but reviewed association, reassociation, merge, split,
+  preferred-memorial selection, people without memorials, and family work packets
+  remain unavailable until their evidence and correction policies are implemented.
 
 ## Test and environment status
 
@@ -289,13 +297,14 @@ override provider terms, policies, controls, or instructions.
 
 Keep the existing scraper and its `graves` table as the **Find a Grave acquisition component**. The additive `cemeteries`, `memorial_observations`, and `research_tasks` layer now provides provenance and a practical queue.
 
-The task-oriented CLI foundation and explicit database initialization and migration
-are complete, but the current memorial-centered
-task identity, raw JSON, broad exports, compatibility aliases,
+The task-oriented CLI, explicit database lifecycle, and schema-v2 subject ownership
+are complete, but raw JSON, broad exports, compatibility aliases,
 dependency boundaries, and stale CI must not be frozen as the 1.0 contract. Before
 beginning FamilySearch work, follow the ordered pre-1.0 roadmap in
-`docs/project-context.md`; the next planned work is schema-version-2 subject
-ownership and the application-service boundary. `graver init [DATABASE]` now
+`docs/project-context.md`; the next planned work is the subject-oriented internal
+repository/application-service refactor, followed by the dedicated API-hygiene and
+documentation milestone before the public workspace facade is frozen.
+`graver init [DATABASE]` now
 creates a new database with the current schema and selects it as the saved default.
 With no argument it creates
 `./graves.db`; with an argument it uses the named path. It refuses to overwrite an
@@ -324,21 +333,20 @@ ordinary CLI reads, and API reads remain non-mutating; outdated schemas receive
 actionable guidance for `graver admin database upgrade DATABASE`. That explicit
 specialist workflow creates a verified backup, performs ordered transactional
 migration, and validates the result without automatically restoring over user data.
-Generalized research subjects, versioned JSON,
-normalized acquisition options, hidden-command removal, and `python -m graver` are
-not implemented yet.
+Versioned JSON, normalized acquisition options, hidden-command removal, and
+`python -m graver` are not implemented yet.
 
-The approved next schema milestone is version 2, but none of it is current behavior
-yet. It will use canonical lowercase UUIDv4 `TEXT` subject IDs and add
+The implemented current schema is version 2. It uses canonical lowercase UUIDv4
+`TEXT` subject IDs and adds
 `research_subjects`, `subject_memorials`, immutable `research_subject_events`,
 subject-keyed `research_tasks`, and immutable `research_task_events`. A subject is an
 opaque organizational owner for person-level research, not a genealogical identity
-conclusion. Migration will mechanically create one subject for every grave and
-associate only that memorial with it, including for graves without tasks. It will
+conclusion. Migration mechanically creates one subject for every grave and
+associates only that memorial with it, including for graves without tasks. It does
 not merge records because of aliases, redirects, names, dates, or similarity.
 
-The planned association constraint permits at most one current subject per memorial
-and structurally permits a subject to have zero or multiple memorials. Multiple-
+The association constraint permits at most one current subject per memorial and
+structurally permits a subject to have zero or multiple memorials. Multiple-
 memorial association is nevertheless a reviewed identity decision and will remain
 unavailable until its evidence and correction policy exists. Memorial observations
 remain memorial-owned, alias observations remain alias-source-owned, and tasks
@@ -346,17 +354,19 @@ become subject-owned. Aliases do not confer subject membership. FamilySearch and
 WikiTree candidates will be subject-linked hypotheses, while later family work
 packets will group subjects rather than replace them.
 
-The version-1-to-version-2 migration plan preserves the mandatory explicit backup,
+The version-1-to-version-2 migration preserves the mandatory explicit backup,
 ordered transaction, and rollback behavior. It copies each task exactly once with
 all fields and timestamps unchanged, leaves existing acquisition and alias data
 unchanged, and advances the schema version only within the successful transaction.
 It creates only honestly labeled mechanical provenance: subject creation and
 association events and one `task_migrated` snapshot for each migrated task. That
 snapshot does not reconstruct prior task history. Subsequent task creation and
-status, priority, owner, or review-note changes will create immutable task events;
-no-op updates will not. Subject and task events retain distinct meanings.
+status, priority, owner, or review-note changes create immutable task events; no-op
+updates do not. Acquisition completion and failed or redirected attempts also
+retain accurately labeled task activity. Subject and task events retain distinct
+meanings.
 
-Ordinary CLI output will keep subject UUIDs internal and preserve memorial IDs as
+Ordinary CLI output keeps subject UUIDs internal and preserves memorial IDs as
 researcher lookup keys. The lowest associated memorial ID is only a deterministic
 temporary display fallback where no reviewed preferred memorial exists; it is not
 canonical identity. Existing pre-1.0 JSON will be compatibility-projected until the
@@ -372,6 +382,36 @@ will call. A synchronous workspace opened from an explicit database path is the
 leading design because it offers cohesive ownership and discoverability without a
 long-lived connection; the CLI, not the workspace, continues to resolve database
 configuration and precedence.
+
+After that planned subject-oriented API/CLI service refactor, a dedicated **API
+hygiene and documentation** milestone will run before the workspace facade is
+frozen. It is planned work, not current behavior, and remains separate from the
+completed version-2 migration. It will establish explicit public imports and
+`__all__` exports, complete
+public type contracts and Graver-owned results and exceptions, and useful Google-
+style docstrings across the supported boundary. Typer, Rich, SQLite connections and
+rows, SQL helpers, parsers, Requests objects, `Driver`, and transport implementation
+types will remain outside the public facade.
+
+That milestone will review broad root and wildcard exports, hidden commands,
+commented-out or empty test scaffolding, obsolete compatibility helpers, and unused
+dependencies. Removal requires corroborating repository, test, coverage or static-
+analysis, import/export, and compatibility evidence rather than one linter warning;
+research-data migration paths remain protected. Compatibility-sensitive removals
+receive release notes. Separate commits will cover export/type boundaries,
+evidenced dead-code and dependency removal, Google-style docstrings and installed-
+wheel API examples, bounded CI enforcement, and migration/release notes.
+
+Tools for docstring style and presence, typing, unused-code detection, and
+documentation build/link validation remain to be evaluated and documented before
+becoming release gates. Enforcement will use bounded deterministic commands scoped
+initially to the public API and changed files where appropriate, without recreating
+the previous Flake8 loop. Acceptance requires tested public imports, complete useful
+public docstrings and types, no third-party or implementation-type leakage, offline
+installed-wheel examples for workspace opening, work inspection, concurrency-safe
+task updates, and injected acquisition, evidenced removals, release notes, and green
+reproducible checks. The researcher tutorial remains separate from this developer
+API reference.
 
 Before the release candidate, the planned facade must define typed requests,
 results, exceptions, progress, cancellation, threading, transaction ownership,

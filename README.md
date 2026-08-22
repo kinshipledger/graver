@@ -167,10 +167,11 @@ uv run graver admin aliases retract SOURCE_ID --db graves.db --reason "reviewed 
 `work enrich` refuses a source with a known active alias before making a request.
 If a new merge is discovered, it records the alias and failed full acquisition
 for review, keeps the source task ready, and does not scrape or modify the target.
-A research task always remains attached to the memorial ID through which the
-person was discovered. Earlier top-level task and alias commands remain available
-as hidden compatibility aliases for existing scripts, but are omitted from normal
-help output.
+A research task is owned internally by a stable research subject, while existing
+commands continue to use the memorial ID through which the person was discovered.
+Aliases do not merge subjects or move, complete, or delete tasks. Earlier top-level
+task and alias commands remain available as hidden compatibility aliases for
+existing scripts, but are omitted from normal help output.
 
 ### Exporting
 Future versions of `graver` will support direct export to CSV from the CLI, but for now, you can use SQLite3 to execute these commands, which will output the contents of `graves.db` to `graves.csv`:

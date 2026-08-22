@@ -5,6 +5,7 @@ import math
 import os
 import re
 import sqlite3
+import uuid
 from collections import namedtuple
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -453,7 +454,9 @@ def _migrate_cemeteries_table(connection: sqlite3.Connection) -> None:
             connection.execute(f"ALTER TABLE cemeteries ADD COLUMN {column_name} TEXT")
 
 
-def _create_research_schema(connection: sqlite3.Connection) -> None:
+def _create_research_schema(
+    connection: sqlite3.Connection, task_schema_version: int = 1
+) -> None:
     connection.execute(
         """CREATE TABLE IF NOT EXISTS memorial_observations
             (
@@ -470,29 +473,34 @@ def _create_research_schema(connection: sqlite3.Connection) -> None:
                 FOREIGN KEY (cemetery_id) REFERENCES cemeteries(cemetery_id)
             )"""
     )
-    connection.execute(
-        """CREATE TABLE IF NOT EXISTS research_tasks
-            (
-                memorial_id INTEGER PRIMARY KEY,
-                status TEXT NOT NULL DEFAULT 'unprocessed' CHECK (status IN (
-                    'unprocessed',
-                    'researching',
-                    'ready_for_full_scrape',
-                    'full_scrape_complete',
-                    'ready_for_review',
-                    'completed',
-                    'unable_to_resolve'
-                )),
-                priority INTEGER NOT NULL DEFAULT 0
-                    CHECK (typeof(priority) = 'integer'),
-                owner TEXT,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                last_activity_at TEXT NOT NULL,
-                review_note TEXT,
-                FOREIGN KEY (memorial_id) REFERENCES graves(memorial_id)
-            )"""
-    )
+    if task_schema_version == 1:
+        connection.execute(
+            """CREATE TABLE IF NOT EXISTS research_tasks
+                (
+                    memorial_id INTEGER PRIMARY KEY,
+                    status TEXT NOT NULL DEFAULT 'unprocessed' CHECK (status IN (
+                        'unprocessed',
+                        'researching',
+                        'ready_for_full_scrape',
+                        'full_scrape_complete',
+                        'ready_for_review',
+                        'completed',
+                        'unable_to_resolve'
+                    )),
+                    priority INTEGER NOT NULL DEFAULT 0
+                        CHECK (typeof(priority) = 'integer'),
+                    owner TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    last_activity_at TEXT NOT NULL,
+                    review_note TEXT,
+                    FOREIGN KEY (memorial_id) REFERENCES graves(memorial_id)
+                )"""
+        )
+    elif task_schema_version == 2:
+        _create_subject_schema(connection)
+    else:
+        raise ValueError(f"Unsupported task schema version: {task_schema_version}")
     connection.execute(
         """CREATE TABLE IF NOT EXISTS memorial_aliases
             (
@@ -573,11 +581,131 @@ def _create_research_schema(connection: sqlite3.Connection) -> None:
     )
 
 
+def _create_subject_schema(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """CREATE TABLE IF NOT EXISTS research_subjects
+            (
+                subject_id TEXT PRIMARY KEY CHECK (
+                    length(subject_id) = 36
+                    AND subject_id = lower(subject_id)
+                    AND subject_id GLOB
+                        '????????-????-4???-[89ab]???-????????????'
+                    AND subject_id NOT GLOB '*[^0-9a-f-]*'
+                    AND substr(subject_id, 9, 1) = '-'
+                    AND substr(subject_id, 14, 1) = '-'
+                    AND substr(subject_id, 15, 1) = '4'
+                    AND substr(subject_id, 19, 1) = '-'
+                    AND substr(subject_id, 20, 1) IN ('8', '9', 'a', 'b')
+                    AND substr(subject_id, 24, 1) = '-'
+                ),
+                created_at TEXT NOT NULL
+            )"""
+    )
+    connection.execute(
+        """CREATE TABLE IF NOT EXISTS subject_memorials
+            (
+                memorial_id INTEGER PRIMARY KEY,
+                subject_id TEXT NOT NULL,
+                associated_at TEXT NOT NULL,
+                association_reason TEXT NOT NULL
+                    CHECK (association_reason IN ('migration', 'acquisition')),
+                FOREIGN KEY (memorial_id) REFERENCES graves(memorial_id),
+                FOREIGN KEY (subject_id) REFERENCES research_subjects(subject_id)
+            )"""
+    )
+    connection.execute(
+        """CREATE TABLE IF NOT EXISTS research_subject_events
+            (
+                event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subject_id TEXT NOT NULL,
+                event_type TEXT NOT NULL CHECK (event_type IN (
+                    'subject_created', 'memorial_associated'
+                )),
+                occurred_at TEXT NOT NULL,
+                actor TEXT,
+                reason TEXT,
+                memorial_id INTEGER,
+                before_json TEXT,
+                after_json TEXT NOT NULL,
+                FOREIGN KEY (subject_id) REFERENCES research_subjects(subject_id),
+                FOREIGN KEY (memorial_id) REFERENCES graves(memorial_id)
+            )"""
+    )
+    connection.execute(
+        """CREATE TABLE IF NOT EXISTS research_tasks
+            (
+                subject_id TEXT PRIMARY KEY,
+                status TEXT NOT NULL DEFAULT 'unprocessed' CHECK (status IN (
+                    'unprocessed',
+                    'researching',
+                    'ready_for_full_scrape',
+                    'full_scrape_complete',
+                    'ready_for_review',
+                    'completed',
+                    'unable_to_resolve'
+                )),
+                priority INTEGER NOT NULL DEFAULT 0
+                    CHECK (typeof(priority) = 'integer'),
+                owner TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                last_activity_at TEXT NOT NULL,
+                review_note TEXT,
+                FOREIGN KEY (subject_id) REFERENCES research_subjects(subject_id)
+            )"""
+    )
+    connection.execute(
+        """CREATE TABLE IF NOT EXISTS research_task_events
+            (
+                event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subject_id TEXT NOT NULL,
+                event_type TEXT NOT NULL CHECK (event_type IN (
+                    'task_created', 'task_migrated', 'task_updated',
+                    'task_activity', 'full_scrape_completed'
+                )),
+                occurred_at TEXT NOT NULL,
+                actor TEXT,
+                reason TEXT,
+                before_json TEXT,
+                after_json TEXT NOT NULL,
+                FOREIGN KEY (subject_id) REFERENCES research_subjects(subject_id)
+            )"""
+    )
+    for table, message in (
+        ("research_subject_events", "research subject events are immutable"),
+        ("research_task_events", "research task events are immutable"),
+    ):
+        for action in ("UPDATE", "DELETE"):
+            connection.execute(
+                f"""CREATE TRIGGER IF NOT EXISTS {table}_no_{action.lower()}
+                    BEFORE {action} ON {table}
+                    BEGIN
+                        SELECT RAISE(ABORT, '{message}');
+                    END"""
+            )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_subject_memorials_subject "
+        "ON subject_memorials(subject_id, memorial_id)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_research_subject_events_subject "
+        "ON research_subject_events(subject_id, occurred_at, event_id)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_research_task_events_subject "
+        "ON research_task_events(subject_id, occurred_at, event_id)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_research_tasks_status_priority "
+        "ON research_tasks(status, priority DESC, created_at)"
+    )
+
+
 def _create_current_schema(connection: sqlite3.Connection) -> None:
     """Create the complete current schema without performing legacy migrations."""
     _create_graves_table(connection)
     _create_cemeteries_table(connection)
-    _create_research_schema(connection)
+    _create_research_schema(connection, task_schema_version=2)
 
 
 def _initialize_database(database_name="graves.db") -> None:
@@ -643,6 +771,9 @@ def _save_grave(
 
     def persist(active_connection: sqlite3.Connection) -> None:
         active_connection.execute(sql, parameters)
+        _ensure_subject_for_memorial(
+            active_connection, values["memorial_id"], timestamp
+        )
         if values["cemetery_id"] is not None:
             active_connection.execute(
                 """INSERT INTO cemeteries (
@@ -688,27 +819,157 @@ def queue_memorials(
         "timestamp": timestamp,
     }
     with _connect(database_name) as connection:
-        eligible = connection.execute(
-            f"SELECT COUNT(*) FROM graves {where_clause}", parameters
-        ).fetchone()[0]
-        cursor = connection.execute(
-            f"""INSERT INTO research_tasks (
-                memorial_id, status, priority, created_at, updated_at,
-                last_activity_at
+        memorial_ids = [
+            row[0]
+            for row in connection.execute(
+                f"SELECT memorial_id FROM graves {where_clause} ORDER BY memorial_id",
+                parameters,
             )
-            SELECT memorial_id, 'unprocessed', :priority, :timestamp,
-                   :timestamp, :timestamp
-            FROM graves
-            {where_clause}
-            ON CONFLICT(memorial_id) DO NOTHING""",
-            parameters,
-        )
-        created = cursor.rowcount
-    return created, eligible - created
+        ]
+        subject_ids = []
+        for memorial_id in memorial_ids:
+            subject_ids.append(
+                _ensure_subject_for_memorial(connection, memorial_id, timestamp)
+            )
+        eligible_subjects = list(dict.fromkeys(subject_ids))
+        created = 0
+        for subject_id in eligible_subjects:
+            cursor = connection.execute(
+                """INSERT INTO research_tasks (
+                       subject_id, status, priority, created_at, updated_at,
+                       last_activity_at
+                   ) VALUES (?, 'unprocessed', ?, ?, ?, ?)
+                   ON CONFLICT(subject_id) DO NOTHING""",
+                (subject_id, priority, timestamp, timestamp, timestamp),
+            )
+            if cursor.rowcount:
+                created += 1
+                task = connection.execute(
+                    "SELECT * FROM research_tasks WHERE subject_id = ?",
+                    (subject_id,),
+                ).fetchone()
+                keys = [
+                    item[1]
+                    for item in connection.execute("PRAGMA table_info(research_tasks)")
+                ]
+                _record_task_event(
+                    connection,
+                    subject_id,
+                    "task_created",
+                    timestamp,
+                    None,
+                    dict(zip(keys, task)),
+                    reason="queued_for_research",
+                )
+    return created, len(eligible_subjects) - created
 
 
 def _row_to_dict(row: sqlite3.Row) -> dict:
     return {key: row[key] for key in row.keys()}
+
+
+def _new_subject_id() -> str:
+    return str(uuid.uuid4())
+
+
+def _ensure_subject_for_memorial(
+    connection: sqlite3.Connection, memorial_id: int, timestamp: str
+) -> str:
+    row = connection.execute(
+        "SELECT subject_id FROM subject_memorials WHERE memorial_id = ?",
+        (memorial_id,),
+    ).fetchone()
+    if row is not None:
+        return row[0]
+    subject_id = _new_subject_id()
+    connection.execute(
+        "INSERT INTO research_subjects (subject_id, created_at) VALUES (?, ?)",
+        (subject_id, timestamp),
+    )
+    connection.execute(
+        """INSERT INTO subject_memorials
+           (memorial_id, subject_id, associated_at, association_reason)
+           VALUES (?, ?, ?, 'acquisition')""",
+        (memorial_id, subject_id, timestamp),
+    )
+    connection.execute(
+        """INSERT INTO research_subject_events
+           (subject_id, event_type, occurred_at, reason, after_json)
+           VALUES (?, 'subject_created', ?, 'memorial_acquisition', ?)""",
+        (
+            subject_id,
+            timestamp,
+            json.dumps(
+                {"subject_id": subject_id, "creation": "memorial_acquisition"},
+                sort_keys=True,
+            ),
+        ),
+    )
+    connection.execute(
+        """INSERT INTO research_subject_events
+           (subject_id, event_type, occurred_at, reason, memorial_id, after_json)
+           VALUES (?, 'memorial_associated', ?, 'memorial_acquisition', ?, ?)""",
+        (
+            subject_id,
+            timestamp,
+            memorial_id,
+            json.dumps(
+                {"memorial_id": memorial_id, "association": "memorial_acquisition"},
+                sort_keys=True,
+            ),
+        ),
+    )
+    return subject_id
+
+
+def _subject_id_for_memorial(
+    connection: sqlite3.Connection, memorial_id: int
+) -> Optional[str]:
+    row = connection.execute(
+        "SELECT subject_id FROM subject_memorials WHERE memorial_id = ?",
+        (memorial_id,),
+    ).fetchone()
+    return None if row is None else row[0]
+
+
+def _task_dict_for_memorial(row: sqlite3.Row, memorial_id: int) -> dict:
+    return {
+        "memorial_id": memorial_id,
+        "status": row["status"],
+        "priority": row["priority"],
+        "owner": row["owner"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+        "last_activity_at": row["last_activity_at"],
+        "review_note": row["review_note"],
+    }
+
+
+def _record_task_event(
+    connection: sqlite3.Connection,
+    subject_id: str,
+    event_type: str,
+    occurred_at: str,
+    before: Optional[dict],
+    after: dict,
+    reason: Optional[str] = None,
+    actor: Optional[str] = None,
+) -> None:
+    connection.execute(
+        """INSERT INTO research_task_events
+           (subject_id, event_type, occurred_at, actor, reason,
+            before_json, after_json)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (
+            subject_id,
+            event_type,
+            occurred_at,
+            actor,
+            reason,
+            None if before is None else json.dumps(before, sort_keys=True),
+            json.dumps(after, sort_keys=True),
+        ),
+    )
 
 
 def _resolve_alias(
@@ -987,13 +1248,16 @@ def get_memorial_alias(database_name: str, memorial_id: int) -> dict:
                 "SELECT * FROM graves WHERE memorial_id=?", (item_id,)
             ).fetchone()
             task = connection.execute(
-                "SELECT * FROM research_tasks WHERE memorial_id=?", (item_id,)
+                """SELECT t.* FROM research_tasks AS t
+                   JOIN subject_memorials AS sm ON sm.subject_id = t.subject_id
+                   WHERE sm.memorial_id = ?""",
+                (item_id,),
             ).fetchone()
             path_info.append(
                 {
                     "memorial_id": item_id,
                     "grave": _row_to_dict(grave) if grave else None,
-                    "task": _row_to_dict(task) if task else None,
+                    "task": _task_dict_for_memorial(task, item_id) if task else None,
                 }
             )
     return {
@@ -1020,7 +1284,12 @@ def list_research_tasks(
     if status is not None:
         clauses.append("t.status = :status")
     if cemetery_id is not None:
-        clauses.append("g.cemetery_id = :cemetery_id")
+        clauses.append(
+            "EXISTS (SELECT 1 FROM subject_memorials filter_sm "
+            "JOIN graves filter_g ON filter_g.memorial_id = filter_sm.memorial_id "
+            "WHERE filter_sm.subject_id = t.subject_id "
+            "AND filter_g.cemetery_id = :cemetery_id)"
+        )
     where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
     with _connect(database_name) as connection:
         connection.row_factory = sqlite3.Row
@@ -1031,7 +1300,11 @@ def list_research_tasks(
                        a.target_memorial_id AS alias_target_id,
                        a.status AS alias_status
                 FROM research_tasks AS t
-                JOIN graves AS g ON g.memorial_id = t.memorial_id
+                JOIN (
+                    SELECT subject_id, MIN(memorial_id) AS memorial_id
+                    FROM subject_memorials GROUP BY subject_id
+                ) AS display_sm ON display_sm.subject_id = t.subject_id
+                JOIN graves AS g ON g.memorial_id = display_sm.memorial_id
                 LEFT JOIN memorial_aliases AS a
                   ON a.source_memorial_id = g.memorial_id AND a.status = 'active'
                 {where}
@@ -1060,7 +1333,10 @@ def show_research_task(database_name: str, memorial_id: int) -> dict:
         if grave is None:
             raise NotFound(f"Memorial {memorial_id} does not exist")
         task = connection.execute(
-            "SELECT * FROM research_tasks WHERE memorial_id = ?", (memorial_id,)
+            """SELECT t.* FROM research_tasks AS t
+               JOIN subject_memorials AS sm ON sm.subject_id = t.subject_id
+               WHERE sm.memorial_id = ?""",
+            (memorial_id,),
         ).fetchone()
         if task is None:
             raise ResearchTaskNotFound(f"Research task {memorial_id} does not exist")
@@ -1094,7 +1370,10 @@ def show_research_task(database_name: str, memorial_id: int) -> dict:
         )
         canonical_task = (
             connection.execute(
-                "SELECT 1 FROM research_tasks WHERE memorial_id=?", (canonical_id,)
+                """SELECT 1 FROM research_tasks AS t
+                   JOIN subject_memorials AS sm ON sm.subject_id = t.subject_id
+                   WHERE sm.memorial_id=?""",
+                (canonical_id,),
             ).fetchone()
             is not None
         )
@@ -1104,7 +1383,7 @@ def show_research_task(database_name: str, memorial_id: int) -> dict:
             if source_id != memorial_id
         ]
     return {
-        "task": _row_to_dict(task),
+        "task": _task_dict_for_memorial(task, memorial_id),
         "grave": _row_to_dict(grave),
         "cemetery": _row_to_dict(cemetery) if cemetery is not None else None,
         "observations": observation_dicts,
@@ -1144,7 +1423,10 @@ def update_research_task(
     with _connect(database_name) as connection:
         connection.row_factory = sqlite3.Row
         current = connection.execute(
-            "SELECT * FROM research_tasks WHERE memorial_id = ?", (memorial_id,)
+            """SELECT t.* FROM research_tasks AS t
+               JOIN subject_memorials AS sm ON sm.subject_id = t.subject_id
+               WHERE sm.memorial_id = ?""",
+            (memorial_id,),
         ).fetchone()
         if current is None:
             raise ResearchTaskNotFound(f"Research task {memorial_id} does not exist")
@@ -1153,18 +1435,30 @@ def update_research_task(
         }
         if changed:
             timestamp = _utc_now_iso()
+            before = _row_to_dict(current)
             changed["updated_at"] = timestamp
             if "status" in changed or "review_note" in changed:
                 changed["last_activity_at"] = timestamp
             assignments = ", ".join(f"{key} = :{key}" for key in changed)
             connection.execute(
-                f"UPDATE research_tasks SET {assignments} WHERE memorial_id = :memorial_id",
-                {**changed, "memorial_id": memorial_id},
+                f"UPDATE research_tasks SET {assignments} WHERE subject_id = :subject_id",
+                {**changed, "subject_id": current["subject_id"]},
             )
         result = connection.execute(
-            "SELECT * FROM research_tasks WHERE memorial_id = ?", (memorial_id,)
+            "SELECT * FROM research_tasks WHERE subject_id = ?",
+            (current["subject_id"],),
         ).fetchone()
-    return _row_to_dict(result)
+        if changed:
+            _record_task_event(
+                connection,
+                current["subject_id"],
+                "task_updated",
+                timestamp,
+                before,
+                _row_to_dict(result),
+                reason="researcher_update",
+            )
+    return _task_dict_for_memorial(result, memorial_id)
 
 
 def save_completed_task_scrape(
@@ -1177,24 +1471,41 @@ def save_completed_task_scrape(
     _initialize_database(database_name)
     timestamp = _utc_now_iso()
     with _connect(database_name) as connection:
+        connection.row_factory = sqlite3.Row
         task = connection.execute(
-            "SELECT status FROM research_tasks WHERE memorial_id = ?",
+            """SELECT t.* FROM research_tasks AS t
+               JOIN subject_memorials AS sm ON sm.subject_id = t.subject_id
+               WHERE sm.memorial_id = ?""",
             (requested_memorial_id,),
         ).fetchone()
         if task is None:
             raise ResearchTaskNotFound(
                 f"Research task {requested_memorial_id} does not exist"
             )
-        if task[0] != "ready_for_full_scrape":
+        if task["status"] != "ready_for_full_scrape":
             raise ValueError("Task is not ready for a full scrape")
+        before = _row_to_dict(task)
         memorial.save(
             database_name=database_name, connection=connection, timestamp=timestamp
         )
         connection.execute(
             """UPDATE research_tasks
                SET status = 'full_scrape_complete', updated_at = ?,
-                   last_activity_at = ? WHERE memorial_id = ?""",
-            (timestamp, timestamp, requested_memorial_id),
+                   last_activity_at = ? WHERE subject_id = ?""",
+            (timestamp, timestamp, task["subject_id"]),
+        )
+        after = connection.execute(
+            "SELECT * FROM research_tasks WHERE subject_id = ?",
+            (task["subject_id"],),
+        ).fetchone()
+        _record_task_event(
+            connection,
+            task["subject_id"],
+            "full_scrape_completed",
+            timestamp,
+            before,
+            _row_to_dict(after),
+            reason="full_memorial_observed",
         )
     return {
         "memorial_id": requested_memorial_id,
@@ -1221,18 +1532,33 @@ def record_failed_task_scrape(
         ensure_ascii=False,
     )
     with _connect(database_name) as connection:
+        connection.row_factory = sqlite3.Row
         row = connection.execute(
-            """SELECT g.cemetery_id, t.status
-               FROM graves AS g JOIN research_tasks AS t
-                 ON t.memorial_id = g.memorial_id
+            """SELECT g.cemetery_id, t.*
+               FROM graves AS g
+               JOIN subject_memorials AS sm ON sm.memorial_id = g.memorial_id
+               JOIN research_tasks AS t ON t.subject_id = sm.subject_id
                WHERE g.memorial_id = ?""",
             (memorial_id,),
         ).fetchone()
         if row is None:
             raise ResearchTaskNotFound(f"Research task {memorial_id} does not exist")
-        cemetery_id, status = row
-        if status != "ready_for_full_scrape":
+        cemetery_id = row["cemetery_id"]
+        if row["status"] != "ready_for_full_scrape":
             raise ValueError("Task is not ready for a full scrape")
+        before = {
+            key: row[key]
+            for key in (
+                "subject_id",
+                "status",
+                "priority",
+                "owner",
+                "created_at",
+                "updated_at",
+                "last_activity_at",
+                "review_note",
+            )
+        }
         if cemetery_id is not None:
             connection.execute(
                 """INSERT INTO cemeteries (
@@ -1251,8 +1577,21 @@ def record_failed_task_scrape(
         )
         connection.execute(
             """UPDATE research_tasks SET updated_at = ?, last_activity_at = ?
-               WHERE memorial_id = ?""",
-            (timestamp, timestamp, memorial_id),
+               WHERE subject_id = ?""",
+            (timestamp, timestamp, row["subject_id"]),
+        )
+        after = connection.execute(
+            "SELECT * FROM research_tasks WHERE subject_id = ?",
+            (row["subject_id"],),
+        ).fetchone()
+        _record_task_event(
+            connection,
+            row["subject_id"],
+            "task_activity",
+            timestamp,
+            before,
+            _row_to_dict(after),
+            reason="full_acquisition_failed",
         )
     return timestamp
 
@@ -1270,22 +1609,38 @@ def record_merged_task_scrape(
     timestamp = _utc_now_iso()
     error_message = " ".join(str(exception).split())[:500]
     with _connect(database_name) as connection:
+        connection.row_factory = sqlite3.Row
         row = connection.execute(
-            """SELECT g.cemetery_id, t.status FROM graves g JOIN research_tasks t
-               ON t.memorial_id=g.memorial_id WHERE g.memorial_id=?""",
+            """SELECT g.cemetery_id, t.* FROM graves g
+               JOIN subject_memorials sm ON sm.memorial_id=g.memorial_id
+               JOIN research_tasks t ON t.subject_id=sm.subject_id
+               WHERE g.memorial_id=?""",
             (memorial_id,),
         ).fetchone()
         if row is None:
             raise ResearchTaskNotFound(f"Research task {memorial_id} does not exist")
-        if row[1] != "ready_for_full_scrape":
+        if row["status"] != "ready_for_full_scrape":
             raise ValueError("Task is not ready for a full scrape")
-        if row[0] is not None:
+        before = {
+            key: row[key]
+            for key in (
+                "subject_id",
+                "status",
+                "priority",
+                "owner",
+                "created_at",
+                "updated_at",
+                "last_activity_at",
+                "review_note",
+            )
+        }
+        if row["cemetery_id"] is not None:
             connection.execute(
                 """INSERT INTO cemeteries
                    (cemetery_id, first_observed_at, last_observed_at)
                    VALUES (?, ?, ?) ON CONFLICT(cemetery_id) DO UPDATE SET
                    last_observed_at=excluded.last_observed_at""",
-                (row[0], timestamp, timestamp),
+                (row["cemetery_id"], timestamp, timestamp),
             )
         _record_alias(
             connection,
@@ -1304,7 +1659,7 @@ def record_merged_task_scrape(
                 parser_version,payload_json) VALUES (?,?,'full',?,'failure',?,?)""",
             (
                 memorial_id,
-                row[0],
+                row["cemetery_id"],
                 timestamp,
                 _package_version(),
                 json.dumps(
@@ -1320,8 +1675,21 @@ def record_merged_task_scrape(
             ),
         )
         connection.execute(
-            "UPDATE research_tasks SET updated_at=?, last_activity_at=? WHERE memorial_id=?",
-            (timestamp, timestamp, memorial_id),
+            "UPDATE research_tasks SET updated_at=?, last_activity_at=? WHERE subject_id=?",
+            (timestamp, timestamp, row["subject_id"]),
+        )
+        after = connection.execute(
+            "SELECT * FROM research_tasks WHERE subject_id = ?",
+            (row["subject_id"],),
+        ).fetchone()
+        _record_task_event(
+            connection,
+            row["subject_id"],
+            "task_activity",
+            timestamp,
+            before,
+            _row_to_dict(after),
+            reason="redirect_discovered_during_acquisition",
         )
     return timestamp
 

@@ -145,8 +145,9 @@ authorized repository-administration task; this plan does not perform them.
 
 The package version must not change to `1.0.0rc1` until the public contract,
 database lifecycle, generalized subject identity, explicit migrations, JSON
-schemas, dependency cleanup, CLI cleanup, and supported-Python CI matrix are
-complete. A `1.0.0rc1` release will then validate installation, entry points,
+schemas, API hygiene and documentation, dependency cleanup, CLI cleanup, and the
+supported-Python CI matrix are complete. A `1.0.0rc1` release will then validate
+installation, entry points,
 migration and recovery, supported platforms and Python versions, and the documented
 CLI, Python, configuration, database, and JSON contracts before `1.0.0` is released.
 When compatibility priorities conflict, preservation and recoverability of research
@@ -163,7 +164,7 @@ work, not an assertion that any two records describe the same genealogical perso
 A subject created mechanically during migration is therefore an organizational
 container, not an identity conclusion.
 
-Schema version 2 will introduce these entities:
+Schema version 2 introduces these entities:
 
 - `research_subjects`, keyed by `subject_id`;
 - `subject_memorials`, recording the current subject association for a memorial;
@@ -173,7 +174,7 @@ Schema version 2 will introduce these entities:
 - immutable `research_task_events`, distinct from subject events and protected by
   no-update and no-delete triggers.
 
-The schema will enforce at most one current subject association for each memorial,
+The schema enforces at most one current subject association for each memorial,
 while permitting one subject to have zero or multiple associated memorials. That
 structural capacity is not authorization to combine records: associating multiple
 memorials with one subject is a reviewed identity decision and must remain
@@ -189,7 +190,7 @@ WikiTree candidates will be hypotheses linked to subjects; only a reviewed
 conclusion may establish an accepted external identity association. Later family
 work packets will group subjects without replacing subject identity.
 
-Ordinary researcher commands will continue to accept memorial IDs as convenient
+Ordinary researcher commands continue to accept memorial IDs as convenient
 lookup keys and will not expose subject UUIDs by default. Until a reviewed preferred
 memorial policy exists, the lowest associated memorial ID is the deterministic
 display fallback for a subject with multiple memorials. This is only a display
@@ -199,13 +200,13 @@ envelopes replace it.
 
 ### Schema-version-2 migration invariants
 
-The explicit version-1-to-version-2 upgrade must retain the existing mandatory
+The explicit version-1-to-version-2 upgrade retains the existing mandatory
 backup, ordered migration, and transactional safeguards. The schema version advances
 to 2 only in the same successful transaction as all version-2 changes. Once this
 milestone is implemented, new databases will initialize directly at schema version
 2.
 
-Migration will create exactly one new subject for every existing `graves` row,
+Migration creates exactly one new subject for every existing `graves` row,
 including graves without research tasks, and associate each memorial only with its
 own migration-created subject. This one-subject-per-memorial rule is a mechanical
 preservation strategy, not an identity conclusion. Every existing research task
@@ -229,7 +230,7 @@ after values. A no-op task update creates no event. Task events describe the tas
 work-state history; subject events describe subject lifecycle and memorial
 association history, so the two streams must not be conflated.
 
-This milestone does not implement subject merge or split, manual memorial
+This implemented milestone does not include subject merge or split, manual memorial
 association or reassociation, preferred/canonical memorial decisions, FamilySearch
 or WikiTree persistence, versioned JSON envelopes, or hidden-command removal.
 
@@ -381,23 +382,80 @@ ownership, and typed errors and results. Parity tests must prove that CLI comman
 use the same application operations available to GUI clients rather than duplicating
 behavior.
 
-Subject-oriented implementation must avoid creating a temporary raw public API.
-Within that milestone, work proceeds in this order:
+Schema version 2, safe migration, immutable events, memorial-ID compatibility, and
+existing `work` behavior are now implemented. The remaining subject-oriented API
+refactor must avoid creating a temporary raw public API and proceed in this order:
 
-1. Implement schema version 2 and safe migration.
-2. Add subject-oriented internal repositories and application services.
-3. Add immutable subject and task events.
-4. Preserve memorial-ID resolution as a compatibility adapter.
-5. Move `work` CLI operations onto the subject-oriented application services.
-6. Keep persistence rows and raw SQL private.
-7. Add typed results and exceptions for migrated work operations.
-8. Preserve current human CLI behavior and the tutorial through adapter tests.
+1. Add subject-oriented internal repositories and application services.
+2. Move `work` CLI operations from the existing root functions onto those services.
+3. Keep persistence rows and raw SQL private.
+4. Add typed results and exceptions for migrated work operations.
+5. Preserve current human CLI behavior and the tutorial through adapter tests.
 
-The entire eventual facade need not land in the schema-migration commit, but every
-new subject operation must move toward it instead of adding another root-level raw
-function. After those steps, migration must be verified against a temporary copy of
-the representative database and the canonical current-state inventory updated only
-with behavior actually implemented.
+The entire eventual facade need not land in that refactor, but every new subject
+operation must move toward it instead of adding another root-level raw function.
+Representative-database migration remains a separately authorized temporary-copy
+verification; the canonical inventory records only behavior actually implemented.
+
+### API hygiene and documentation milestone
+
+After the subject-oriented schema, application-service, and CLI refactor is stable,
+but before the workspace facade is frozen as Graver's 1.0 contract, complete a
+dedicated API hygiene and documentation milestone. Keep it separate from the
+schema-version-2 migration and from substantial behavioral changes.
+
+The intended public API will use Google-style docstrings. Every supported public
+module, class, protocol, exception, function, method, typed command, query, and
+result object needs a useful docstring describing its purpose, arguments, return
+value, raised Graver-owned exceptions, side effects, transaction behavior, thread
+and cancellation expectations, and a short example where useful. Self-explanatory
+private helpers, tests, and trivial accessors do not need verbose documentation.
+Docstrings must explain contracts rather than merely repeat names or annotations.
+
+Complete type annotations across the supported boundary and define explicit public
+import paths and `__all__` exports. Public exceptions and results are Graver-owned.
+CLI and presentation types, Typer, Rich, SQLite connections and rows, SQL helpers,
+parsers, Requests objects, and internal transport implementations stay outside the
+facade. The API guide will document stability expectations and additive enum
+evolution.
+
+Dead-code cleanup requires corroborating evidence from repository searches, tests,
+coverage where appropriate, static analysis, import/export inspection, and the
+documented compatibility contract. One unused-code warning is insufficient. Review
+broad root exports and wildcard imports, `Driver`, hidden compatibility commands,
+commented-out tests, empty fixtures and hooks, unused dependencies, and obsolete
+compatibility helpers. Remove only code demonstrated to be unused or explicitly
+approved as obsolete. Migration paths that protect researcher data remain even when
+ordinary code no longer calls them. Plausible external imports or commands removed
+before 1.0 receive migration or release notes.
+
+Developer API documentation will include concise offline examples for opening a
+workspace, inspecting work, updating a task with stale-update protection, and
+invoking acquisition through injected services. Network-capable examples must be
+marked explicitly. Examples support CLI parity and the future GUI consumer while
+remaining distinct from the researcher tutorial.
+
+Before adding release gates, evaluate and document narrowly scoped tools for
+Google-style docstring presence and style, type checking, unused-code detection,
+and documentation build/link validation. Prefer one deterministic command per
+validation category, initially scoped to the documented public API and changed
+files where appropriate, with bounded correction rules. Record each tool and its
+rationale before adding dependencies or CI requirements; do not recreate the prior
+unbounded Flake8 workflow.
+
+Use separate commits for public exports and type boundaries; evidenced dead-code
+and dependency removal; Google-style docstrings and API examples; bounded CI
+enforcement; and migration and release notes. Mechanical documentation changes must
+not be folded into schema migrations or substantial behavioral commits.
+
+Completion requires useful Google-style docstrings and complete types for every
+supported public symbol; explicitly tested public imports; no transport, CLI,
+presentation, or database implementation types leaking through the facade;
+installed-wheel examples without source-tree assumptions; retained evidence for
+dead-code removals; release notes for compatibility-sensitive removals; and bounded,
+reproducible, green documentation, typing, and unused-code checks. A future GUI
+consumer must be able to discover and understand the API without reading CLI or SQL
+implementation code.
 
 ### Documentation and contract validation
 
@@ -804,66 +862,71 @@ Completed foundation:
 3. Replaced `cloudscraper25` with a conventional Requests-backed internal transport,
    explicit timeouts and transparent identification, bounded retries, and
    fail-closed access handling.
+4. Added schema version 2 research-subject ownership, one-subject-per-memorial
+   migration, immutable subject/task events, subject-owned tasks, and memorial-ID
+   compatibility across existing work CLI and API operations while preserving
+   human output, transitional JSON, aliases, observations, and tutorial behavior.
 
 Pre-1.0 sequence:
 
-4. Implement schema version 2 research-subject ownership, one-subject-per-memorial
-   migration, and immutable subject and task history without identity inference.
-5. Build subject-oriented application services and retain memorial-ID lookup through
-   a compatibility adapter, moving new operations toward the workspace facade.
-6. Modernize offline test boundaries, default network denial, deterministic domain
+5. Build subject-oriented repositories and application services, move `work` CLI
+   operations from the existing root functions onto those services, keep SQL private,
+   and preserve behavior through adapter-parity tests.
+6. Complete the dedicated API hygiene and documentation milestone: explicit public
+   exports and type boundaries, Google-style public docstrings, evidenced dead-code
+   cleanup, offline API examples, and bounded documentation/type/unused-code checks.
+7. Modernize offline test boundaries, default network denial, deterministic domain
    fixtures and Faker, temporary lifecycle, markers, replay-only contracts, and the
    bounded live-contract probe.
-7. Define the public Graver workspace facade, typed requests and results, exception
-   taxonomy, transaction and threading contract, progress, cancellation, stale-
-   update handling, injectable transport and nondeterminism, and semantic-versioning
-   policy.
-8. Move researcher-directed acquisition and CLI workflows onto those application
-   services, validate the shared boundaries, and add CLI/API parity tests
-   while preserving the tutorial's human workflow.
-9. Validate researcher-directed acquisition against the current access policy, then
+8. Define and freeze the public Graver workspace facade, typed requests and results,
+   documented imports and stability policy, exception taxonomy, transaction and
+   threading contract, progress, cancellation, stale-update handling, injectable
+   transport and nondeterminism, and semantic-versioning policy.
+9. Move remaining researcher-directed acquisition and CLI workflows onto those
+   application services, validate the shared boundaries, and add CLI/API parity
+   tests while preserving the tutorial's human workflow.
+10. Validate researcher-directed acquisition against the current access policy, then
    complete each provider's authorization and policy gate. Any pre-1.0 import support
    must use authorized data, and no unattended Find a Grave enrichment is enabled.
-10. Define import-first boundaries and provider-neutral background-job services
+11. Define import-first boundaries and provider-neutral background-job services
     before any public job API is frozen. Provider-specific unattended adapters remain
     unavailable unless their authorization gate is satisfied.
-11. Separate runtime and test dependencies, remove unused dependencies, and restrict
-   package exports to the documented facade with `Driver` and implementation
-   mechanics internal.
-12. Add command-specific versioned JSON envelopes as adapter projections of the same
+12. Complete remaining runtime/test dependency separation; retain `Driver` and
+    implementation mechanics as internal details.
+13. Add command-specific versioned JSON envelopes as adapter projections of the same
    typed application results.
-13. Normalize acquisition options and remove duplicate, site-shaped, and hidden
+14. Normalize acquisition options and remove duplicate, site-shaped, and hidden
     pre-1.0 compatibility paths.
-14. Support `python -m graver` through `graver.__main__`.
-15. Replace stale Poetry CI with uv-based installation, wheel tests, offline tests,
+15. Support `python -m graver` through `graver.__main__`.
+16. Replace stale Poetry CI with uv-based installation, wheel tests, offline tests,
     and Python 3.11-through-3.14 validation.
-16. Publish the public API guide, database and 0.1 migration instructions,
+17. Finish the public API guide, database and 0.1 migration instructions,
     compatibility and release notes, and the later authorized branch/tag plan.
-17. Build the separate consumer spike against the installed wheel, validating the
+18. Build the separate consumer spike against the installed wheel, validating the
     documented facade without private imports or direct SQLite access. It may
     exercise mocked jobs but performs no live bulk acquisition.
-18. Resolve spike findings and complete any required provider-neutral job-service
+19. Resolve spike findings and complete any required provider-neutral job-service
     contracts without enabling an unauthorized provider adapter. Prepare
     `1.0.0rc1` without weakening migration,
     provenance, concurrency, or offline-test guarantees.
-19. Validate the release candidate and release Graver `1.0.0` after its findings are
+20. Validate the release candidate and release Graver `1.0.0` after its findings are
     resolved.
 
 Post-1.0 compatible sequence:
 
-20. Begin the production desktop GUI with workspace/database lifecycle, work queue,
+21. Begin the production desktop GUI with workspace/database lifecycle, work queue,
     subject detail, and one-person acquisition/provenance review.
-21. Add repeatable FamilySearch candidate discovery through the same application
+22. Add repeatable FamilySearch candidate discovery through the same application
     API, including immutable search runs, snapshots, change detection, evidence,
     discrepancies, confidence, reasoning, reviewer fields, and decision history.
-22. Implement import-first bulk acquisition for the smallest demonstrated authorized
+23. Implement import-first bulk acquisition for the smallest demonstrated authorized
     formats not already supported in 1.0.
-23. Add provider-authorized background acquisition only after a repeated policy and
+24. Add provider-authorized background acquisition only after a repeated policy and
     permission review; production GUI scheduling uses the same durable job service.
-24. Extend GUI and CLI evidence-research workflows over those services.
-25. Add explicit reviewed identity conclusions.
-26. Add WikiTree reconciliation, evidence summaries, and family work packets.
-27. Extend the production GUI across the complete reviewed research workflow.
+25. Extend GUI and CLI evidence-research workflows over those services.
+26. Add explicit reviewed identity conclusions.
+27. Add WikiTree reconciliation, evidence summaries, and family work packets.
+28. Extend the production GUI across the complete reviewed research workflow.
 
 Open decisions include the final GUI toolkit and package name, nested-repository
 versus future-monorepo governance, exact facade class and method names, the exact
