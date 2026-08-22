@@ -26,12 +26,8 @@ from graver import (
     list_memorial_aliases,
     list_research_tasks,
     queue_memorials as queue_memorials_in_database,
-    record_failed_task_scrape,
     record_memorial_alias,
-    record_merged_task_scrape,
-    resolve_memorial_alias,
     retract_memorial_alias,
-    save_completed_task_scrape,
     show_research_task,
     update_research_task,
 )
@@ -47,6 +43,7 @@ from graver.database import (
     create_database,
     upgrade_database,
 )
+from graver.research import ResearchService
 from graver.transport import TransportError
 
 
@@ -622,7 +619,7 @@ def _approved_enrichment_task(
 ) -> dict:
     """Load one approved task and reject known redirects before retrieval."""
     try:
-        current = show_research_task(db, memorial_id)
+        current = ResearchService(db).show_task(memorial_id)
     except (NotFound, ResearchTaskNotFound) as ex:
         typer.echo(str(ex), err=True)
         raise typer.Exit(1)
@@ -634,7 +631,7 @@ def _approved_enrichment_task(
         )
         typer.echo(message, err=True)
         raise typer.Exit(1)
-    resolution = resolve_memorial_alias(db, memorial_id)
+    resolution = ResearchService(db).resolve_alias(memorial_id)
     if len(resolution["path"]) == 1:
         return current
     if researcher_output:
@@ -656,26 +653,27 @@ def _approved_enrichment_task(
 def _enrich_task(
     memorial_id: int, db: str, researcher_output: bool, json_output: bool
 ) -> None:
+    service = ResearchService(db)
     current = _approved_enrichment_task(memorial_id, db, researcher_output)
     attempted_url = current["grave"]["findagrave_url"] or (
         MEMORIAL_CANONICAL_URL_FORMAT.format(memorial_id)
     )
     try:
         memorial = Memorial.parse(attempted_url)
-        result = save_completed_task_scrape(db, memorial_id, memorial)
+        result = service.complete_enrichment(memorial_id, memorial)
     except MemorialMergedException as merged:
         source_id, _ = format_url(merged.old_url)
         target_id, _ = format_url(merged.new_url)
         if source_id != memorial_id or target_id < 0:
-            record_failed_task_scrape(db, memorial_id, attempted_url, merged)
+            service.record_enrichment_failure(memorial_id, attempted_url, merged)
             typer.echo(
                 "Merged-memorial response did not contain the expected source "
                 "and target IDs",
                 err=True,
             )
             raise typer.Exit(1)
-        record_merged_task_scrape(
-            db, memorial_id, target_id, merged.old_url, merged.new_url, merged
+        service.record_redirect_failure(
+            memorial_id, target_id, merged.old_url, merged.new_url, merged
         )
         message = (
             f"Find a Grave redirects this memorial to {target_id}; "
@@ -687,7 +685,7 @@ def _enrich_task(
         typer.echo(message, err=True)
         raise typer.Exit(1)
     except Exception as ex:
-        record_failed_task_scrape(db, memorial_id, attempted_url, ex)
+        service.record_enrichment_failure(memorial_id, attempted_url, ex)
         message = (
             "Retrieval failed; the task remains ready for review. " + str(ex)
             if researcher_output
@@ -724,7 +722,7 @@ def _display_work_list(tasks: list) -> None:
 
 def _load_task_or_exit(db: str, memorial_id: int) -> dict:
     try:
-        return show_research_task(db, memorial_id)
+        return ResearchService(db).show_task(memorial_id)
     except (NotFound, ResearchTaskNotFound, DatabaseLifecycleError) as ex:
         typer.echo(str(ex), err=True)
         raise typer.Exit(1)
@@ -796,7 +794,7 @@ def work_list(
 ):
     """List people in the research queue and what needs attention."""
     try:
-        tasks = list_research_tasks(db, status, cemetery_id, limit)
+        tasks = ResearchService(db).list_tasks(status, cemetery_id, limit)
     except ValueError as ex:
         raise typer.BadParameter(str(ex))
     if json_output:
@@ -820,7 +818,7 @@ def work_next(
 ):
     """Show the next person needing research."""
     try:
-        tasks = list_research_tasks(db, status, cemetery_id, 1)
+        tasks = ResearchService(db).list_tasks(status, cemetery_id, 1)
     except ValueError as ex:
         raise typer.BadParameter(str(ex))
     if not tasks:
@@ -879,7 +877,9 @@ def work_mark(
     """Record a research decision or assignment for one person."""
     before = _load_task_or_exit(db, memorial_id)["task"]
     try:
-        task = update_research_task(db, memorial_id, status, priority, owner, note)
+        task = ResearchService(db).update_task(
+            memorial_id, status, priority, owner, note
+        )
     except ValueError as ex:
         typer.echo(str(ex), err=True)
         raise typer.Exit(2)
@@ -924,7 +924,7 @@ def work_queue(
     ),
 ):
     """Add people already acquired to the research queue."""
-    created, existing = queue_memorials_in_database(db, cemetery_id, priority)
+    created, existing = ResearchService(db).queue_memorials(cemetery_id, priority)
     created_label = "person" if created == 1 else "people"
     existing_label = "person was" if existing == 1 else "people were"
     typer.echo(

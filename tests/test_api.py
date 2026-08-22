@@ -37,6 +37,7 @@ from graver import (
     update_research_task,
 )
 from graver.transport import TransportRateLimited
+from graver.research import ResearchService
 from tests.test import Test
 
 
@@ -757,6 +758,23 @@ class TestDatabaseOps(TestApi):
             "alias_canonical_id",
             "alias_path",
         ]
+
+    def test_subject_service_preserves_compatibility_api_projection(self, database):
+        summary = self.summary().save()
+        service = ResearchService(database.name)
+
+        assert service.queue_memorials(priority=4) == (1, 0)
+        assert queue_memorials(database.name, priority=9) == (0, 1)
+        assert service.list_tasks() == list_research_tasks(database.name)
+        assert service.show_task(summary.memorial_id) == show_research_task(
+            database.name, summary.memorial_id
+        )
+
+        updated = service.update_task(summary.memorial_id, status="researching")
+
+        assert updated == show_research_task(database.name, summary.memorial_id)["task"]
+        assert updated["memorial_id"] == summary.memorial_id
+        assert "subject_id" not in updated
 
     def test_show_task_includes_cemetery_and_chronological_observations(
         self, database, monkeypatch

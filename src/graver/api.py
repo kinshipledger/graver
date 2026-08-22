@@ -808,60 +808,10 @@ def _save_grave(
 def queue_memorials(
     database_name: str, cemetery_id: Optional[int] = None, priority: int = 0
 ) -> tuple:
-    _initialize_database(database_name)
-    timestamp = _utc_now_iso()
-    where_clause = (
-        "WHERE 1 = 1" if cemetery_id is None else "WHERE cemetery_id = :cemetery_id"
-    )
-    parameters = {
-        "cemetery_id": cemetery_id,
-        "priority": priority,
-        "timestamp": timestamp,
-    }
-    with _connect(database_name) as connection:
-        memorial_ids = [
-            row[0]
-            for row in connection.execute(
-                f"SELECT memorial_id FROM graves {where_clause} ORDER BY memorial_id",
-                parameters,
-            )
-        ]
-        subject_ids = []
-        for memorial_id in memorial_ids:
-            subject_ids.append(
-                _ensure_subject_for_memorial(connection, memorial_id, timestamp)
-            )
-        eligible_subjects = list(dict.fromkeys(subject_ids))
-        created = 0
-        for subject_id in eligible_subjects:
-            cursor = connection.execute(
-                """INSERT INTO research_tasks (
-                       subject_id, status, priority, created_at, updated_at,
-                       last_activity_at
-                   ) VALUES (?, 'unprocessed', ?, ?, ?, ?)
-                   ON CONFLICT(subject_id) DO NOTHING""",
-                (subject_id, priority, timestamp, timestamp, timestamp),
-            )
-            if cursor.rowcount:
-                created += 1
-                task = connection.execute(
-                    "SELECT * FROM research_tasks WHERE subject_id = ?",
-                    (subject_id,),
-                ).fetchone()
-                keys = [
-                    item[1]
-                    for item in connection.execute("PRAGMA table_info(research_tasks)")
-                ]
-                _record_task_event(
-                    connection,
-                    subject_id,
-                    "task_created",
-                    timestamp,
-                    None,
-                    dict(zip(keys, task)),
-                    reason="queued_for_research",
-                )
-    return created, len(eligible_subjects) - created
+    """Compatibility wrapper for the subject-oriented research service."""
+    from graver.research import ResearchService
+
+    return ResearchService(database_name).queue_memorials(cemetery_id, priority)
 
 
 def _row_to_dict(row: sqlite3.Row) -> dict:
@@ -1274,127 +1224,17 @@ def list_research_tasks(
     cemetery_id: Optional[int] = None,
     limit: int = 20,
 ) -> list:
-    _require_current_database(database_name)
-    if status is not None and status not in RESEARCH_TASK_STATUSES:
-        raise ValueError(f"Invalid task status: {status}")
-    if limit < 1:
-        raise ValueError("Limit must be at least 1")
-    clauses = []
-    parameters = {"status": status, "cemetery_id": cemetery_id, "limit": limit}
-    if status is not None:
-        clauses.append("t.status = :status")
-    if cemetery_id is not None:
-        clauses.append(
-            "EXISTS (SELECT 1 FROM subject_memorials filter_sm "
-            "JOIN graves filter_g ON filter_g.memorial_id = filter_sm.memorial_id "
-            "WHERE filter_sm.subject_id = t.subject_id "
-            "AND filter_g.cemetery_id = :cemetery_id)"
-        )
-    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
-    with _connect(database_name) as connection:
-        connection.row_factory = sqlite3.Row
-        rows = connection.execute(
-            f"""SELECT g.memorial_id, g.name, g.birth, g.death,
-                       g.cemetery_id, g.detail_level, t.status, t.priority,
-                       t.owner, t.last_activity_at,
-                       a.target_memorial_id AS alias_target_id,
-                       a.status AS alias_status
-                FROM research_tasks AS t
-                JOIN (
-                    SELECT subject_id, MIN(memorial_id) AS memorial_id
-                    FROM subject_memorials GROUP BY subject_id
-                ) AS display_sm ON display_sm.subject_id = t.subject_id
-                JOIN graves AS g ON g.memorial_id = display_sm.memorial_id
-                LEFT JOIN memorial_aliases AS a
-                  ON a.source_memorial_id = g.memorial_id AND a.status = 'active'
-                {where}
-                ORDER BY t.priority DESC, t.last_activity_at ASC,
-                         g.memorial_id ASC
-                LIMIT :limit""",
-            parameters,
-        ).fetchall()
-        results = []
-        for row in rows:
-            item = _row_to_dict(row)
-            resolution = _resolve_alias(connection, item["memorial_id"])
-            item["alias_canonical_id"] = resolution["canonical_memorial_id"]
-            item["alias_path"] = resolution["path"]
-            results.append(item)
-    return results
+    """Compatibility wrapper for the subject-oriented research service."""
+    from graver.research import ResearchService
+
+    return ResearchService(database_name).list_tasks(status, cemetery_id, limit)
 
 
 def show_research_task(database_name: str, memorial_id: int) -> dict:
-    _require_current_database(database_name)
-    with _connect(database_name) as connection:
-        connection.row_factory = sqlite3.Row
-        grave = connection.execute(
-            "SELECT * FROM graves WHERE memorial_id = ?", (memorial_id,)
-        ).fetchone()
-        if grave is None:
-            raise NotFound(f"Memorial {memorial_id} does not exist")
-        task = connection.execute(
-            """SELECT t.* FROM research_tasks AS t
-               JOIN subject_memorials AS sm ON sm.subject_id = t.subject_id
-               WHERE sm.memorial_id = ?""",
-            (memorial_id,),
-        ).fetchone()
-        if task is None:
-            raise ResearchTaskNotFound(f"Research task {memorial_id} does not exist")
-        cemetery = None
-        if grave["cemetery_id"] is not None:
-            cemetery = connection.execute(
-                "SELECT * FROM cemeteries WHERE cemetery_id = ?",
-                (grave["cemetery_id"],),
-            ).fetchone()
-        observations = connection.execute(
-            """SELECT observation_id, memorial_id, cemetery_id,
-                      acquisition_level, observed_at, fetch_outcome,
-                      parser_version, payload_json
-               FROM memorial_observations WHERE memorial_id = ?
-               ORDER BY observed_at ASC, observation_id ASC""",
-            (memorial_id,),
-        ).fetchall()
-    observation_dicts = []
-    for row in observations:
-        observation = _row_to_dict(row)
-        observation["payload"] = json.loads(observation.pop("payload_json"))
-        observation_dicts.append(observation)
-    resolution = resolve_memorial_alias(database_name, memorial_id)
-    canonical_id = resolution["canonical_memorial_id"]
-    with _connect(database_name) as connection:
-        canonical_grave = (
-            connection.execute(
-                "SELECT 1 FROM graves WHERE memorial_id=?", (canonical_id,)
-            ).fetchone()
-            is not None
-        )
-        canonical_task = (
-            connection.execute(
-                """SELECT 1 FROM research_tasks AS t
-                   JOIN subject_memorials AS sm ON sm.subject_id = t.subject_id
-                   WHERE sm.memorial_id=?""",
-                (canonical_id,),
-            ).fetchone()
-            is not None
-        )
-        related_sources = [
-            source_id
-            for source_id in _sources_for_canonical(connection, canonical_id)
-            if source_id != memorial_id
-        ]
-    return {
-        "task": _task_dict_for_memorial(task, memorial_id),
-        "grave": _row_to_dict(grave),
-        "cemetery": _row_to_dict(cemetery) if cemetery is not None else None,
-        "observations": observation_dicts,
-        "alias": {
-            "is_active_source": len(resolution["path"]) > 1,
-            **resolution,
-            "canonical_target_exists": canonical_grave,
-            "canonical_target_has_task": canonical_task,
-            "other_active_sources": related_sources,
-        },
-    }
+    """Compatibility wrapper for the subject-oriented research service."""
+    from graver.research import ResearchService
+
+    return ResearchService(database_name).show_task(memorial_id)
 
 
 def update_research_task(
@@ -1405,60 +1245,12 @@ def update_research_task(
     owner: Optional[str] = None,
     review_note: Optional[str] = None,
 ) -> dict:
-    _initialize_database(database_name)
-    if status is not None and status not in RESEARCH_TASK_STATUSES:
-        raise ValueError(f"Invalid task status: {status}")
-    requested = {
-        key: value
-        for key, value in {
-            "status": status,
-            "priority": priority,
-            "owner": owner,
-            "review_note": review_note,
-        }.items()
-        if value is not None
-    }
-    if not requested:
-        raise ValueError("At least one task change is required")
-    with _connect(database_name) as connection:
-        connection.row_factory = sqlite3.Row
-        current = connection.execute(
-            """SELECT t.* FROM research_tasks AS t
-               JOIN subject_memorials AS sm ON sm.subject_id = t.subject_id
-               WHERE sm.memorial_id = ?""",
-            (memorial_id,),
-        ).fetchone()
-        if current is None:
-            raise ResearchTaskNotFound(f"Research task {memorial_id} does not exist")
-        changed = {
-            key: value for key, value in requested.items() if current[key] != value
-        }
-        if changed:
-            timestamp = _utc_now_iso()
-            before = _row_to_dict(current)
-            changed["updated_at"] = timestamp
-            if "status" in changed or "review_note" in changed:
-                changed["last_activity_at"] = timestamp
-            assignments = ", ".join(f"{key} = :{key}" for key in changed)
-            connection.execute(
-                f"UPDATE research_tasks SET {assignments} WHERE subject_id = :subject_id",
-                {**changed, "subject_id": current["subject_id"]},
-            )
-        result = connection.execute(
-            "SELECT * FROM research_tasks WHERE subject_id = ?",
-            (current["subject_id"],),
-        ).fetchone()
-        if changed:
-            _record_task_event(
-                connection,
-                current["subject_id"],
-                "task_updated",
-                timestamp,
-                before,
-                _row_to_dict(result),
-                reason="researcher_update",
-            )
-    return _task_dict_for_memorial(result, memorial_id)
+    """Compatibility wrapper for the subject-oriented research service."""
+    from graver.research import ResearchService
+
+    return ResearchService(database_name).update_task(
+        memorial_id, status, priority, owner, review_note
+    )
 
 
 def save_completed_task_scrape(

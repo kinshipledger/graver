@@ -138,10 +138,12 @@ will move out of runtime dependencies, and unused runtime dependencies will be
 removed. The stale Poetry-based workflow will be replaced with uv-based installation,
 offline tests, wheel construction, and validation across Python 3.11 through 3.14.
 
-The protected release branch will become `main`, with `develop` retained for
-integration. Before `master` is retired or renamed, its historical production state
-will receive an archival tag. Branch and tag changes require a later, explicitly
-authorized repository-administration task; this plan does not perform them.
+The protected release branch is `main`, created from the current `develop` line,
+with `develop` retained for integration. The former `master` branch was only an
+obsolete pre-1.0 development snapshot: it was never a formal release, PyPI
+publication, deployment, or supported production state. Normal Git history is
+sufficient preservation, so no archival release tag or special migration record is
+required for its retirement.
 
 The package version must not change to `1.0.0rc1` until the public contract,
 database lifecycle, generalized subject identity, explicit migrations, JSON
@@ -383,14 +385,20 @@ use the same application operations available to GUI clients rather than duplica
 behavior.
 
 Schema version 2, safe migration, immutable events, memorial-ID compatibility, and
-existing `work` behavior are now implemented. The remaining subject-oriented API
-refactor must avoid creating a temporary raw public API and proceed in this order:
+existing `work` behavior are now implemented. An internal synchronous research
+service and private subject-task repository now provide queue, list, show, and
+update operations. The visible `work` adapter uses that service, existing root
+functions remain compatibility projections, and enrichment is service-coordinated
+while its legacy acquisition persistence functions remain in place. The remaining
+subject-oriented API refactor must avoid creating a temporary raw public API and
+proceed in this order:
 
-1. Add subject-oriented internal repositories and application services.
-2. Move `work` CLI operations from the existing root functions onto those services.
-3. Keep persistence rows and raw SQL private.
-4. Add typed results and exceptions for migrated work operations.
-5. Preserve current human CLI behavior and the tutorial through adapter tests.
+1. Finish relocating subject-task persistence and transactions behind internal
+   repositories and application services.
+2. Add typed results and exceptions for migrated work operations.
+3. Replace the compatibility dictionaries at the CLI boundary only after parity
+   projections and tests exist.
+4. Preserve current human CLI behavior and the tutorial through adapter tests.
 
 The entire eventual facade need not land in that refactor, but every new subject
 operation must move toward it instead of adding another root-level raw function.

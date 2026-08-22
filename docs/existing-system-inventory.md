@@ -15,12 +15,12 @@ progressive-disclosure commands, alias provenance, and default-database selectio
 Schema version 2 adds stable research subjects, subject-owned tasks, immutable
 subject/task events, and memorial-ID compatibility for existing researcher workflows.
 
-The pre-1.0 compatibility audit found no local `main` branch. `origin/HEAD` points
-to `origin/master`; `master` contains the older scraper-era production state, while
-`develop` contains the current acquisition, provenance, queue, alias, progressive-
-disclosure CLI, and default-database architecture. No release tags or changelog are
-present. These are current repository facts, not evidence that the planned branch,
-tag, or release changes have occurred.
+The release branch is `main`, created from the current `develop` line, and `develop`
+remains the integration branch. The former `master` branch contained only an
+obsolete scraper-era pre-1.0 development snapshot; it was never a formal release,
+PyPI publication, deployment, or supported production state, and required no
+archival release tag beyond normal Git history. No release tags or changelog are
+present.
 
 ## Current behavior
 
@@ -267,10 +267,14 @@ their approved pre-1.0 removal has not yet occurred.
 
 No desktop GUI currently exists. Current CLI and Python boundaries still expose a
 mixture of persistence-shaped dictionaries, root-level functions, SQLite-oriented
-details, and CLI-coupled presentation behavior. The broad root exports described
-above are not a stable 1.0 application API. No workspace facade, typed public result
-layer, neutral progress or cancellation protocol, optimistic concurrency control,
-or GUI integration has been implemented.
+details, and CLI-coupled presentation behavior. An internal synchronous
+`ResearchService` and private subject-task repository now own queue, list, show, and
+update operations; the visible `work` adapter uses that service, while existing
+root functions remain compatibility projections. Enrichment is coordinated through
+the service but its existing acquisition persistence functions have not yet been
+relocated. The broad root exports described above are not a stable 1.0 application
+API. No workspace facade, typed public result layer, neutral progress or cancellation
+protocol, optimistic concurrency control, or GUI integration has been implemented.
 
 The approved target is a separate installable desktop component, with PyQt6 as the
 leading but not mandated toolkit candidate, depending only on Graver's documented
