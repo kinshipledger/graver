@@ -57,4 +57,9 @@ jobs:
         with:
           python-version: "3.14"
       - run: uv sync --locked --group test --group dev
-      - run: uv run pytest
+      - name: Run tests
+        if: runner.os != 'Windows'
+        run: uv run pytest
+      - name: Run tests with slow-test report
+        if: runner.os == 'Windows'
+        run: uv run pytest --durations=25
