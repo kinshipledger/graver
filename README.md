@@ -19,6 +19,10 @@ canonical [project context](docs/project-context.md),
 [existing-system inventory](docs/existing-system-inventory.md), and
 [initial inspection guide](docs/initial-inspection.md).
 
+Project changes and releases are documented in the [changelog](CHANGELOG.md).
+Developers should also read the [contribution guide](CONTRIBUTING.md) and
+[security policy](SECURITY.md).
+
 New to Graver? Follow the [researcher tutorial](docs/tutorial.md) for a small,
 safe, end-to-end workflow from database creation through one approved memorial
 enrichment.
@@ -33,7 +37,7 @@ enrichment.
 [uv](https://docs.astral.sh/uv/getting-started/installation/) is required to
 install and run `graver`. A separate Python installation is optional: uv uses
 the version pinned in `.python-version` and downloads it when necessary. The
-project supports Python 3.10 or newer.
+project supports Python 3.11 through 3.14.
 
 Install uv on macOS or Linux:
 

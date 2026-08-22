@@ -50,6 +50,7 @@ def test_tilde_is_expanded(tmp_path, monkeypatch):
     home.mkdir()
     database = make_graver_database(home / "research.db")
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
 
     selected = graver_config.select_default_database("~/research.db")
 

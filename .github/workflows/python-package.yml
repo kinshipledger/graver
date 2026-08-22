@@ -1,52 +1,60 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
-
 name: CI
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [main]
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
-  ci:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-    runs-on: ${{ matrix.os }}
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install poetry
-      uses: abatilo/actions-poetry@v2
-    - name: Setup a local virtual environment (if no poetry.toml file)
-      run: |
-        poetry config virtualenvs.create true --local
-        poetry config virtualenvs.in-project true --local
-    - uses: actions/cache@v3
-      name: Define a cache for the virtual environment based on the dependencies lock file
-      with:
-        path: ./.venv
-        key: venv-${{ hashFiles('poetry.lock') }}
-    - name: Install dependencies
-      run: |
-        poetry install
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        poetry run flake8 src/graver tests --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        poetry run flake8 src/graver tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest and report coverage
-      run: |
-        poetry run pytest --cov=graver --cov-report term-missing
-    - name: Publish to coveralls.io
-      uses: coverallsapp/github-action@v2.2.3
-      with:
-        github-token: ${{ github.token }}
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: uv sync --locked --group test --group dev
+      - run: uv run pytest
+
+  quality:
+    name: Quality and package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          python-version: "3.14"
+      - run: uv lock --check
+      - run: uv sync --locked --group test --group dev
+      - run: uv run black --check src/graver tests
+      - run: uv build
+      - name: Verify the built wheel
+        shell: bash
+        run: |
+          wheel_path=$(find dist -name '*.whl' -print -quit)
+          uv run --isolated --no-project --with "$wheel_path" python -c \
+            "import graver, tomllib; from importlib.metadata import version; expected = tomllib.load(open('pyproject.toml', 'rb'))['project']['version']; assert version('graver') == expected"
+
+  platform:
+    name: ${{ matrix.os }} / Python 3.14
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          python-version: "3.14"
+      - run: uv sync --locked --group test --group dev
+      - run: uv run pytest

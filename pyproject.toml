@@ -4,18 +4,15 @@ build-backend = "uv_build"
 
 [project]
 name = "graver"
-version = "v0.1.0"
+version = "0.1.0"
 description = ""
 authors = [{ name = "Larry McQueary", email = "contact@mcqueary.org" }]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 readme = "README.md"
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -53,7 +50,6 @@ test = [
 dev = [
     "black>=23.11.0,<24",
     "isort>=5.12.0,<6",
-    "commitizen>=3.12.0,<4",
     "pre-commit>=3.5.0,<4",
     "mypy>=1.7.1,<2",
     "types-beautifulsoup4>=4.12.0.7,<5",
@@ -71,24 +67,3 @@ ignore-names-in-files = ["migrations"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 filterwarnings = ["ignore::DeprecationWarning:betamax.*"]
-
-
-[tool.commitizen]
-name = "cz_conventional_commits"
-version = "v0.1.0"
-version_files = [
-    "pyproject.toml:version"
-]
-update_changelog_on_bump = true
-style = [
-    ["qmark", "fg:#ff9d00 bold"],
-    ["question", "bold"],
-    ["answer", "fg:#ff9d00 bold"],
-    ["pointer", "fg:#ff9d00 bold"],
-    ["highlighted", "fg:#ff9d00 bold"],
-    ["selected", "fg:#cc5454"],
-    ["separator", "fg:#cc5454"],
-    ["instruction", ""],
-    ["text", ""],
-    ["disabled", "fg:#858585 italic"]
-]

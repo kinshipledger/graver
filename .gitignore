@@ -7,6 +7,11 @@ __pycache__/
 *.csv
 *.egg-info
 data.json
+/morris_hill.json
+/output*.json
+/*-output.json
+/exports/
+/scratch/
 *.log
 graver.log.*
 .bandit
@@ -20,5 +25,4 @@ graver.log.*
 bandit.yaml
 *.txt
 !require*.txt
-*.json
 dist/

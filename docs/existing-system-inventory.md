@@ -4,23 +4,20 @@ Inspection dates: 2026-08-11; refreshed 2026-08-21
 
 ## What is present
 
-`src/graver/` is an independently versioned Python package named `graver`. Its
-project and Commitizen metadata currently use `v0.1.0`, while canonical prose refers
-to `0.1.0`. It is a Find a Grave scraper/library with a Typer command-line
-interface, SQLite persistence, and fixture-backed tests.
+`src/graver/` is an independently versioned Python package named `graver`, currently
+at normalized package version `0.1.0`. It is a Find a Grave scraper/library with a
+Typer command-line interface, SQLite persistence, and fixture-backed tests.
 
-The current `develop` architecture includes `MemorialSummary`, immutable
+The current architecture includes `MemorialSummary`, immutable
 acquisitions, the durable queue, explicit person-at-a-time task handling,
 progressive-disclosure commands, alias provenance, and default-database selection.
 Schema version 2 adds stable research subjects, subject-owned tasks, immutable
 subject/task events, and memorial-ID compatibility for existing researcher workflows.
 
-The release branch is `main`, created from the current `develop` line, and `develop`
-remains the integration branch. The former `master` branch contained only an
-obsolete scraper-era pre-1.0 development snapshot; it was never a formal release,
-PyPI publication, deployment, or supported production state, and required no
-archival release tag beyond normal Git history. No release tags or changelog are
-present.
+`main` is the sole long-lived release and integration branch. Short-lived branches
+use pull requests and squash merges. The obsolete `master` branch was never a
+formal release or supported production state and has been retired. `develop` is
+retired by the release-workflow transition. No release tags exist yet.
 
 ## Current behavior
 
@@ -87,12 +84,12 @@ metadata labels the package production/stable and lists Python classifiers throu
 current maintenance or security-advisory status.
 
 On 2026-08-21, GitHub reported 20 Dependabot vulnerabilities on the repository's
-default branch (8 high, 9 moderate, and 3 low) after a push to `develop`. This is a
+default branch (8 high, 9 moderate, and 3 low) after a historical push. This is a
 dated hosting-service observation, not a claim that every alert affects the current
-locked `develop` environment or is exploitable in Graver. The alerts still require
+locked environment or is exploitable in Graver. The alerts still require
 explicit review rather than dismissal based on reachability assumptions. A planned
 pre-1.0 dependency-security and software-supply-chain milestone will reconcile the
-default and development branches, identify affected direct and transitive packages,
+default branch, identify affected direct and transitive packages,
 update or remove them where possible, document any accepted residual risk, verify
 the lockfile and built wheel, and add bounded automated checks. Alert count alone is
 not the release gate; `1.0.0rc1` must have no unresolved known vulnerability without
@@ -298,16 +295,17 @@ override provider terms, policies, controls, or instructions.
 
 ## Packaging, CI, and release status
 
-- Both the project version and Commitizen version are `v0.1.0`; normalized package
-  metadata must not include the tag-style `v` prefix.
-- `requires-python` is `>=3.10`, but classifiers still claim Python 3.8 and 3.9 as
-  well as 3.10 through 3.14.
-- The GitHub Actions workflow still installs Poetry, keys its cache from
-  `poetry.lock`, and tests Python 3.8 through 3.12. The repository has moved to uv,
-  has no `poetry.lock`, and does not validate the approved Python 3.11-through-3.14
-  release matrix.
-- No changelog, release workflow, release tags, or locally visible release history
-  defines a current public compatibility contract.
+- Package version `0.1.0` and Python support metadata are normalized for Python
+  3.11 through 3.14. Commitizen is no longer a dependency.
+- GitHub Actions uses uv for locked installation, offline tests, Black, lock
+  consistency, wheel construction, and Python 3.11-through-3.14 validation on
+  Ubuntu, with Python 3.14 coverage on macOS and Windows.
+- Conventional Commit pull-request titles and squash merging provide commit
+  hygiene. Release Please is configured as the sole changelog/version/tag/GitHub
+  Release preparation tool, but remains manually triggered before the 1.0 release
+  gates are satisfied.
+- `CHANGELOG.md`, `CONTRIBUTING.md`, and `SECURITY.md` establish the release-note,
+  contribution, and private-reporting practices. No release tags exist yet.
 
 ## Approved pre-1.0 direction
 
@@ -315,7 +313,8 @@ Keep the existing scraper and its `graves` table as the **Find a Grave acquisiti
 
 The task-oriented CLI, explicit database lifecycle, and schema-v2 subject ownership
 are complete, but raw JSON, broad exports, compatibility aliases,
-dependency boundaries, and stale CI must not be frozen as the 1.0 contract. Before
+dependency boundaries, and accidental internal APIs must not be frozen as the 1.0
+contract. Before
 beginning FamilySearch work, follow the ordered pre-1.0 roadmap in
 `docs/project-context.md`; the next planned work is the subject-oriented internal
 repository/application-service refactor, followed by the dedicated API-hygiene and
