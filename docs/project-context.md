@@ -132,18 +132,19 @@ and wildcard constants are internal. `Driver` is transport infrastructure and wi
 not be part of the public 1.0 API; a public acquisition client should be introduced
 only when a demonstrated external-caller use case requires one.
 
-Package versions will be normalized without a leading `v`; release tags may retain
-the prefix. Test frameworks, fixtures, typing tools, and coverage or recording tools
-will move out of runtime dependencies, and unused runtime dependencies will be
-removed. The stale Poetry-based workflow will be replaced with uv-based installation,
-offline tests, wheel construction, and validation across Python 3.11 through 3.14.
+Package versions use PEP 440 form without a leading `v`; release tags may retain the
+prefix. Commitizen is removed in favor of a smaller process: Conventional Commit
+pull-request titles, squash merges, and Release Please as the sole version,
+changelog, tag, and GitHub Release preparation tool. Every release must include
+reviewed user-facing and developer-facing notes, with explicit migration, breaking,
+security, deprecation, and known-issue sections when applicable. Release automation
+remains manually triggered until the 1.0 release-candidate gates are complete.
 
-The protected release branch is `main`, created from the current `develop` line,
-with `develop` retained for integration. The former `master` branch was only an
-obsolete pre-1.0 development snapshot: it was never a formal release, PyPI
-publication, deployment, or supported production state. Normal Git history is
-sufficient preservation, so no archival release tag or special migration record is
-required for its retirement.
+`main` is the sole long-lived protected branch. Contributors work on short-lived
+branches and open pull requests to `main`; `develop` is retired by this transition.
+The former `master` branch was never a formal release or supported production
+state and needs no archival tag beyond normal Git history. CI uses uv, offline tests,
+wheel validation, and Python 3.11 through 3.14.
 
 The package version must not change to `1.0.0rc1` until the public contract,
 database lifecycle, generalized subject identity, explicit migrations, JSON
@@ -850,11 +851,11 @@ and cemetery links without requiring every subject to have a memorial.
 
 ## Find a Grave alias ownership
 
-In the current schema, a research task remains attached to the memorial ID through
-which the person was discovered. Until the subject-identity migration is complete,
-an alias does not automatically transfer, merge, complete, or delete that work.
-Afterward, source and target graves and their acquisition observations must remain
-separate provenance even when both are associated with one research subject. Alias
+In the current schema, a research task is owned by a research subject, while
+memorial IDs remain compatible researcher-facing lookup keys. An alias does not
+automatically transfer, merge, complete, or delete that work. Source and target
+graves and their acquisition observations remain separate provenance even when both
+are later associated with one research subject. Alias
 observations form their own immutable provenance stream, and a retraction is an
 explicit local research decision rather than an inference from a retrieval failure.
 
@@ -884,7 +885,7 @@ Pre-1.0 sequence:
    exports and type boundaries, Google-style public docstrings, evidenced dead-code
    cleanup, offline API examples, and bounded documentation/type/unused-code checks.
 7. Complete a dependency-security and software-supply-chain milestone: triage all
-   GitHub dependency alerts against the default and development branches, update or
+   GitHub dependency alerts against the default branch and current lockfile, update or
    remove affected direct and transitive packages, verify the locked dependency
    graph and built wheel, enable bounded automated dependency/security checks, and
    document supported reporting and remediation practices. Treat alert counts as
@@ -913,8 +914,8 @@ Pre-1.0 sequence:
 15. Normalize acquisition options and remove duplicate, site-shaped, and hidden
     pre-1.0 compatibility paths.
 16. Support `python -m graver` through `graver.__main__`.
-17. Replace stale Poetry CI with uv-based installation, wheel tests, offline tests,
-    and Python 3.11-through-3.14 validation.
+17. Maintain the uv-based Python 3.11-through-3.14 CI, Conventional Commit PR-title
+    enforcement, reviewed changelog, and manually gated Release Please workflow.
 18. Finish the public API guide, database and 0.1 migration instructions,
     compatibility and release notes, and the later authorized branch/tag plan.
 19. Build the separate consumer spike against the installed wheel, validating the

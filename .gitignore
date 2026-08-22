@@ -21,4 +21,6 @@ bandit.yaml
 *.txt
 !require*.txt
 *.json
+!.release-please-manifest.json
+!release-please-config.json
 dist/
