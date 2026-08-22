@@ -86,6 +86,18 @@ metadata labels the package production/stable and lists Python classifiers throu
 3.9. Because the audit made no network requests, it did not establish the package's
 current maintenance or security-advisory status.
 
+On 2026-08-21, GitHub reported 20 Dependabot vulnerabilities on the repository's
+default branch (8 high, 9 moderate, and 3 low) after a push to `develop`. This is a
+dated hosting-service observation, not a claim that every alert affects the current
+locked `develop` environment or is exploitable in Graver. The alerts still require
+explicit review rather than dismissal based on reachability assumptions. A planned
+pre-1.0 dependency-security and software-supply-chain milestone will reconcile the
+default and development branches, identify affected direct and transitive packages,
+update or remove them where possible, document any accepted residual risk, verify
+the lockfile and built wheel, and add bounded automated checks. Alert count alone is
+not the release gate; `1.0.0rc1` must have no unresolved known vulnerability without
+an explicit documented risk decision.
+
 The approved audit result, **remove**, is now implemented. `cloudscraper25` is no
 longer a runtime dependency or production/test import. Requests is an explicit
 runtime dependency behind a small Graver-owned transport protocol and response

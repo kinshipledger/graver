@@ -875,58 +875,65 @@ Pre-1.0 sequence:
 6. Complete the dedicated API hygiene and documentation milestone: explicit public
    exports and type boundaries, Google-style public docstrings, evidenced dead-code
    cleanup, offline API examples, and bounded documentation/type/unused-code checks.
-7. Modernize offline test boundaries, default network denial, deterministic domain
+7. Complete a dependency-security and software-supply-chain milestone: triage all
+   GitHub dependency alerts against the default and development branches, update or
+   remove affected direct and transitive packages, verify the locked dependency
+   graph and built wheel, enable bounded automated dependency/security checks, and
+   document supported reporting and remediation practices. Treat alert counts as
+   dated observations rather than release criteria; `1.0.0rc1` requires no
+   unresolved known vulnerability without an explicit, documented risk decision.
+8. Modernize offline test boundaries, default network denial, deterministic domain
    fixtures and Faker, temporary lifecycle, markers, replay-only contracts, and the
    bounded live-contract probe.
-8. Define and freeze the public Graver workspace facade, typed requests and results,
+9. Define and freeze the public Graver workspace facade, typed requests and results,
    documented imports and stability policy, exception taxonomy, transaction and
    threading contract, progress, cancellation, stale-update handling, injectable
    transport and nondeterminism, and semantic-versioning policy.
-9. Move remaining researcher-directed acquisition and CLI workflows onto those
+10. Move remaining researcher-directed acquisition and CLI workflows onto those
    application services, validate the shared boundaries, and add CLI/API parity
    tests while preserving the tutorial's human workflow.
-10. Validate researcher-directed acquisition against the current access policy, then
+11. Validate researcher-directed acquisition against the current access policy, then
    complete each provider's authorization and policy gate. Any pre-1.0 import support
    must use authorized data, and no unattended Find a Grave enrichment is enabled.
-11. Define import-first boundaries and provider-neutral background-job services
+12. Define import-first boundaries and provider-neutral background-job services
     before any public job API is frozen. Provider-specific unattended adapters remain
     unavailable unless their authorization gate is satisfied.
-12. Complete remaining runtime/test dependency separation; retain `Driver` and
+13. Complete remaining runtime/test dependency separation; retain `Driver` and
     implementation mechanics as internal details.
-13. Add command-specific versioned JSON envelopes as adapter projections of the same
+14. Add command-specific versioned JSON envelopes as adapter projections of the same
    typed application results.
-14. Normalize acquisition options and remove duplicate, site-shaped, and hidden
+15. Normalize acquisition options and remove duplicate, site-shaped, and hidden
     pre-1.0 compatibility paths.
-15. Support `python -m graver` through `graver.__main__`.
-16. Replace stale Poetry CI with uv-based installation, wheel tests, offline tests,
+16. Support `python -m graver` through `graver.__main__`.
+17. Replace stale Poetry CI with uv-based installation, wheel tests, offline tests,
     and Python 3.11-through-3.14 validation.
-17. Finish the public API guide, database and 0.1 migration instructions,
+18. Finish the public API guide, database and 0.1 migration instructions,
     compatibility and release notes, and the later authorized branch/tag plan.
-18. Build the separate consumer spike against the installed wheel, validating the
+19. Build the separate consumer spike against the installed wheel, validating the
     documented facade without private imports or direct SQLite access. It may
     exercise mocked jobs but performs no live bulk acquisition.
-19. Resolve spike findings and complete any required provider-neutral job-service
+20. Resolve spike findings and complete any required provider-neutral job-service
     contracts without enabling an unauthorized provider adapter. Prepare
     `1.0.0rc1` without weakening migration,
     provenance, concurrency, or offline-test guarantees.
-20. Validate the release candidate and release Graver `1.0.0` after its findings are
+21. Validate the release candidate and release Graver `1.0.0` after its findings are
     resolved.
 
 Post-1.0 compatible sequence:
 
-21. Begin the production desktop GUI with workspace/database lifecycle, work queue,
+22. Begin the production desktop GUI with workspace/database lifecycle, work queue,
     subject detail, and one-person acquisition/provenance review.
-22. Add repeatable FamilySearch candidate discovery through the same application
+23. Add repeatable FamilySearch candidate discovery through the same application
     API, including immutable search runs, snapshots, change detection, evidence,
     discrepancies, confidence, reasoning, reviewer fields, and decision history.
-23. Implement import-first bulk acquisition for the smallest demonstrated authorized
+24. Implement import-first bulk acquisition for the smallest demonstrated authorized
     formats not already supported in 1.0.
-24. Add provider-authorized background acquisition only after a repeated policy and
+25. Add provider-authorized background acquisition only after a repeated policy and
     permission review; production GUI scheduling uses the same durable job service.
-25. Extend GUI and CLI evidence-research workflows over those services.
-26. Add explicit reviewed identity conclusions.
-27. Add WikiTree reconciliation, evidence summaries, and family work packets.
-28. Extend the production GUI across the complete reviewed research workflow.
+26. Extend GUI and CLI evidence-research workflows over those services.
+27. Add explicit reviewed identity conclusions.
+28. Add WikiTree reconciliation, evidence summaries, and family work packets.
+29. Extend the production GUI across the complete reviewed research workflow.
 
 Open decisions include the final GUI toolkit and package name, nested-repository
 versus future-monorepo governance, exact facade class and method names, the exact
