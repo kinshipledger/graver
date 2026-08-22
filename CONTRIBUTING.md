@@ -38,6 +38,8 @@ uv lock --check
 Tests and ordinary CI must not contact genealogy providers. Use temporary databases
 and configuration paths; never commit research databases, credentials, cookies,
 logs, cassettes containing sensitive data, or local configuration.
+Put disposable JSON and other researcher-generated exports under `scratch/` or
+`exports/`; both directories are ignored without hiding legitimate project JSON.
 
 ## Releases
 
