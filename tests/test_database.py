@@ -237,6 +237,7 @@ def test_cli_init_expands_tilde(helpers, tmp_path, monkeypatch):
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
 
     result = helpers.graver_cli("init ~/research.db")
 

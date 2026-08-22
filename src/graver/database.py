@@ -388,9 +388,13 @@ def create_database(database: Optional[str] = None) -> Path:
         os.close(descriptor)
 
     try:
-        with sqlite3.connect(path) as connection:
-            connection.execute("PRAGMA foreign_keys = ON")
-            initialize_current_schema(connection)
+        connection = sqlite3.connect(path)
+        try:
+            with connection:
+                connection.execute("PRAGMA foreign_keys = ON")
+                initialize_current_schema(connection)
+        finally:
+            connection.close()
     except Exception as ex:
         _remove_created_file(path, created_stat)
         raise DatabaseInitializationError(
