@@ -46,6 +46,14 @@ An immutable record of information observed from a source at a particular time.
 Original values remain preserved. Normalized values and later conclusions never
 replace them.
 
+For a full Find a Grave observation, source assertions may include the page's
+structured related-memorial groups (for example Parents, Spouse, Children, or
+Siblings). Preserve the displayed relationship label, linked memorial ID and URL,
+displayed name and life detail, and observation time. Such a record asserts only
+that Find a Grave displayed the link in that group. It does not prove the
+relationship, retrieve or validate the linked memorial, establish reciprocity,
+associate research subjects, or create a family-tree edge.
+
 ### Discovery run
 
 One bounded attempt to discover candidates for a subject from a named provider. It
@@ -307,6 +315,8 @@ This is an application contract, not a commitment to PyQt6 or a particular layou
 - A candidate never becomes an accepted identity association automatically.
 - Machine ranking never changes assessment or conclusion state.
 - Original source observations and candidate snapshots are immutable.
+- Source-displayed related memorials remain observed relationship assertions, not
+  accepted family relationships.
 - Normalization never replaces an observed value.
 - Missing values do not silently count as agreements.
 - Material conflicts remain visible until explicitly addressed.

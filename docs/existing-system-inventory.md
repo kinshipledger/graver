@@ -197,6 +197,11 @@ immediately.
 - Legacy rows are deliberately not assigned a `detail_level` during migration because their acquisition level cannot be inferred reliably. They become classified when subsequently saved through the summary or full persistence path.
 - Legacy rows deliberately do not receive fabricated observation records during migration because their original timestamp and exact observed payload are unknown.
 - Some acquisition commands still reflect scraper implementation terminology. Their information architecture is intentionally deferred; this milestone changes only the research and alias-maintenance surfaces.
+- Full memorial pages expose structured related-member groups with linked memorial
+  IDs, URLs, displayed names, life-year text, and sometimes marriage-year text. The
+  current parser does not capture or persist that panel. Future capture must retain
+  it as immutable source-observed relationship assertions rather than accepted
+  family relationships or automatic research-subject associations.
 - `research_tasks` is now keyed by `subject_id`; `subject_memorials` keeps existing
   memorial-ID lookup convenient. The schema can represent a subject with zero or
   multiple memorials, but reviewed association, reassociation, merge, split,
