@@ -11,8 +11,8 @@ independently maintained and has no ongoing upstream affiliation.
 The implemented foundation includes schema version 3, subject-owned research tasks,
 explicit backed-up database upgrades, person-at-a-time acquisition, fail-closed
 Requests transport, the researcher tutorial, trunk-based release automation, and a
-dedicated branch-coverage CI job. The latest complete local run passed 356 tests;
-the current coverage run measured 90.83% branch coverage against a
+dedicated branch-coverage CI job. The latest complete local run passed 367 tests;
+the current coverage run measured 91.89% branch coverage against a
 90% floor. Coveralls reporting, the six
 honest README badges, Python 3.11–3.14 CI, Black, locked uv environments, wheel
 verification, and Conventional Commit pull-request-title enforcement are current.
