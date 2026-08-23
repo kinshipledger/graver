@@ -21,7 +21,6 @@ from graver.api import (
 )
 from graver.config import DEFAULT_DATABASE
 
-
 CURRENT_SCHEMA_VERSION = 2
 SCHEMA_TABLE = "graver_schema"
 VERSION_1_TABLES = {
@@ -337,12 +336,10 @@ def validate_current_database(database: str) -> Path:
 
 
 def _record_schema_version(connection: sqlite3.Connection, version: int) -> None:
-    connection.execute(
-        f"""CREATE TABLE {SCHEMA_TABLE} (
+    connection.execute(f"""CREATE TABLE {SCHEMA_TABLE} (
                 singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
                 version INTEGER NOT NULL CHECK (version >= 1)
-            )"""
-    )
+            )""")
     connection.execute(
         f"INSERT INTO {SCHEMA_TABLE} (singleton, version) VALUES (1, ?)", (version,)
     )

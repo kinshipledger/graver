@@ -13,7 +13,6 @@ from graver import Cemetery, Driver, Memorial, config as graver_config
 from graver.cli import app
 from tests.memorial_provider import MemorialProvider, ResultSetProvider
 
-
 pytest_plugins = ["pytest_helpers_namespace"]
 
 
@@ -105,7 +104,9 @@ class Helpers:
         command_list = shlex.split(command_string)
         env = os.environ.copy()
         env["TQDM_DISABLE"] = "1"
-        result = runner.invoke(app, command_list, env=env, obj=driver)
+        result = runner.invoke(
+            app, command_list, env=env, obj=driver, terminal_width=120
+        )
         return result
 
 

@@ -94,16 +94,16 @@ metadata labels the package production/stable and lists Python classifiers throu
 current maintenance or security-advisory status.
 
 On 2026-08-21, GitHub reported 20 Dependabot vulnerabilities on the repository's
-default branch (8 high, 9 moderate, and 3 low) after a historical push. This is a
-dated hosting-service observation, not a claim that every alert affects the current
-locked environment or is exploitable in graver. The alerts still require
-explicit review rather than dismissal based on reachability assumptions. A planned
-pre-1.0 dependency-security and software-supply-chain milestone will reconcile the
-default branch, identify affected direct and transitive packages,
-update or remove them where possible, document any accepted residual risk, verify
-the lockfile and built wheel, and add bounded automated checks. Alert count alone is
-not the release gate; `1.0.0rc1` must have no unresolved known vulnerability without
-an explicit documented risk decision.
+default branch (8 high, 9 moderate, and 3 low) after a historical push. Review found
+that 17 came from an obsolete frozen `requirements.txt`; the remaining alerts
+identified outdated packages in the active development graph. On 2026-08-22, the
+obsolete export was removed, runtime and development dependencies were separated,
+and the complete locked graph was upgraded to mutually compatible stable releases.
+An audit of the exported locked graph reported no known vulnerabilities. Weekly
+Dependabot checks now cover both Python dependencies and GitHub Actions. Hosting-
+service alert counts remain dated observations rather than release criteria;
+`1.0.0rc1` requires no unresolved known vulnerability without an explicit,
+documented risk decision.
 
 The approved audit result, **remove**, is now implemented. `cloudscraper25` is no
 longer a runtime dependency or production/test import. Requests is an explicit
@@ -217,9 +217,13 @@ runtime dependencies are legacy test-infrastructure debt rather than intentional
 long-term design. `requests-mock` is already available and is the preferred boundary
 for method, parameter, retry, and error-path tests.
 
-Runtime dependencies currently include pytest, Faker, Betamax, and a typing package,
-and `dill` has no source usage found by the audit. Test and typing tools have not yet
-been fully separated from application dependencies.
+Runtime dependencies are limited to packages imported by the installed application.
+Pytest, Faker, Betamax, and typing support are isolated in test or development
+groups, and the unused `dill` dependency has been removed. The obsolete frozen
+`requirements.txt` export has been removed; `pyproject.toml` and `uv.lock` are the
+authoritative dependency inputs. Dependabot proposes weekly grouped updates for the
+Python lock graph and GitHub Actions; CI and a locked-graph vulnerability audit are
+the acceptance gates rather than automatic merging.
 
 On 2026-08-20, after adding explicit new-database initialization, the complete suite
 passed in the current project environment: **295 passed**. Black check-only mode
@@ -577,5 +581,5 @@ is satisfied.
   repeatable automated tests.
 - Treat local `graves.db` and `many_graves.db` files as ignored researcher data, not
   repository samples or fixtures.
-- Maintain the reproducible environment defined by `pyproject.toml`, `requirements.txt`, and `uv.lock`.
+- Maintain the reproducible environment defined by `pyproject.toml` and `uv.lock`.
 - Confirm current platform terms, rate limits, authentication, and API policies before any scaled retrieval or third-party integration.

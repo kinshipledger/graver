@@ -10,7 +10,6 @@ from typing import Any, Mapping, Optional, Protocol, Sequence
 
 import requests
 
-
 DEFAULT_CONNECT_TIMEOUT_SECONDS = 5.0
 DEFAULT_READ_TIMEOUT_SECONDS = 30.0
 DEFAULT_TIMEOUT = (

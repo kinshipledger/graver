@@ -13,7 +13,6 @@ from graver import api as graver_api
 from graver import config as graver_config
 from graver import database as graver_database
 
-
 CURRENT_TABLES = {
     "cemeteries",
     "graves",
@@ -508,25 +507,19 @@ def test_upgrade_version_1_creates_mechanical_subjects_and_preserves_tasks(tmp_p
             "INSERT INTO graves (memorial_id, name) VALUES (?, ?)",
             [(11, "First Person"), (22, "Second Person")],
         )
-        connection.execute(
-            """INSERT INTO research_tasks
+        connection.execute("""INSERT INTO research_tasks
                (memorial_id, status, priority, owner, created_at, updated_at,
                 last_activity_at, review_note)
                VALUES (11, 'researching', 7, 'reviewer', 'created', 'updated',
-                       'active', 'preserve exactly')"""
-        )
-        connection.execute(
-            """INSERT INTO memorial_aliases
+                       'active', 'preserve exactly')""")
+        connection.execute("""INSERT INTO memorial_aliases
                (source_memorial_id, target_memorial_id, alias_type, status,
                 first_observed_at, last_observed_at, updated_at)
-               VALUES (11, 22, 'merged', 'active', 'first', 'last', 'updated')"""
-        )
-        connection.execute(
-            """INSERT INTO memorial_alias_observations
+               VALUES (11, 22, 'merged', 'active', 'first', 'last', 'updated')""")
+        connection.execute("""INSERT INTO memorial_alias_observations
                (source_memorial_id, target_memorial_id, alias_type, event_type,
                 observed_at, parser_version, payload_json)
-               VALUES (11, 22, 'merged', 'observed', 'observed', '0.1', '{}')"""
-        )
+               VALUES (11, 22, 'merged', 'observed', 'observed', '0.1', '{}')""")
 
     result = graver_database.upgrade_database(str(path))
 

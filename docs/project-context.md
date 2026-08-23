@@ -979,12 +979,11 @@ Pre-1.0 sequence:
 9. Complete the dedicated API hygiene and documentation milestone: explicit public
    exports and type boundaries, Google-style public docstrings, evidenced dead-code
    cleanup, offline API examples, and bounded documentation/type/unused-code checks.
-10. Complete a dependency-security and software-supply-chain milestone: triage all
-   GitHub dependency alerts against the default branch and current lockfile, update or
-   remove affected direct and transitive packages, verify the locked dependency
-   graph and built wheel, enable bounded automated dependency/security checks, and
-   document supported reporting and remediation practices. Treat alert counts as
-   dated observations rather than release criteria; `1.0.0rc1` requires no
+10. Maintain the completed dependency-security and software-supply-chain baseline:
+   keep runtime and development dependencies separated, review weekly grouped
+   Dependabot proposals for Python and GitHub Actions, verify the locked dependency
+   graph and built wheel, and document any accepted residual risk. Treat alert counts
+   as dated observations rather than release criteria; `1.0.0rc1` requires no
    unresolved known vulnerability without an explicit, documented risk decision.
 11. Modernize offline test boundaries, default network denial, deterministic domain
    fixtures and Faker, temporary lifecycle, markers, replay-only contracts, and the

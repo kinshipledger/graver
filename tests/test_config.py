@@ -86,12 +86,10 @@ def test_validation_rejects_non_graver_inputs(tmp_path, kind):
 def test_validation_does_not_modify_or_migrate_database(tmp_path):
     database = tmp_path / "legacy.db"
     with sqlite3.connect(database) as connection:
-        connection.execute(
-            """CREATE TABLE graves (
+        connection.execute("""CREATE TABLE graves (
                 memorial_id INTEGER PRIMARY KEY, findagrave_url TEXT, name TEXT,
                 birth TEXT, death TEXT, cemetery_id INTEGER
-            )"""
-        )
+            )""")
     before_digest = database_digest(database)
     before_mtime = database.stat().st_mtime_ns
 

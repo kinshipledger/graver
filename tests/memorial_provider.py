@@ -84,31 +84,39 @@ class MemorialProvider(BaseProvider):
         findagrave_url: str = self.format_url(memorial_id, name)
         birth_dt = factory.date_between("-200y", "today")
         birth: str = birth_dt.strftime("%d %B %Y")
-        birth_place: str = f"{factory.city()}, {factory.city()} County, {factory.state()}, {factory.current_country()}"
+        birth_place: str = (
+            f"{factory.city()}, {factory.city()} County, {factory.state()}, {factory.current_country()}"
+        )
         today_delta = relativedelta(date.today(), birth_dt).years
         max_age = min(105, today_delta)
         death_dt = factory.date_between(
             birth_dt, birth_dt + relativedelta(years=max_age)
         )
         death: str = death_dt.strftime("%d %B %Y")
-        death_place: str = f"{factory.city()}, {factory.city()} County, {factory.state()}, {factory.current_country()}"
+        death_place: str = (
+            f"{factory.city()}, {factory.city()} County, {factory.state()}, {factory.current_country()}"
+        )
         age = relativedelta(death_dt, birth_dt).years
         if age >= 18:
             prefix = self.weighted_choice(
                 50,
                 [
-                    factory.prefix_male()
-                    if gender == "male"
-                    else factory.prefix_female(),
+                    (
+                        factory.prefix_male()
+                        if gender == "male"
+                        else factory.prefix_female()
+                    ),
                     None,
                 ],
             )
             suffix = self.weighted_choice(
                 25,
                 [
-                    factory.suffix_male()
-                    if gender == "male"
-                    else factory.suffix_female(),
+                    (
+                        factory.suffix_male()
+                        if gender == "male"
+                        else factory.suffix_female()
+                    ),
                     None,
                 ],
             )
@@ -120,7 +128,9 @@ class MemorialProvider(BaseProvider):
         famous: bool = factory.pybool()
         veteran: bool = factory.pybool()
         memorial_type: str | None = None
-        burial_place: str = f"{factory.city()}, {factory.city()} County, {factory.state()}, {factory.current_country()}"
+        burial_place: str = (
+            f"{factory.city()}, {factory.city()} County, {factory.state()}, {factory.current_country()}"
+        )
         cemetery_id: int = kwargs.get(
             "cemetery_id", factory.unique.random_int(min=200000, max=300000)
         )

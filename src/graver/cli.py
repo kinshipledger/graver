@@ -46,7 +46,6 @@ from graver.database import (
 from graver.research import ResearchService
 from graver.transport import TransportError
 
-
 log = logging.getLogger(__name__)
 
 # Global Driver

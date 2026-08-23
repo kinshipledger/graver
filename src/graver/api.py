@@ -28,7 +28,6 @@ from .transport import (
     TransportResponse,
 )
 
-
 log = logging.getLogger(__name__)
 
 
@@ -381,8 +380,7 @@ def _package_version() -> str:
 
 
 def _create_graves_table(connection: sqlite3.Connection) -> None:
-    connection.execute(
-        """CREATE TABLE IF NOT EXISTS graves
+    connection.execute("""CREATE TABLE IF NOT EXISTS graves
             (
                 memorial_id INTEGER PRIMARY KEY,
                 findagrave_url TEXT,
@@ -408,8 +406,7 @@ def _create_graves_table(connection: sqlite3.Connection) -> None:
                 detail_level TEXT CHECK (detail_level IN ('summary', 'full')),
                 summary_fetched_at TEXT,
                 full_fetched_at TEXT
-            )"""
-    )
+            )""")
 
 
 def _migrate_graves_table(connection: sqlite3.Connection) -> None:
@@ -431,8 +428,7 @@ def _migrate_graves_table(connection: sqlite3.Connection) -> None:
 
 
 def _create_cemeteries_table(connection: sqlite3.Connection) -> None:
-    connection.execute(
-        """CREATE TABLE IF NOT EXISTS cemeteries
+    connection.execute("""CREATE TABLE IF NOT EXISTS cemeteries
             (
                 cemetery_id INTEGER PRIMARY KEY,
                 url TEXT,
@@ -441,8 +437,7 @@ def _create_cemeteries_table(connection: sqlite3.Connection) -> None:
                 coords TEXT,
                 first_observed_at TEXT,
                 last_observed_at TEXT
-            )"""
-    )
+            )""")
 
 
 def _migrate_cemeteries_table(connection: sqlite3.Connection) -> None:
@@ -457,8 +452,7 @@ def _migrate_cemeteries_table(connection: sqlite3.Connection) -> None:
 def _create_research_schema(
     connection: sqlite3.Connection, task_schema_version: int = 1
 ) -> None:
-    connection.execute(
-        """CREATE TABLE IF NOT EXISTS memorial_observations
+    connection.execute("""CREATE TABLE IF NOT EXISTS memorial_observations
             (
                 observation_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 memorial_id INTEGER NOT NULL,
@@ -471,11 +465,9 @@ def _create_research_schema(
                 payload_json TEXT NOT NULL,
                 FOREIGN KEY (memorial_id) REFERENCES graves(memorial_id),
                 FOREIGN KEY (cemetery_id) REFERENCES cemeteries(cemetery_id)
-            )"""
-    )
+            )""")
     if task_schema_version == 1:
-        connection.execute(
-            """CREATE TABLE IF NOT EXISTS research_tasks
+        connection.execute("""CREATE TABLE IF NOT EXISTS research_tasks
                 (
                     memorial_id INTEGER PRIMARY KEY,
                     status TEXT NOT NULL DEFAULT 'unprocessed' CHECK (status IN (
@@ -495,14 +487,12 @@ def _create_research_schema(
                     last_activity_at TEXT NOT NULL,
                     review_note TEXT,
                     FOREIGN KEY (memorial_id) REFERENCES graves(memorial_id)
-                )"""
-        )
+                )""")
     elif task_schema_version == 2:
         _create_subject_schema(connection)
     else:
         raise ValueError(f"Unsupported task schema version: {task_schema_version}")
-    connection.execute(
-        """CREATE TABLE IF NOT EXISTS memorial_aliases
+    connection.execute("""CREATE TABLE IF NOT EXISTS memorial_aliases
             (
                 source_memorial_id INTEGER PRIMARY KEY,
                 target_memorial_id INTEGER NOT NULL,
@@ -515,10 +505,8 @@ def _create_research_schema(
                 updated_at TEXT NOT NULL,
                 CHECK (source_memorial_id <> target_memorial_id),
                 FOREIGN KEY (source_memorial_id) REFERENCES graves(memorial_id)
-            )"""
-    )
-    connection.execute(
-        """CREATE TABLE IF NOT EXISTS memorial_alias_observations
+            )""")
+    connection.execute("""CREATE TABLE IF NOT EXISTS memorial_alias_observations
             (
                 observation_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 source_memorial_id INTEGER NOT NULL,
@@ -532,22 +520,17 @@ def _create_research_schema(
                 payload_json TEXT NOT NULL,
                 CHECK (source_memorial_id <> target_memorial_id),
                 FOREIGN KEY (source_memorial_id) REFERENCES graves(memorial_id)
-            )"""
-    )
-    connection.execute(
-        """CREATE TRIGGER IF NOT EXISTS memorial_observations_no_update
+            )""")
+    connection.execute("""CREATE TRIGGER IF NOT EXISTS memorial_observations_no_update
             BEFORE UPDATE ON memorial_observations
             BEGIN
                 SELECT RAISE(ABORT, 'memorial observations are immutable');
-            END"""
-    )
-    connection.execute(
-        """CREATE TRIGGER IF NOT EXISTS memorial_observations_no_delete
+            END""")
+    connection.execute("""CREATE TRIGGER IF NOT EXISTS memorial_observations_no_delete
             BEFORE DELETE ON memorial_observations
             BEGIN
                 SELECT RAISE(ABORT, 'memorial observations are immutable');
-            END"""
-    )
+            END""")
     for action in ("UPDATE", "DELETE"):
         connection.execute(
             f"""CREATE TRIGGER IF NOT EXISTS memorial_alias_observations_no_{action.lower()}
@@ -582,8 +565,7 @@ def _create_research_schema(
 
 
 def _create_subject_schema(connection: sqlite3.Connection) -> None:
-    connection.execute(
-        """CREATE TABLE IF NOT EXISTS research_subjects
+    connection.execute("""CREATE TABLE IF NOT EXISTS research_subjects
             (
                 subject_id TEXT PRIMARY KEY CHECK (
                     length(subject_id) = 36
@@ -599,10 +581,8 @@ def _create_subject_schema(connection: sqlite3.Connection) -> None:
                     AND substr(subject_id, 24, 1) = '-'
                 ),
                 created_at TEXT NOT NULL
-            )"""
-    )
-    connection.execute(
-        """CREATE TABLE IF NOT EXISTS subject_memorials
+            )""")
+    connection.execute("""CREATE TABLE IF NOT EXISTS subject_memorials
             (
                 memorial_id INTEGER PRIMARY KEY,
                 subject_id TEXT NOT NULL,
@@ -611,10 +591,8 @@ def _create_subject_schema(connection: sqlite3.Connection) -> None:
                     CHECK (association_reason IN ('migration', 'acquisition')),
                 FOREIGN KEY (memorial_id) REFERENCES graves(memorial_id),
                 FOREIGN KEY (subject_id) REFERENCES research_subjects(subject_id)
-            )"""
-    )
-    connection.execute(
-        """CREATE TABLE IF NOT EXISTS research_subject_events
+            )""")
+    connection.execute("""CREATE TABLE IF NOT EXISTS research_subject_events
             (
                 event_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 subject_id TEXT NOT NULL,
@@ -629,10 +607,8 @@ def _create_subject_schema(connection: sqlite3.Connection) -> None:
                 after_json TEXT NOT NULL,
                 FOREIGN KEY (subject_id) REFERENCES research_subjects(subject_id),
                 FOREIGN KEY (memorial_id) REFERENCES graves(memorial_id)
-            )"""
-    )
-    connection.execute(
-        """CREATE TABLE IF NOT EXISTS research_tasks
+            )""")
+    connection.execute("""CREATE TABLE IF NOT EXISTS research_tasks
             (
                 subject_id TEXT PRIMARY KEY,
                 status TEXT NOT NULL DEFAULT 'unprocessed' CHECK (status IN (
@@ -652,10 +628,8 @@ def _create_subject_schema(connection: sqlite3.Connection) -> None:
                 last_activity_at TEXT NOT NULL,
                 review_note TEXT,
                 FOREIGN KEY (subject_id) REFERENCES research_subjects(subject_id)
-            )"""
-    )
-    connection.execute(
-        """CREATE TABLE IF NOT EXISTS research_task_events
+            )""")
+    connection.execute("""CREATE TABLE IF NOT EXISTS research_task_events
             (
                 event_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 subject_id TEXT NOT NULL,
@@ -669,8 +643,7 @@ def _create_subject_schema(connection: sqlite3.Connection) -> None:
                 before_json TEXT,
                 after_json TEXT NOT NULL,
                 FOREIGN KEY (subject_id) REFERENCES research_subjects(subject_id)
-            )"""
-    )
+            )""")
     for table, message in (
         ("research_subject_events", "research subject events are immutable"),
         ("research_task_events", "research task events are immutable"),
