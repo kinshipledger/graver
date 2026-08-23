@@ -215,4 +215,13 @@ EOF
 
 This is intended as a convenient tool for personal genealogy research. Please be aware of FindAGrave's [Terms of Service](https://secure.findagrave.com/terms.html).
 
-MIT © [Larry McQueary](https://github.com/mcqueary), [Robert Pirtle](https://pirtle.xyz)
+graver is distributed under the [MIT License](LICENSE). The license file retains
+the applicable historical copyright notices.
+
+## Acknowledgments
+
+The repository's earliest history and code began with Robert Pirtle's MIT-licensed
+[scrape-a-grave](https://github.com/pirtleshell/scrape-a-grave) project. That work
+helped inspire graver's original direction. graver has since been substantially
+redesigned and is independently maintained; this acknowledgment does not indicate
+an ongoing project affiliation or upstream relationship.
