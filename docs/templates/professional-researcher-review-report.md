@@ -1,11 +1,11 @@
 # Professional researcher review report
 
-<!-- Copy this template for each R1, R2, or R3 review. Do not edit the template in
-place to record a particular review. -->
+<!-- Copy this template for each R1, R2, R3, or focused source review. Do not edit
+the template in place to record a particular review. -->
 
 ## Review record
 
-- **Gate:** R1 / R2 / R3
+- **Gate:** R1 / R2 / R3 / focused source review identifier
 - **Review date:**
 - **Reviewer role and relevant experience:**
 - **Facilitator:**

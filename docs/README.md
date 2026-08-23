@@ -22,6 +22,11 @@ defines the visible evidence, comparison, workflow, and conclusion layers needed
 for professional trust; distinguishes computational replay from genealogical
 reproducibility; and defines independently verifiable research artifacts.
 
+The [source-neutral evidence packet review prototype](source-neutral-evidence-packet-prototype.md)
+is the fictional, offline artifact for focused source-contract review S1. It tests
+shared provenance, relationship, comparison-trace, and audit-portability
+distinctions without defining a public format or implemented adapter.
+
 The [GEDCOM integration architecture](gedcom-integration.md) records a deliberately
 optional, periodically re-evaluated direction for immutable import, comparison,
 relationships, privacy, and selective export.

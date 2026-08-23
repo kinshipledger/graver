@@ -48,6 +48,24 @@ finding rules as the numbered gates. The canonical selection criteria and scope
 guardrails are in the
 [source-neutral adapter strategy](source-adapter-strategy.md).
 
+### S1 — Source-neutral evidence packet contract review
+
+**Current status:** Ready for review. The fictional
+[source-neutral evidence packet prototype](source-neutral-evidence-packet-prototype.md)
+uses synthetic marriage/death, census, probate, and memorial representations to
+test shared distinctions, a deterministic comparison trace, and a minimum audit
+projection. It adds no provider, parser, public format, schema, or runtime behavior.
+
+S1 blocks implementation or public API freeze of the proposed source-neutral packet
+concepts. It does not block unrelated API hygiene, testing modernization, or the
+existing researcher-directed Find a Grave workflow.
+
+Entry criteria are satisfied when the artifact accurately labels all content as
+synthetic, carries explicit non-goals, and can be reviewed without developer or
+schema knowledge. Exit requires a dated report, resolution or explicit acceptance
+of every blocking finding, and reconciliation of the trust, evidence, source-
+adapter, API, and roadmap documents.
+
 ## R1 — Evidence contract review
 
 **Current status:** Passed. The initial
