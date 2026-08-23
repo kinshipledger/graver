@@ -43,7 +43,7 @@ from graver.database import (
     create_database,
     upgrade_database,
 )
-from graver.research import ResearchService
+from graver.research import ResearchService, ResearchTaskQuery, ResearchTaskUpdate
 from graver.transport import TransportError
 
 log = logging.getLogger(__name__)
@@ -721,7 +721,7 @@ def _display_work_list(tasks: list) -> None:
 
 def _load_task_or_exit(db: str, memorial_id: int) -> dict:
     try:
-        return ResearchService(db).show_task(memorial_id)
+        return ResearchService(db).get_task(memorial_id).to_compatibility_dict()
     except (NotFound, ResearchTaskNotFound, DatabaseLifecycleError) as ex:
         typer.echo(str(ex), err=True)
         raise typer.Exit(1)
@@ -793,7 +793,12 @@ def work_list(
 ):
     """List people in the research queue and what needs attention."""
     try:
-        tasks = ResearchService(db).list_tasks(status, cemetery_id, limit)
+        tasks = [
+            task.to_compatibility_dict()
+            for task in ResearchService(db).query_tasks(
+                ResearchTaskQuery(status, cemetery_id, limit)
+            )
+        ]
     except ValueError as ex:
         raise typer.BadParameter(str(ex))
     if json_output:
@@ -817,13 +822,15 @@ def work_next(
 ):
     """Show the next person needing research."""
     try:
-        tasks = ResearchService(db).list_tasks(status, cemetery_id, 1)
+        tasks = ResearchService(db).query_tasks(
+            ResearchTaskQuery(status, cemetery_id, 1)
+        )
     except ValueError as ex:
         raise typer.BadParameter(str(ex))
     if not tasks:
         typer.echo("No people match the requested research queue filters.")
         return
-    result = _load_task_or_exit(db, tasks[0]["memorial_id"])
+    result = _load_task_or_exit(db, tasks[0].memorial_id)
     if json_output:
         _json_output(result)
     else:
@@ -876,8 +883,12 @@ def work_mark(
     """Record a research decision or assignment for one person."""
     before = _load_task_or_exit(db, memorial_id)["task"]
     try:
-        task = ResearchService(db).update_task(
-            memorial_id, status, priority, owner, note
+        task = (
+            ResearchService(db)
+            .apply_task_update(
+                ResearchTaskUpdate(memorial_id, status, priority, owner, note)
+            )
+            .to_compatibility_dict()
         )
     except ValueError as ex:
         typer.echo(str(ex), err=True)

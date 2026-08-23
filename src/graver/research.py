@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Mapping, Optional
 
 import graver.api as legacy_api
 from graver.api import (
@@ -19,9 +19,181 @@ from graver.api import (
     _resolve_alias,
     _row_to_dict,
     _sources_for_canonical,
-    _task_dict_for_memorial,
 )
 from graver.database import validate_current_database
+
+
+class ResearchInputError(ValueError):
+    """Report an invalid application-service request without presentation details."""
+
+
+@dataclass(frozen=True)
+class ResearchTaskQuery:
+    """Select an ordered page of subject-owned research tasks."""
+
+    status: Optional[str] = None
+    cemetery_id: Optional[int] = None
+    limit: int = 20
+
+    def __post_init__(self) -> None:
+        if self.status is not None and self.status not in RESEARCH_TASK_STATUSES:
+            raise ResearchInputError(f"Invalid task status: {self.status}")
+        if self.limit < 1:
+            raise ResearchInputError("Limit must be at least 1")
+
+
+@dataclass(frozen=True)
+class ResearchTaskUpdate:
+    """Describe an explicit partial update to one research task."""
+
+    memorial_id: int
+    status: Optional[str] = None
+    priority: Optional[int] = None
+    owner: Optional[str] = None
+    review_note: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if self.status is not None and self.status not in RESEARCH_TASK_STATUSES:
+            raise ResearchInputError(f"Invalid task status: {self.status}")
+        if not self.changes:
+            raise ResearchInputError("At least one task change is required")
+
+    @property
+    def changes(self) -> dict[str, Any]:
+        """Return only fields explicitly supplied by the caller."""
+        return {
+            key: value
+            for key, value in {
+                "status": self.status,
+                "priority": self.priority,
+                "owner": self.owner,
+                "review_note": self.review_note,
+            }.items()
+            if value is not None
+        }
+
+
+@dataclass(frozen=True)
+class ResearchTaskSummary:
+    """Represent one ordered research-queue entry for application clients."""
+
+    memorial_id: int
+    name: Optional[str]
+    birth: Optional[str]
+    death: Optional[str]
+    cemetery_id: Optional[int]
+    detail_level: Optional[str]
+    status: str
+    priority: int
+    owner: Optional[str]
+    last_activity_at: str
+    alias_target_id: Optional[int]
+    alias_status: Optional[str]
+    alias_canonical_id: int
+    alias_path: tuple[int, ...]
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "ResearchTaskSummary":
+        """Create a typed summary from one repository projection."""
+        return cls(
+            memorial_id=value["memorial_id"],
+            name=value["name"],
+            birth=value["birth"],
+            death=value["death"],
+            cemetery_id=value["cemetery_id"],
+            detail_level=value["detail_level"],
+            status=value["status"],
+            priority=value["priority"],
+            owner=value["owner"],
+            last_activity_at=value["last_activity_at"],
+            alias_target_id=value["alias_target_id"],
+            alias_status=value["alias_status"],
+            alias_canonical_id=value["alias_canonical_id"],
+            alias_path=tuple(value["alias_path"]),
+        )
+
+    def to_compatibility_dict(self) -> dict[str, Any]:
+        """Project the pre-1.0 memorial-shaped dictionary contract."""
+        return {
+            "memorial_id": self.memorial_id,
+            "name": self.name,
+            "birth": self.birth,
+            "death": self.death,
+            "cemetery_id": self.cemetery_id,
+            "detail_level": self.detail_level,
+            "status": self.status,
+            "priority": self.priority,
+            "owner": self.owner,
+            "last_activity_at": self.last_activity_at,
+            "alias_target_id": self.alias_target_id,
+            "alias_status": self.alias_status,
+            "alias_canonical_id": self.alias_canonical_id,
+            "alias_path": list(self.alias_path),
+        }
+
+
+@dataclass(frozen=True)
+class ResearchTaskRecord:
+    """Represent current subject-owned task state and its memorial lookup."""
+
+    subject_id: str
+    memorial_id: int
+    status: str
+    priority: int
+    owner: Optional[str]
+    created_at: str
+    updated_at: str
+    last_activity_at: str
+    review_note: Optional[str]
+
+    @classmethod
+    def from_row(cls, row: sqlite3.Row, memorial_id: int) -> "ResearchTaskRecord":
+        """Create a typed task record from one repository row."""
+        return cls(
+            subject_id=row["subject_id"],
+            memorial_id=memorial_id,
+            status=row["status"],
+            priority=row["priority"],
+            owner=row["owner"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+            last_activity_at=row["last_activity_at"],
+            review_note=row["review_note"],
+        )
+
+    def to_compatibility_dict(self) -> dict[str, Any]:
+        """Project task state without exposing the transitional subject UUID."""
+        return {
+            "memorial_id": self.memorial_id,
+            "status": self.status,
+            "priority": self.priority,
+            "owner": self.owner,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "last_activity_at": self.last_activity_at,
+            "review_note": self.review_note,
+        }
+
+
+@dataclass(frozen=True)
+class ResearchTaskDetail:
+    """Aggregate task state and source context for one memorial lookup."""
+
+    task: ResearchTaskRecord
+    grave: Mapping[str, Any]
+    cemetery: Optional[Mapping[str, Any]]
+    observations: tuple[Mapping[str, Any], ...]
+    alias: Mapping[str, Any]
+
+    def to_compatibility_dict(self) -> dict[str, Any]:
+        """Project the existing command/API dictionary without shared mutability."""
+        return {
+            "task": self.task.to_compatibility_dict(),
+            "grave": dict(self.grave),
+            "cemetery": dict(self.cemetery) if self.cemetery is not None else None,
+            "observations": [dict(item) for item in self.observations],
+            "alias": dict(self.alias),
+        }
 
 
 class _ResearchTaskRepository:
@@ -189,25 +361,36 @@ class ResearchService:
         cemetery_id: Optional[int] = None,
         limit: int = 20,
     ) -> list[dict]:
+        """Return the transitional dictionary projection for existing callers."""
+        return [
+            task.to_compatibility_dict()
+            for task in self.query_tasks(ResearchTaskQuery(status, cemetery_id, limit))
+        ]
+
+    def query_tasks(
+        self, query: ResearchTaskQuery = ResearchTaskQuery()
+    ) -> tuple[ResearchTaskSummary, ...]:
+        """Return typed research tasks in deterministic queue order."""
         validate_current_database(self.database_name)
-        if status is not None and status not in RESEARCH_TASK_STATUSES:
-            raise ValueError(f"Invalid task status: {status}")
-        if limit < 1:
-            raise ValueError("Limit must be at least 1")
         with _connect(self.database_name) as connection:
             connection.row_factory = sqlite3.Row
             results = []
             for row in _ResearchTaskRepository.list_tasks(
-                connection, status, cemetery_id, limit
+                connection, query.status, query.cemetery_id, query.limit
             ):
                 item = _row_to_dict(row)
                 resolution = _resolve_alias(connection, item["memorial_id"])
                 item["alias_canonical_id"] = resolution["canonical_memorial_id"]
                 item["alias_path"] = resolution["path"]
-                results.append(item)
-        return results
+                results.append(ResearchTaskSummary.from_mapping(item))
+        return tuple(results)
 
     def show_task(self, memorial_id: int) -> dict:
+        """Return the transitional dictionary projection for existing callers."""
+        return self.get_task(memorial_id).to_compatibility_dict()
+
+    def get_task(self, memorial_id: int) -> ResearchTaskDetail:
+        """Return typed task and source context resolved by memorial ID."""
         validate_current_database(self.database_name)
         with _connect(self.database_name) as connection:
             connection.row_factory = sqlite3.Row
@@ -243,19 +426,19 @@ class ResearchService:
             observation = _row_to_dict(row)
             observation["payload"] = json.loads(observation.pop("payload_json"))
             observation_dicts.append(observation)
-        return {
-            "task": _task_dict_for_memorial(task, memorial_id),
-            "grave": _row_to_dict(grave),
-            "cemetery": _row_to_dict(cemetery) if cemetery is not None else None,
-            "observations": observation_dicts,
-            "alias": {
+        return ResearchTaskDetail(
+            task=ResearchTaskRecord.from_row(task, memorial_id),
+            grave=_row_to_dict(grave),
+            cemetery=_row_to_dict(cemetery) if cemetery is not None else None,
+            observations=tuple(observation_dicts),
+            alias={
                 "is_active_source": len(resolution["path"]) > 1,
                 **resolution,
                 "canonical_target_exists": canonical_grave,
                 "canonical_target_has_task": canonical_task,
                 "other_active_sources": related_sources,
             },
-        }
+        )
 
     def update_task(
         self,
@@ -265,27 +448,29 @@ class ResearchService:
         owner: Optional[str] = None,
         review_note: Optional[str] = None,
     ) -> dict:
+        """Return the transitional dictionary projection for existing callers."""
+        return self.apply_task_update(
+            ResearchTaskUpdate(
+                memorial_id,
+                status=status,
+                priority=priority,
+                owner=owner,
+                review_note=review_note,
+            )
+        ).to_compatibility_dict()
+
+    def apply_task_update(self, command: ResearchTaskUpdate) -> ResearchTaskRecord:
+        """Apply one validated partial update and record meaningful change history."""
         validate_current_database(self.database_name)
-        if status is not None and status not in RESEARCH_TASK_STATUSES:
-            raise ValueError(f"Invalid task status: {status}")
-        requested = {
-            key: value
-            for key, value in {
-                "status": status,
-                "priority": priority,
-                "owner": owner,
-                "review_note": review_note,
-            }.items()
-            if value is not None
-        }
-        if not requested:
-            raise ValueError("At least one task change is required")
+        requested = command.changes
         with _connect(self.database_name) as connection:
             connection.row_factory = sqlite3.Row
-            current = _ResearchTaskRepository.task_for_memorial(connection, memorial_id)
+            current = _ResearchTaskRepository.task_for_memorial(
+                connection, command.memorial_id
+            )
             if current is None:
                 raise ResearchTaskNotFound(
-                    f"Research task {memorial_id} does not exist"
+                    f"Research task {command.memorial_id} does not exist"
                 )
             changed = {
                 key: value for key, value in requested.items() if current[key] != value
@@ -313,7 +498,7 @@ class ResearchService:
                 )
             else:
                 result = current
-        return _task_dict_for_memorial(result, memorial_id)
+        return ResearchTaskRecord.from_row(result, command.memorial_id)
 
     def queue_memorials(
         self, cemetery_id: Optional[int] = None, priority: int = 0
