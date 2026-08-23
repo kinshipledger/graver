@@ -320,6 +320,44 @@ class TestMemorial(TestApi):
         m2 = Memorial.from_dict(json.loads(json_str))
         assert m2 == m1
 
+    def test_parser_captures_displayed_relationship_links_without_inference(self):
+        parser = graver.api._MemorialParser(
+            "https://www.findagrave.com/memorial/1075/george-washington",
+            get=False,
+            scrape=False,
+        )
+        parser.soup = BeautifulSoup(
+            """
+            <div class="overview-panel data-family">
+              <b class="label-relation">Spouse</b>
+              <ul class="member-family">
+                <li>
+                  <a href="/memorial/2382/martha-washington">
+                    <h3 itemprop="name">Martha Dandridge Washington</h3>
+                    <p class="life"><span itemprop="birthDate">1731</span> –
+                      <span itemprop="deathDate">1802</span> (m. 1759)</p>
+                  </a>
+                </li>
+              </ul>
+            </div>
+            """,
+            "html.parser",
+        )
+
+        parser.scrape_related_memorials()
+
+        assert len(parser.findagrave_displayed_relationship_links) == 1
+        observed = parser.findagrave_displayed_relationship_links[0]
+        assert observed.displayed_group == "Spouse"
+        assert observed.memorial_id == 2382
+        assert (
+            observed.url == "https://www.findagrave.com/memorial/2382/martha-washington"
+        )
+        assert observed.name == "Martha Dandridge Washington"
+        assert observed.birth_text == "1731"
+        assert observed.death_text == "1802"
+        assert observed.marriage_year == "1759"
+
     @pytest.mark.parametrize(
         "url",
         [
@@ -611,13 +649,32 @@ class TestDatabaseOps(TestApi):
         assert cemetery[3] == cemetery[4] == observation[3]
 
     def test_new_full_save_creates_full_observation(self, database):
-        full = self.full().save()
+        full = self.full(
+            findagrave_displayed_relationship_links=[
+                {
+                    "displayed_group": "Spouse",
+                    "memorial_id": 2382,
+                    "url": "https://www.findagrave.com/memorial/2382/martha-washington",
+                    "name": "Martha Dandridge Washington",
+                    "life_text": "1731 – 1802 (m. 1759)",
+                    "birth_text": "1731",
+                    "death_text": "1802",
+                    "marriage_year": "1759",
+                }
+            ]
+        ).save()
 
         with sqlite3.connect(database.name) as connection:
             observation = connection.execute("""SELECT acquisition_level, payload_json
                    FROM memorial_observations""").fetchone()
         assert observation[0] == "full"
         assert json.loads(observation[1]) == full.to_dict()
+        assert (
+            json.loads(observation[1])["findagrave_displayed_relationship_links"][0][
+                "displayed_group"
+            ]
+            == "Spouse"
+        )
 
     def test_repeated_acquisitions_create_immutable_observations(self, database):
         summary = self.summary(name="first observation")

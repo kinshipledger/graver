@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from re import Match
 from time import sleep
 from typing import Any, Dict, List, Optional, cast
-from urllib.parse import parse_qsl, urlparse, urlunparse
+from urllib.parse import parse_qsl, urljoin, urlparse, urlunparse
 
 from bs4 import BeautifulSoup, Tag
 from tqdm import tqdm
@@ -679,6 +679,9 @@ def _create_current_schema(connection: sqlite3.Connection) -> None:
     _create_graves_table(connection)
     _create_cemeteries_table(connection)
     _create_research_schema(connection, task_schema_version=2)
+    from graver.evidence import create_evidence_schema
+
+    create_evidence_schema(connection)
 
 
 def _initialize_database(database_name="graves.db") -> None:
@@ -738,9 +741,12 @@ def _save_grave(
         "ON CONFLICT(memorial_id) DO UPDATE SET "
         f"{', '.join(updates)}"
     )
-    payload = json.dumps(
-        {name: values[name] for name in data_fields}, ensure_ascii=False
-    )
+    payload_values = {name: values[name] for name in data_fields}
+    if detail_level == "full":
+        payload_values["findagrave_displayed_relationship_links"] = values.get(
+            "findagrave_displayed_relationship_links", []
+        )
+    payload = json.dumps(payload_values, ensure_ascii=False)
 
     def persist(active_connection: sqlite3.Connection) -> None:
         active_connection.execute(sql, parameters)
@@ -1481,6 +1487,20 @@ class _MemorialSummaryFields:
 
 
 @dataclass(frozen=True)
+class RelatedMemorialObservation:
+    """Preserve one Find a Grave-displayed link without asserting proven kinship."""
+
+    displayed_group: str
+    memorial_id: int
+    url: str
+    name: str
+    life_text: Optional[str]
+    birth_text: Optional[str]
+    death_text: Optional[str]
+    marriage_year: Optional[str]
+
+
+@dataclass(frozen=True)
 class Memorial(_MemorialSummaryFields):
     """Complete data parsed from an individual Find A Grave memorial page."""
 
@@ -1490,6 +1510,7 @@ class Memorial(_MemorialSummaryFields):
     coords: str
     has_bio: bool
     date_added: Optional[str] = None
+    findagrave_displayed_relationship_links: tuple[RelatedMemorialObservation, ...] = ()
 
     def __eq__(self, other):
         if self.__class__ != other.__class__:
@@ -1520,10 +1541,26 @@ class Memorial(_MemorialSummaryFields):
 
     @classmethod
     def from_dict(cls, d):
-        return cls(**d)
+        values = dict(d)
+        raw_links = values.pop(
+            "related_memorials",
+            values.get("findagrave_displayed_relationship_links", ()),
+        )
+        values["findagrave_displayed_relationship_links"] = tuple(
+            (
+                item
+                if isinstance(item, RelatedMemorialObservation)
+                else RelatedMemorialObservation(**item)
+            )
+            for item in raw_links
+        )
+        return cls(**values)
 
     def to_dict(self):
         d = asdict(self)
+        d["findagrave_displayed_relationship_links"] = [
+            asdict(item) for item in self.findagrave_displayed_relationship_links
+        ]
         return d
 
     def to_json(self, **kwargs):
@@ -1544,7 +1581,7 @@ class Memorial(_MemorialSummaryFields):
         timestamp: Optional[str] = None,
     ) -> "Memorial":
         _save_grave(
-            self.__dict__,
+            self.to_dict(),
             FULL_FIELDS,
             "full",
             "full_fetched_at",
@@ -1606,6 +1643,9 @@ class _MemorialParser:
         self.coords = kwargs.get("coords", None)
         self.has_bio = kwargs.get("has_bio", None)
         self.date_added = kwargs.get("date_added", None)
+        self.findagrave_displayed_relationship_links = tuple(
+            kwargs.get("findagrave_displayed_relationship_links", ())
+        )
         # # behavior/instance args
         self.driver = kwargs.get("driver", Driver())
         self.get = kwargs.get("get", True)
@@ -1671,6 +1711,9 @@ class _MemorialParser:
             coords=self.coords,
             has_bio=self.has_bio,
             date_added=self.date_added,
+            findagrave_displayed_relationship_links=(
+                self.findagrave_displayed_relationship_links
+            ),
         )
 
     def check_removed(self):
@@ -1863,9 +1906,58 @@ class _MemorialParser:
             value = element.get("value", "")
             self.date_added = value.removeprefix("Added: ") or None
 
+    def scrape_related_memorials(self) -> None:
+        """Capture displayed family links as source observations, never conclusions."""
+        panel = self.soup.select_one("div.data-family")
+        if panel is None:
+            self.findagrave_displayed_relationship_links = ()
+            return
+        observations = []
+        for label in panel.select("b.label-relation"):
+            group = label.get_text(" ", strip=True)
+            member_list = label.find_next_sibling("ul", class_="member-family")
+            if member_list is None:
+                continue
+            for member in member_list.find_all("li", recursive=False):
+                anchor = member.find("a", href=True)
+                name = member.find(attrs={"itemprop": "name"})
+                if anchor is None or name is None:
+                    continue
+                href = str(anchor["href"])
+                match = re.search(r"/memorial/(\d+)(?:/|$)", href)
+                if match is None:
+                    continue
+                life = member.select_one("p.life")
+                birth = member.find(attrs={"itemprop": "birthDate"})
+                death = member.find(attrs={"itemprop": "deathDate"})
+                life_text = life.get_text(" ", strip=True) if life is not None else None
+                marriage = re.search(r"\bm\.\s*(\d{4})\b", life_text or "")
+                observations.append(
+                    RelatedMemorialObservation(
+                        displayed_group=group,
+                        memorial_id=int(match.group(1)),
+                        url=urljoin(self.findagrave_url, href),
+                        name=name.get_text(" ", strip=True),
+                        life_text=life_text,
+                        birth_text=(
+                            birth.get_text(" ", strip=True)
+                            if birth is not None
+                            else None
+                        ),
+                        death_text=(
+                            death.get_text(" ", strip=True)
+                            if death is not None
+                            else None
+                        ),
+                        marriage_year=marriage.group(1) if marriage else None,
+                    )
+                )
+        self.findagrave_displayed_relationship_links = tuple(observations)
+
     def scrape_page(self):
         self.scrape_has_bio()
         self.scrape_date_added()
+        self.scrape_related_memorials()
 
         # Get vital statistics and burial info
         vitals = self.scrape_vitals()

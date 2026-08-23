@@ -24,6 +24,13 @@ CURRENT_TABLES = {
     "subject_memorials",
     "research_subject_events",
     "research_task_events",
+    "candidate_discovery_runs",
+    "external_candidates",
+    "candidate_snapshots",
+    "comparison_signals",
+    "candidate_assessments",
+    "candidate_assessment_events",
+    "identity_conclusions",
     "graver_schema",
 }
 
@@ -52,7 +59,7 @@ def test_create_database_builds_complete_current_schema(tmp_path):
 
         assert tables == CURRENT_TABLES
         assert connection.execute("SELECT version FROM graver_schema").fetchone() == (
-            2,
+            graver_database.CURRENT_SCHEMA_VERSION,
         )
         assert {
             "idx_graves_cemetery_id",
@@ -61,6 +68,12 @@ def test_create_database_builds_complete_current_schema(tmp_path):
             "idx_subject_memorials_subject",
             "idx_research_subject_events_subject",
             "idx_research_task_events_subject",
+            "idx_discovery_runs_subject",
+            "idx_candidates_subject",
+            "idx_candidate_snapshots_candidate",
+            "idx_comparison_signals_candidate",
+            "idx_assessment_events_candidate",
+            "idx_conclusions_candidate",
         } <= indexes
         assert {
             "memorial_observations_no_update",
@@ -71,6 +84,18 @@ def test_create_database_builds_complete_current_schema(tmp_path):
             "research_subject_events_no_delete",
             "research_task_events_no_update",
             "research_task_events_no_delete",
+            "candidate_discovery_runs_no_update",
+            "candidate_discovery_runs_no_delete",
+            "external_candidates_no_update",
+            "external_candidates_no_delete",
+            "candidate_snapshots_no_update",
+            "candidate_snapshots_no_delete",
+            "comparison_signals_no_update",
+            "comparison_signals_no_delete",
+            "candidate_assessment_events_no_update",
+            "candidate_assessment_events_no_delete",
+            "identity_conclusions_no_update",
+            "identity_conclusions_no_delete",
         } == triggers
         assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
@@ -496,7 +521,7 @@ def test_upgrade_current_unversioned_adds_only_metadata(tmp_path):
     with sqlite3.connect(path) as connection:
         assert connection.execute("SELECT COUNT(*) FROM graves").fetchone() == (0,)
         assert connection.execute("SELECT version FROM graver_schema").fetchone() == (
-            2,
+            graver_database.CURRENT_SCHEMA_VERSION,
         )
 
 
@@ -716,7 +741,7 @@ def test_post_migration_validation_failure_preserves_upgraded_data_and_backup(
     assert error.value.backup_path.exists()
     with sqlite3.connect(path) as connection:
         assert connection.execute("SELECT version FROM graver_schema").fetchone() == (
-            2,
+            graver_database.CURRENT_SCHEMA_VERSION,
         )
         assert connection.execute("SELECT COUNT(*) FROM graves").fetchone() == (2,)
 
@@ -745,7 +770,7 @@ def test_cli_upgrade_reports_source_target_backup_and_preserves_preference(
 
     assert result.exit_code == 0
     assert "legacy summary-only schema" in result.output
-    assert "schema version 2" in result.output
+    assert f"schema version {graver_database.CURRENT_SCHEMA_VERSION}" in result.output
     assert "Verified backup:" in result.output
     assert json.loads(isolate_graver_configuration.read_text()) == {"theme": "plain"}
 
