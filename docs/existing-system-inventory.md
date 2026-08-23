@@ -331,6 +331,16 @@ The baseline coverage run also reported numerous unclosed-SQLite
 cleanup finding for the testing-modernization milestone; coverage configuration
 must not suppress them merely to reduce output.
 
+The 2026-08-23 Windows/Python 3.14 lane passed all 340 tests but took 9m28s inside
+pytest. Its slow-test report showed that fixture setup—not dependency installation
+or individual assertions—dominated the run. The autouse isolation fixture was
+constructing a complete SQLite schema for every test, and database tests could
+construct another. Test isolation now uses one session-built, empty current-schema
+template copied to a distinct pytest-managed path for each test. The general
+database fixture no longer uses an undeleted `NamedTemporaryFile` or directly
+mutates the process environment. Tests continue to receive independent databases;
+the optimization does not share mutable SQLite state.
+
 ## Approved pre-1.0 direction
 
 Keep the existing scraper and its `graves` table as the **Find a Grave acquisition component**. The additive `cemeteries`, `memorial_observations`, and `research_tasks` layer now provides provenance and a practical queue.
@@ -374,6 +384,15 @@ specialist workflow creates a verified backup, performs ordered transactional
 migration, and validates the result without automatically restoring over user data.
 Versioned JSON, normalized acquisition options, hidden-command removal, and
 `python -m graver` are not implemented yet.
+
+Typer remains the current CLI adapter framework and is retained provisionally
+through 1.0 preparation for its nested-command, typed-conversion, generated-help,
+completion, and testing value. It is not part of the planned public application API.
+Seven legacy value-taking Boolean search options currently emit Typer deprecation
+warnings, and Rich-rendered help has required presentation-boundary normalization in
+tests. Acquisition-option cleanup must remove those warnings and apply the approved
+pre-RC exit criteria; recurring unsupported behavior or disproportionate framework
+maintenance would trigger migration to direct Click before 1.0.
 
 The implemented current schema is version 2. It uses canonical lowercase UUIDv4
 `TEXT` subject IDs and adds

@@ -245,7 +245,7 @@ class TestCliScrapeFile(TestCli):
         url_file = d / "input_urls.txt"
         url_file.write_text("\n".join(urls))
 
-        db = os.getenv("DATABASE_NAME")
+        db = str(tmp_path / "scrape.db")
         command = f"scrape-file '{url_file}' --db '{db}'"
         result = helpers.graver_cli(command)
         assert result.exit_code == 0
@@ -312,7 +312,7 @@ class TestCliScrapeFile(TestCli):
 
         monkeypatch.setattr(Memorial, "parse", parse_raises_memorial_merged)
 
-        db = os.getenv("DATABASE_NAME")
+        db = str(tmp_path / "scrape.db")
         command = f"scrape-file '{url_file}' --db '{db}'"
         result = helpers.graver_cli(command)
         assert result.exit_code == 0
@@ -330,7 +330,7 @@ class TestCliScrapeFile(TestCli):
         url_file = d / "single_url.txt"
         url_file.write_text(f"{url}\n")
 
-        db = os.getenv("DATABASE_NAME")
+        db = str(tmp_path / "scrape.db")
         command = f"scrape-file '{url_file}' --db '{db}'"
         result = helpers.graver_cli(command)
         assert result.exit_code == 0
@@ -380,13 +380,14 @@ class TestCliScrapeUrl(TestCli):
         assert result.output == ""
         assert "Invalid or non-memorial URL" in caplog.text
 
-    def test_cli_scrape_url(self, helpers, fake_memorial, api_mock, caplog) -> None:
+    def test_cli_scrape_url(
+        self, helpers, tmp_path, fake_memorial, api_mock, caplog
+    ) -> None:
         expected: Memorial = fake_memorial()
         url = expected.findagrave_url
         api_mock(url)
 
-        db = "test.db"
-        os.environ["DATABASE_NAME"] = db
+        db = str(tmp_path / "scrape.db")
         command = f"scrape-url '{url}' --db '{db}'"
         result = helpers.graver_cli(command)
         assert result.exit_code == 0

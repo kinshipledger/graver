@@ -144,6 +144,23 @@ FamilySearch functionality should follow the same rule: search runs, snapshots, 
 change detection belong in the model, while the main user action should be a simple
 task such as refreshing candidates for the current person.
 
+### CLI framework decision
+
+Retain Typer through the 1.0 preparation period, but do not make it part of the
+public application contract. It currently earns its place through nested commands,
+typed conversion, generated help, shell completion, and test support. The CLI must
+nevertheless become a thin adapter over typed application services so that Typer,
+Rich, or a later replacement cannot constrain the GUI or other consumers.
+
+Before `1.0.0rc1`, normalize the acquisition options, remove hidden compatibility
+commands, migrate supported declarations away from deprecated Typer behavior, and
+test help semantically without depending on terminal layout. Re-evaluate Typer after
+that cleanup. Replace it with direct Click before 1.0 if the cleaned adapter still
+requires unsupported option behavior, produces recurring cross-platform rendering
+failures, or imposes disproportionate upgrade work. Do not undertake a framework
+rewrite merely to reduce dependencies; `argparse` is not preferred while graver
+retains a substantial nested command hierarchy.
+
 ## Safety principles
 
 - Preserve source provenance and research history.
@@ -850,6 +867,11 @@ Test infrastructure must also follow these rules:
 - Temporary files, databases, configuration, environment variables, and connections
   use pytest lifecycle fixtures and are always cleaned up. Tests never read or alter
   a developer's runtime database or user configuration.
+- Construct the current empty schema once per test session and copy that template
+  into each test's isolated temporary directory. Do not repeat schema DDL in an
+  autouse per-test fixture; Windows filesystem synchronization makes that pattern
+  disproportionately expensive. Copied databases must remain independent and must
+  never be shared for mutation between tests.
 - Test frameworks, Faker, record/replay tools, mocks, and coverage tools belong only
   in test dependency groups, not the installed application's runtime dependencies.
 - Vestigial tool smoke tests, empty tests, and commented-out test bodies should be
@@ -1009,7 +1031,9 @@ Pre-1.0 sequence:
 17. Add command-specific versioned JSON envelopes as adapter projections of the same
    typed application results.
 18. Normalize acquisition options and remove duplicate, site-shaped, and hidden
-   pre-1.0 compatibility paths.
+   pre-1.0 compatibility paths. Modernize the remaining supported Typer declarations,
+   remove deprecated option behavior, keep help assertions semantic, and apply the
+   approved Typer retention/exit criteria before freezing the CLI.
 19. Support `python -m graver` through `graver.__main__`.
 20. Maintain the uv-based Python 3.11-through-3.14 CI, Conventional Commit PR-title
    enforcement, reviewed changelog, and manually gated Release Please workflow.
