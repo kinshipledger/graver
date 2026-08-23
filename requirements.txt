@@ -125,9 +125,9 @@ shellingham==1.5.4 ; python_full_version >= "3.8.1" and python_version < "4.0" \
 soupsieve==2.5 ; python_full_version >= "3.8.1" and python_version < "4.0" \
     --hash=sha256:5663d5a7b3bfaeee0bc4372e7fc48f9cff4940b3eec54a6451cc5299f1097690 \
     --hash=sha256:eaa337ff55a1579b6549dc679565eac1e3d000563bcb1c8ab0d0fefbc0c2cdc7
-tqdm==4.66.1 ; python_full_version >= "3.8.1" and python_version < "4.0" \
-    --hash=sha256:d302b3c5b53d47bce91fea46679d9c3c6508cf6332229aa1e7d8653723793386 \
-    --hash=sha256:d88e651f9db8d8551a62556d3cff9e3034274ca5d66e93197cf2490e2dcb69c7
+tqdm==4.66.3 ; python_full_version >= "3.8.1" and python_version < "4.0" \
+    --hash=sha256:23097a41eba115ba99ecae40d06444c15d1c0c698d527a01c6c8bd1c5d0647e5 \
+    --hash=sha256:4f41d54107ff9a223dca80b53efe4fb654c67efaba7f47bada3ee9d50e05bd53
 typer[all]==0.9.0 ; python_full_version >= "3.8.1" and python_version < "4.0" \
     --hash=sha256:50922fd79aea2f4751a8e0408ff10d2662bd0c8bbfa84755a699f3bada2978b2 \
     --hash=sha256:5d96d986a21493606a358cae4461bd8cdf83cbf33a5aa950ae629ca3b51467ee
