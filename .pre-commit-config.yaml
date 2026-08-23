@@ -1,20 +1,25 @@
 repos:
--   repo: https://github.com/psf/black
-    rev: 23.11.0
+  - repo: local
     hooks:
-    -   id: black
-
--   repo: https://github.com/PyCQA/flake8
-    rev: 6.1.0
-    hooks:
-    -   id: flake8
-
--   repo: local
-    hooks:
-      - id: commitizen
-        name: My commitizen check
-        entry: make
-        args: ['commitizen']
-        pass_filenames: false
+      - id: black
+        name: Black check
+        entry: uv run --locked --group dev black --check
         language: system
-        stages: [commit-msg]
+        types: [python]
+      - id: ruff
+        name: Ruff lint
+        entry: uv run --locked --group dev ruff check
+        language: system
+        types: [python]
+      - id: mypy-application
+        name: Mypy application boundary
+        entry: uv run --locked --group dev mypy
+        language: system
+        pass_filenames: false
+        types: [python]
+      - id: application-docstrings
+        name: Application docstrings
+        entry: uv run --locked --group dev ruff check --select D --ignore D105,D107 src/graver/application.py src/graver/database.py src/graver/evidence.py src/graver/research.py
+        language: system
+        pass_filenames: false
+        types: [python]

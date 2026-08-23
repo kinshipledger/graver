@@ -30,16 +30,41 @@ Install the locked environment and run the offline checks:
 
 ```shell
 uv sync --locked --group test --group dev
+uv run pre-commit install
+make lint
+make typecheck
+make doccheck
 uv run pytest
 uv run pytest --cov=graver --cov-report=term-missing --cov-report=xml
-uv run black --check src/graver tests
 uv lock --check
 ```
+
+`make lint` runs the required Black formatting check and Ruff lint/import-order
+check over `src/graver`, `tests`, and `review`. `make typecheck` runs mypy over the
+supported application boundary in `graver.application`, `graver.database`,
+`graver.evidence`, and `graver.research`. `make doccheck` enforces Google-style
+public docstring coverage over that same boundary, excluding redundant magic-method
+and constructor docstrings where the class contract already carries the meaning.
+The installed pre-commit hooks run the same checks. CI is authoritative and repeats
+the full required scope.
 
 The first test command is the ordinary fast suite. The second reproduces the
 dedicated CI branch-coverage measurement and should be run when behavior or tests
 change. Coverage is reported from one Ubuntu/Python lane rather than duplicated
-across every supported Python and operating-system lane.
+across every supported Python and operating-system lane. SQLite `ResourceWarning`s
+and unraisable finalizer warnings fail pytest so connection leaks cannot quietly
+return.
+
+Mypy is intentionally enforced incrementally at the public application boundary;
+untyped legacy parser and CLI internals are not silently represented as checked.
+Unused-code removal requires corroborating Ruff, repository-reference, test,
+coverage, export, and compatibility evidence. No heuristic dead-code detector is a
+required project tool.
+
+Public application imports and stability expectations are documented in the
+[developer API guide](docs/api.md). New client-facing behavior belongs behind that
+typed boundary; do not expose SQLite, Typer, terminal-rendering, Requests, or parser
+implementation objects through it.
 
 Tests and ordinary CI must not contact genealogy providers. Use temporary databases
 and configuration paths; never commit research databases, credentials, cookies,

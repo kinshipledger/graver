@@ -53,14 +53,17 @@ jobs:
           python-version: "3.14"
       - run: uv lock --check
       - run: uv sync --locked --group test --group dev
-      - run: uv run black --check src/graver tests
+      - run: uv run black --check src/graver tests review
+      - run: uv run ruff check src/graver tests review
+      - run: uv run mypy
+      - run: uv run ruff check --select D --ignore D105,D107 src/graver/application.py src/graver/database.py src/graver/evidence.py src/graver/research.py
       - run: uv build
       - name: Verify the built wheel
         shell: bash
         run: |
           wheel_path=$(find dist -name '*.whl' -print -quit)
           uv run --isolated --no-project --with "$wheel_path" python -c \
-            "import graver, tomllib; from importlib.metadata import version; expected = tomllib.load(open('pyproject.toml', 'rb'))['project']['version']; assert version('graver') == expected"
+            "import graver, graver.application as application, tomllib; from importlib.metadata import version; expected = tomllib.load(open('pyproject.toml', 'rb'))['project']['version']; assert version('graver') == expected; assert 'ResearchService' in application.__all__"
 
   platform:
     name: ${{ matrix.os }} / Python 3.14
