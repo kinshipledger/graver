@@ -42,6 +42,15 @@ fictional ambiguous case through a disposable local browser adapter backed by th
 real offline evidence service. It is a moderated-review artifact, not a production
 GUI or supported public interface.
 
+The [first R2 professional review](professional-researcher-r2-review-2026-08-23.md)
+records the blocking decision-safety and citation-traceability findings that now
+await focused re-review.
+
+The [focused R2 re-review](professional-researcher-r2-rereview-2026-08-23.md)
+records the remaining evidence-selection and negative-search presentation defects.
+The [final focused verification](professional-researcher-r2-final-verification-2026-08-23.md)
+confirmed both corrections with no new blockers, so R2 passes.
+
 The outer project-level `docs/*.md` paths are local compatibility symbolic links
 for tools and conversations that begin at the parent project root. Future
 inventory, context, and roadmap changes must be made only in this directory.
