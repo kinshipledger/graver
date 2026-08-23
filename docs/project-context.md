@@ -1076,8 +1076,8 @@ Pre-1.0 sequence:
 12. Before freezing source-facing public types, prototype a small internal,
    source-neutral evidence packet with privacy-safe marriage/death, census, and
    probate examples. The packet must also exercise the minimum privacy-conscious
-   audit projection and
-   candidate-specific comparison trace: exact snapshot/assertion inputs, original
+   audit projection and candidate-specific comparison trace: exact
+   snapshot/assertion inputs, original
    and normalized representations, applied rule identifiers and versions,
    overrides, ordering effects, conflicts, and plain-language explanations. Conduct
    a focused Professional Genealogist contract and trust review, resolve blocking
@@ -1091,6 +1091,12 @@ Pre-1.0 sequence:
    transport and nondeterminism, semantic-versioning policy, and typed candidate,
    evidence, assessment, conclusion, acquisition-receipt, and provenance projections
    validated by the offline slice.
+
+   **Artifact ready for review:** the fictional
+   [source-neutral evidence packet prototype](source-neutral-evidence-packet-prototype.md)
+   now exercises the proposed distinctions and S1 review questions. No packet
+   implementation or public source-facing type freeze proceeds until S1 blocking
+   findings are resolved or explicitly accepted.
 13. Move remaining researcher-directed acquisition and CLI workflows onto those
    application services, validate the shared boundaries, and add CLI/API parity
    tests while preserving the tutorial's human workflow. Add researcher-readable
