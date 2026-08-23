@@ -8,7 +8,17 @@
 graver
 ======
 
-Scrape and Retrieve [FindAGrave](http://findagrave.com) memorial data and save them to an SQL database.
+Build a local, provenance-aware research database from
+[Find a Grave](https://www.findagrave.com/) memorials, then review and enrich records
+one person at a time.
+
+graver preserves summary and full-page observations separately, maintains a durable
+research queue, and records acquisition history without treating a memorial as a
+proven genealogical identity. FamilySearch matching, reviewed identity conclusions,
+WikiTree integration, and a desktop interface are planned but are not available yet.
+
+New to graver? Follow the [researcher tutorial](docs/tutorial.md) for a small,
+safe workflow from database creation through one approved memorial enrichment.
 
 graver supports responsible, researcher-directed acquisition and
 provider-authorized data workflows. It is not designed to bypass access controls or
@@ -16,28 +26,20 @@ conceal automated activity. Users remain responsible for complying with applicab
 laws, provider terms, and access policies. See the project
 [access policy](docs/access-policy.md) for the acquisition and contribution rules.
 
-Project direction and verified implementation status are maintained in the
-canonical [project context](docs/project-context.md),
-[existing-system inventory](docs/existing-system-inventory.md), and
-[initial inspection guide](docs/initial-inspection.md).
-The optional, periodically re-evaluated relationship-aware interchange direction is
-described in the
-[GEDCOM integration architecture](docs/gedcom-integration.md).
+## What graver does
 
-Project changes and releases are documented in the [changelog](CHANGELOG.md).
-Developers should also read the [contribution guide](CONTRIBUTING.md) and
-[security policy](SECURITY.md).
+- Saves narrow Find a Grave search results as summary observations in SQLite.
+- Queues acquired memorials for researcher-directed review.
+- Retrieves a full memorial only after the researcher explicitly approves that
+  person for enrichment.
+- Preserves immutable acquisition observations alongside the current record.
+- Records Find a Grave redirects for review without silently merging people or
+  transferring research.
 
-New to graver? Follow the [researcher tutorial](docs/tutorial.md) for a small,
-safe, end-to-end workflow from database creation through one approved memorial
-enrichment.
+graver is currently a command-line application intended for local research. It is
+not yet a cross-platform identity-matching or family-tree publishing system.
 
-
-## Scraping
-[FindAGrave](http://findagrave.com) is a free website providing access to and an opportunity to input cemetery information to an online database of cemetery records (over 226 million and counting). Often when doing genealogy research, you don't want to rely on a webpage's future and so you want to download the information to your local filesystem. ```graver```takes a list of Find A Grave memorial IDs or FindAGrave URLs, scrapes relevant genealogical data, and stores the contents in a SQLite3 database.
-
-
-## Requirements
+## Installation
 
 [uv](https://docs.astral.sh/uv/getting-started/installation/) is required to
 install and run `graver`. A separate Python installation is optional: uv uses
@@ -59,9 +61,6 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 Other supported installation methods, including Homebrew and WinGet, are
 listed in the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
 
-## Usage
-### Install
-
 Clone the repository, enter its root directory, and synchronize the environment
 from the committed lockfile:
 
@@ -79,18 +78,7 @@ the virtual environment is not required:
 uv run graver --help
 ```
 
-For development, install every dependency group and run the test suite with:
-
-```shell
-uv sync --all-groups --locked
-uv run --group test pytest
-```
-
-Measure the same branch coverage reported by CI with:
-
-```shell
-uv run --group test pytest --cov=graver --cov-report=term-missing
-```
+## Getting started
 
 ### Create or select a database
 
@@ -114,13 +102,10 @@ uv run graver use --show
 uv run graver use --clear
 ```
 
-`use` stores the resolved absolute path in graver's per-user configuration file;
-it selects an existing database and does not create or migrate it. Database
-selection follows this order:
-an explicit `--db`, the `GRAVER_DB` environment variable, the saved selection,
-then the existing `graves.db` default. `--db` is a temporary override for one
-command and never changes the saved selection. An unavailable saved or environment
-database is reported instead of silently falling back.
+`use` selects an existing database and does not create or upgrade it. An explicit
+`--db` applies to one command without changing the saved selection. Run
+`graver use --show` whenever you need to confirm which database is active.
+Genealogy has enough mysteries; the active database should not be one of them.
 
 ### Upgrade an older database
 
@@ -131,21 +116,27 @@ older database needs an upgrade, run the specialist maintenance command explicit
 uv run graver admin database upgrade /path/to/research.db
 ```
 
-Upgrade first inspects the database read-only, then creates a verified sibling
-backup before applying ordered migrations transactionally. A current database is
-reported as current without being rewritten or backed up. If the deterministic
-backup path already exists, graver refuses to replace it; preserve or rename that
-backup before retrying. Failed post-backup upgrades retain the backup and report
-recovery guidance, but restoration remains a deliberate human action.
+Upgrade first inspects the database, then creates a verified backup before changing
+it. A current database is left untouched. graver refuses to overwrite an existing
+backup and reports recovery guidance if an upgrade fails.
 
 Use `graver init` only to create a new database. Use `graver use DATABASE` to select
 an existing compatible database without changing its schema.
 
-### Scrape
-```sh
-uv run graver scrape-file <input-file>
+### Acquire summary records
+
+Use a narrow search to save summary records without retrieving every individual
+memorial page. For example:
+
+```shell
+uv run graver search --id 1075 --max-results 1
 ```
-The memorial data will be saved in a SQL database (default: `graves.db`), where it can be viewed with any SQLite viewer, or exported to CSV. 
+
+Search is a live operation. Keep queries narrow, stop if the provider reports an
+access restriction, and consult `graver search --help` for the current filters.
+The [researcher tutorial](docs/tutorial.md) explains the complete recommended
+workflow. Review the [access policy](docs/access-policy.md) before using any live
+acquisition command.
 
 ### Research workflow
 
@@ -166,30 +157,27 @@ task is in `ready_for_full_scrape`. Listing, showing, marking, choosing, and
 queueing people make no network requests. Use `work show --history` when detailed
 acquisition provenance is needed; ordinary output keeps that detail summarized.
 
-### Administrative redirect maintenance
+### Redirect review
 
-The `admin` namespace contains specialist maintenance and diagnostics. Find a
-Grave redirects are retained as explicit provenance instead of silently moving
-research to the destination memorial:
+Find a Grave redirects are retained for review instead of silently moving research
+to the destination memorial. When a redirect affects the current person,
+`work show` explains the next action. Detailed inspection and correction commands
+are available under:
 
 ```shell
-uv run graver admin aliases list --db graves.db --status active
-uv run graver admin aliases show SOURCE_ID --db graves.db
-uv run graver admin aliases record SOURCE_ID TARGET_ID --db graves.db --type merged
-uv run graver admin aliases retract SOURCE_ID --db graves.db --reason "reviewed correction"
+uv run graver admin aliases --help
 ```
 
 `work enrich` refuses a source with a known active alias before making a request.
 If a new merge is discovered, it records the alias and failed full acquisition
 for review, keeps the source task ready, and does not scrape or modify the target.
-A research task is owned internally by a stable research subject, while existing
-commands continue to use the memorial ID through which the person was discovered.
-Aliases do not merge subjects or move, complete, or delete tasks. Earlier top-level
-task and alias commands remain available as hidden compatibility aliases for
-existing scripts, but are omitted from normal help output.
+Redirects do not merge people or move, complete, or delete research tasks.
 
-### Exporting
-Future versions of `graver` will support direct export to CSV from the CLI, but for now, you can use SQLite3 to execute these commands, which will output the contents of `graves.db` to `graves.csv`:
+### Basic CSV export
+
+graver does not yet provide a dedicated export command. The SQLite command-line
+tool can export the current `graves` table to CSV:
+
 ```shell
 $ sqlite3 graves.db
 sqlite> .headers on
@@ -198,30 +186,43 @@ sqlite> .output graves.csv
 sqlite> select * from graves;
 sqlite> .quit
 ```
-Alternatively, you can do exactly the same thing by running a shell script like the following (this script is provided in `bin/export.sh`):
-```shell
-#!/bin/sh
-sqlite3 graves.db <<EOF
-.headers on
-.mode csv
-.output graves.csv
-select * from graves;
-.quit
-EOF
-```
 
+This exports the current memorial rows only; it does not include the complete
+observation, task, redirect, or event history. Preserve the database itself when
+that provenance matters.
+
+## Documentation
+
+For researchers:
+
+- [Researcher tutorial](docs/tutorial.md)
+- [Access policy](docs/access-policy.md)
+- [Documentation index](docs/README.md)
+
+For contributors and maintainers:
+
+- [Contribution guide](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Project context and roadmap](docs/project-context.md)
+- [Verified implementation inventory](docs/existing-system-inventory.md)
+- [Initial inspection guide](docs/initial-inspection.md)
+
+Longer-term ideas—including GEDCOM interchange—are indexed with the other
+architecture documents in [docs](docs/README.md). They are not part of the current
+researcher workflow.
+
+Project changes and releases are documented in the [changelog](CHANGELOG.md).
+
+## Development
+
+Contributor setup, tests, coverage, code style, and pull-request expectations are
+documented in the [contribution guide](CONTRIBUTING.md). The locked development
+environment can be installed with `uv sync --all-groups --locked`.
 
 ## License
 
-This is intended as a convenient tool for personal genealogy research. Please be aware of FindAGrave's [Terms of Service](https://secure.findagrave.com/terms.html).
+This is intended as a convenient tool for personal genealogy research. Review and
+comply with the current terms of any external service you use through graver.
 
 graver is distributed under the [MIT License](LICENSE). The license file retains
 the applicable historical copyright notices.
-
-## Acknowledgments
-
-The repository's earliest history and code began with Robert Pirtle's MIT-licensed
-[scrape-a-grave](https://github.com/pirtleshell/scrape-a-grave) project. That work
-helped inspire graver's original direction. graver has since been substantially
-redesigned and is independently maintained; this acknowledgment does not indicate
-an ongoing project affiliation or upstream relationship.
