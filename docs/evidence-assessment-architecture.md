@@ -240,6 +240,14 @@ summary, material-conflict count, unknown count, and complete signal explanation
 A raw score may exist internally or in an expanded diagnostic result, but ordinary
 presentation leads with evidence counts and conflicts rather than a percentage.
 
+The complete comparison context also identifies the exact input snapshots and
+assertions, original and normalized representations, applied rule identifiers and
+versions, researcher overrides, and ordering effects. A changed rule or override
+creates a new comparison context and never rewrites earlier research history. Rule
+transparency, non-configurable evidence safeguards, computational replay, audit
+export, and AI provenance are governed by the
+[trust, transparency, and openness architecture](trust-transparency-architecture.md).
+
 ## Application-service boundary
 
 Illustrative service capabilities are:

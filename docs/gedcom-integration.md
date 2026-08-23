@@ -40,6 +40,11 @@ Until those questions have favorable evidence, GEDCOM remains documentation-only
 and must not become a release criterion, schema dependency, public API promise, or
 reason to delay core researcher workflows.
 
+GEDCOM is one candidate import/export adapter under the broader
+[source-neutral adapter strategy](source-adapter-strategy.md). It must pass the same
+admission gates and scoring process as other candidates; its popularity does not
+grant it roadmap priority.
+
 ## Candidate capability order
 
 1. **Immutable import and inspection.** Read a GEDCOM dataset, identify its version

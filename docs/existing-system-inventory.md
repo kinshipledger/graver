@@ -377,8 +377,10 @@ uses that boundary while legacy dictionary- and tuple-returning functions remain
 compatibility projections. The internal offline evidence-assessment vertical slice
 is implemented without a public CLI or live provider. The first professional review
 gate R2 attempt did not pass; its decision-safety and citation-traceability
-corrections are implemented, but the public workspace facade remains unfrozen
-pending focused professional re-review.
+corrections are implemented. Two focused re-reviews verified evidence-selection
+fidelity and negative-search reproducibility, so R2 passes; the public workspace
+facade remains unfrozen for architectural work rather than because of an open R2
+blocker.
 `graver init [DATABASE]` now
 creates a new database with the current schema and selects it as the saved default.
 With no argument it creates
@@ -569,6 +571,27 @@ conclusions. Reviewed mappings, relationship workflows, privacy-filtered selecti
 export, GEDZIP, and broader compatibility remain separately gated possibilities in
 the canonical
 [GEDCOM integration architecture](gedcom-integration.md).
+
+The planned [source-neutral adapter strategy](source-adapter-strategy.md) now
+governs future source expansion. It separates source class, carrier format, access
+surface, and workflow role; defines discovery, observation, import, and export
+adapter roles; and requires authorization, provenance, privacy, offline-fixture,
+and conclusion-safety gates before candidates are scored. No generic evidence
+packet, research-log importer, civil-record adapter, census adapter, probate
+adapter, or universal source ontology is currently implemented. These are bounded
+contract probes or conditional candidates, not current capabilities or 1.0 feature
+commitments.
+
+The planned [trust, transparency, and openness architecture](trust-transparency-architecture.md)
+records four visible trust layers, computational versus genealogical
+reproducibility, rule-version and comparison-trace requirements, invariant evidence
+safeguards, future AI provenance, and a minimum independently interpretable audit
+projection. Current comparison persistence records original assertion mappings,
+normalized values, an algorithm version, numeric ordering contributions, and
+plain-language explanations; current typed comparison records do not yet expose the
+entire replay context, and no portable audit-bundle specification or independent
+validator is implemented. No configurable rule-pack system or rules marketplace is
+implemented.
 
 For pre-1.0 compatibility, acquisition and write paths still initialize a missing or
 empty database with the current schema. They no longer migrate recognized legacy

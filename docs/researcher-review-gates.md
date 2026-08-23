@@ -31,6 +31,23 @@ researcher review will happen later does not complete a gate.
 | R2 — Offline workflow validation | [#27](https://github.com/mcqueary/graver/issues/27) | Fixture-driven evidence slice works end to end | Moderated ambiguous-case workflow and recorded usability report | Public workspace façade freeze and detailed evidence-GUI design |
 | R3 — Evidence-workflow acceptance | [#28](https://github.com/mcqueary/graver/issues/28) | Production GUI supports candidate comparison and reviewed conclusions | Repeat of the original professional usability audit using ordinary installation and documentation | Declaring the evidence workflow production-ready and expanding it into WikiTree/family workflows |
 
+R1–R3 govern the current evidence workflow. Materially new source families use the
+same governing rule through focused source reviews rather than waiting for another
+large numbered gate:
+
+- **Source contract review:** before source-facing public types are frozen or a new
+  evidence family introduces unreviewed genealogical semantics.
+- **Source vertical-slice review:** after its first usable, privacy-safe workflow and
+  before the adapter is described as production-ready.
+- **Portfolio review:** after every two completed adapters or six months, whichever
+  comes first, to re-score candidates and stop, defer, or narrow work that no longer
+  advances demonstrated researcher needs.
+
+These focused reviews follow the same artifact, report, severity, and blocking-
+finding rules as the numbered gates. The canonical selection criteria and scope
+guardrails are in the
+[source-neutral adapter strategy](source-adapter-strategy.md).
+
 ## R1 — Evidence contract review
 
 **Current status:** Passed. The initial
@@ -38,7 +55,7 @@ researcher review will happen later does not complete a gate.
 one blocking and nine important findings. The independent
 [focused re-review](professional-researcher-r1-rereview-2026-08-23.md) verified all
 seven minimum corrections with no new blockers. Candidate/evidence persistence may
-proceed under the accepted contract; R2 remains the next researcher gate.
+proceed under the accepted contract; R2 subsequently passed as recorded below.
 
 ### Objective
 
@@ -218,6 +235,16 @@ Initial queue:
 - Which relationship comparisons provide the most value without overwhelming the
   researcher?
 - What reviewer attribution is appropriate for a single-user local application?
+- Which distinctions in synthetic civil, census, and probate examples are genuinely
+  shared source-contract needs rather than premature ontology design?
+- Which adapter candidate solves the strongest demonstrated researcher problem
+  after authorization, provenance, privacy, fixture, and conclusion-safety gates?
+- Can a researcher understand and reproduce candidate ordering from the visible
+  comparison trace without reading source code or configuration syntax?
+- Does the audit projection retain everything needed to interpret observations,
+  transformations, selected evidence, conflicts, and conclusions independently?
+- Is any configurable rule weakening an evidence-integrity safeguard that should be
+  invariant?
 
 ## Finding severity
 
