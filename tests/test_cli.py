@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict
 
 import pytest
+from click import unstyle
 from click.testing import Result
 
 import graver.api
@@ -795,7 +796,7 @@ class TestCliResearcherSurface(Test):
         result = helpers.graver_cli(command)
 
         assert result.exit_code == 0
-        rendered_help = " ".join(result.output.replace("│", " ").split())
+        rendered_help = " ".join(unstyle(result.output).replace("│", " ").split())
         for description in expected_descriptions:
             assert description in rendered_help
 
