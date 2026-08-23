@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict
 
 import pytest
+from click import unstyle
 from click.testing import Result
 
 import graver.api
@@ -22,7 +23,6 @@ from graver.constants import APP_NAME
 from graver.transport import TransportAccessBlocked
 
 from .test import Test
-
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -419,12 +419,10 @@ class TestCliQueueMemorials(TestCli):
         assert result.exit_code == 0
         assert "Created 2 research tasks; 0 already present." in result.output
         with sqlite3.connect(database) as connection:
-            tasks = connection.execute(
-                """SELECT sm.memorial_id, t.status, t.priority
+            tasks = connection.execute("""SELECT sm.memorial_id, t.status, t.priority
                    FROM research_tasks t
                    JOIN subject_memorials sm ON sm.subject_id=t.subject_id
-                   ORDER BY sm.memorial_id"""
-            ).fetchall()
+                   ORDER BY sm.memorial_id""").fetchall()
         assert tasks == [(1, "unprocessed", 4), (2, "unprocessed", 4)]
 
         repeated = helpers.graver_cli(
@@ -798,7 +796,7 @@ class TestCliResearcherSurface(Test):
         result = helpers.graver_cli(command)
 
         assert result.exit_code == 0
-        rendered_help = " ".join(result.output.split())
+        rendered_help = " ".join(unstyle(result.output).replace("│", " ").split())
         for description in expected_descriptions:
             assert description in rendered_help
 

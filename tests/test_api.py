@@ -40,7 +40,6 @@ from graver.transport import TransportRateLimited
 from graver.research import ResearchService
 from tests.test import Test
 
-
 logging.getLogger().setLevel(logging.INFO)
 
 
@@ -413,13 +412,11 @@ class TestDatabaseOps(TestApi):
     def test_explicit_upgrade_migrates_additive_columns(self, tmp_path):
         database_name = tmp_path / "legacy.db"
         with sqlite3.connect(database_name) as connection:
-            connection.execute(
-                """CREATE TABLE graves (
+            connection.execute("""CREATE TABLE graves (
                     memorial_id INTEGER PRIMARY KEY, findagrave_url TEXT,
                     name TEXT, birth TEXT, death TEXT, original_name TEXT,
                     birth_place TEXT, death_place TEXT, has_bio BOOL
-                )"""
-            )
+                )""")
             connection.executemany(
                 "INSERT INTO graves (memorial_id) VALUES (?)", [(123,), (456,), (789,)]
             )
@@ -484,25 +481,19 @@ class TestDatabaseOps(TestApi):
                 ).fetchall()
             }
             with pytest.raises(sqlite3.IntegrityError):
-                connection.execute(
-                    """INSERT INTO research_tasks (
+                connection.execute("""INSERT INTO research_tasks (
                         subject_id, status, priority, created_at, updated_at,
                         last_activity_at
                     ) VALUES ('00000000-0000-4000-8000-000000000000',
-                              'unprocessed', 0, 'now', 'now', 'now')"""
-                )
-            connection.execute(
-                """INSERT INTO research_subjects (subject_id, created_at)
-                   VALUES ('00000000-0000-4000-8000-000000000001', 'now')"""
-            )
+                              'unprocessed', 0, 'now', 'now', 'now')""")
+            connection.execute("""INSERT INTO research_subjects (subject_id, created_at)
+                   VALUES ('00000000-0000-4000-8000-000000000001', 'now')""")
             with pytest.raises(sqlite3.IntegrityError):
-                connection.execute(
-                    """INSERT INTO research_tasks (
+                connection.execute("""INSERT INTO research_tasks (
                         subject_id, status, priority, created_at, updated_at,
                         last_activity_at
                     ) VALUES ('00000000-0000-4000-8000-000000000001',
-                              'invalid', 0, 'now', 'now', 'now')"""
-                )
+                              'invalid', 0, 'now', 'now', 'now')""")
 
         assert {
             "graves",
@@ -608,10 +599,8 @@ class TestDatabaseOps(TestApi):
         full = self.full().save()
 
         with sqlite3.connect(database.name) as connection:
-            observation = connection.execute(
-                """SELECT acquisition_level, payload_json
-                   FROM memorial_observations"""
-            ).fetchone()
+            observation = connection.execute("""SELECT acquisition_level, payload_json
+                   FROM memorial_observations""").fetchone()
         assert observation[0] == "full"
         assert json.loads(observation[1]) == full.to_dict()
 
@@ -621,10 +610,8 @@ class TestDatabaseOps(TestApi):
         self.summary(name="second observation").save()
 
         with sqlite3.connect(database.name) as connection:
-            observations = connection.execute(
-                """SELECT observation_id, payload_json
-                   FROM memorial_observations ORDER BY observation_id"""
-            ).fetchall()
+            observations = connection.execute("""SELECT observation_id, payload_json
+                   FROM memorial_observations ORDER BY observation_id""").fetchall()
         assert len(observations) == 2
         assert observations[0][0] != observations[1][0]
         assert json.loads(observations[0][1])["name"] == "first observation"
@@ -645,13 +632,11 @@ class TestDatabaseOps(TestApi):
         summary = self.summary(name="preserved name")
         summary.save()
         with sqlite3.connect(database.name) as connection:
-            connection.execute(
-                """CREATE TRIGGER fail_observation
+            connection.execute("""CREATE TRIGGER fail_observation
                    BEFORE INSERT ON memorial_observations
                    BEGIN
                        SELECT RAISE(FAIL, 'observation failed');
-                   END"""
-            )
+                   END""")
 
         with pytest.raises(sqlite3.IntegrityError, match="observation failed"):
             self.summary(name="rolled back name").save()
@@ -1166,11 +1151,9 @@ class TestMemorialAliases:
                 "UPDATE research_tasks SET status='ready_for_full_scrape', "
                 "updated_at='before', last_activity_at='before'"
             )
-            connection.execute(
-                """CREATE TRIGGER fail_alias_observation
+            connection.execute("""CREATE TRIGGER fail_alias_observation
                    BEFORE INSERT ON memorial_alias_observations
-                   BEGIN SELECT RAISE(FAIL, 'alias observation failed'); END"""
-            )
+                   BEGIN SELECT RAISE(FAIL, 'alias observation failed'); END""")
         monkeypatch.setattr(graver.api, "_utc_now_iso", lambda: "after")
         error = MemorialMergedException(
             "merged",

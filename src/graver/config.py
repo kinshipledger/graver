@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Optional
 
-
 DEFAULT_DATABASE = "graves.db"
 DATABASE_ENVIRONMENT_VARIABLE = "GRAVER_DB"
 DATABASE_CONFIG_KEY = "default_database"
