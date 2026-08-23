@@ -23,6 +23,11 @@ defines the boundary between candidate discovery, machine ranking, researcher
 assessment, and reviewed conclusions. It is the governing contract for the planned
 offline evidence vertical slice and later FamilySearch-facing clients.
 
+The [professional researcher review gates](researcher-review-gates.md) define the
+R1 contract review, R2 offline-workflow validation, and R3 production acceptance
+checkpoints. Each engagement uses the canonical
+[professional researcher review report template](templates/professional-researcher-review-report.md).
+
 The outer project-level `docs/*.md` paths are local compatibility symbolic links
 for tools and conversations that begin at the parent project root. Future
 inventory, context, and roadmap changes must be made only in this directory.

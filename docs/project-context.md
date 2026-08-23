@@ -32,6 +32,14 @@ hygiene/documentation, and the other pre-RC gates. GEDCOM remains a periodically
 re-evaluated nice-to-have outside the critical path. No live FamilySearch, WikiTree,
 production GUI, background-job, or GEDCOM implementation has begun.
 
+Professional alignment is controlled by the canonical
+[researcher review gates](researcher-review-gates.md). R1 blocks candidate/evidence
+persistence until the evidence contract has been exercised with a researcher; R2
+blocks the public workspace freeze and detailed evidence-GUI design until the
+offline workflow has been validated; R3 blocks production-readiness claims and
+downstream WikiTree/family workflow expansion until the production evidence
+experience passes a repeat of the original professional review.
+
 ## Objective
 
 Systematically connect well-researched people to the WikiTree World Tree, beginning with populations discovered from Find a Grave cemeteries.
@@ -956,78 +964,88 @@ Pre-1.0 sequence:
    operations from the existing root functions onto those services, keep SQL private,
    preserve behavior through adapter-parity tests, and retain extension points for
    the accepted evidence-assessment contract.
-6. Implement the offline evidence vertical slice using curated FamilySearch-shaped
+6. Prepare low-fidelity evidence-workflow artifacts and complete professional review
+   gate R1. Resolve or explicitly accept every blocking finding before implementing
+   candidate or evidence persistence.
+7. Implement the offline evidence vertical slice using curated FamilySearch-shaped
    fixtures: immutable discovery runs and candidate snapshots, assertion-level
    comparison signals, explainable candidate ordering, evolving assessments,
    negative searches and unresolved questions, and immutable reviewed conclusions.
    Perform no live FamilySearch request, expose no persistence-shaped public CLI,
    and allow no automatic identity acceptance.
-7. Complete the dedicated API hygiene and documentation milestone: explicit public
+8. Complete professional review gate R2 against the end-to-end offline workflow.
+   Resolve or explicitly accept every blocking finding before freezing the public
+   workspace façade or detailed evidence-GUI information architecture.
+9. Complete the dedicated API hygiene and documentation milestone: explicit public
    exports and type boundaries, Google-style public docstrings, evidenced dead-code
    cleanup, offline API examples, and bounded documentation/type/unused-code checks.
-8. Complete a dependency-security and software-supply-chain milestone: triage all
+10. Complete a dependency-security and software-supply-chain milestone: triage all
    GitHub dependency alerts against the default branch and current lockfile, update or
    remove affected direct and transitive packages, verify the locked dependency
    graph and built wheel, enable bounded automated dependency/security checks, and
    document supported reporting and remediation practices. Treat alert counts as
    dated observations rather than release criteria; `1.0.0rc1` requires no
    unresolved known vulnerability without an explicit, documented risk decision.
-9. Modernize offline test boundaries, default network denial, deterministic domain
+11. Modernize offline test boundaries, default network denial, deterministic domain
    fixtures and Faker, temporary lifecycle, markers, replay-only contracts, and the
    bounded live-contract probe.
-10. Define and freeze the public graver workspace facade, typed requests and results,
+12. Define and freeze the public graver workspace facade, typed requests and results,
    documented imports and stability policy, exception taxonomy, transaction and
    threading contract, progress, cancellation, stale-update handling, injectable
    transport and nondeterminism, semantic-versioning policy, and typed candidate,
    evidence, assessment, conclusion, acquisition-receipt, and provenance projections
    validated by the offline slice.
-11. Move remaining researcher-directed acquisition and CLI workflows onto those
+13. Move remaining researcher-directed acquisition and CLI workflows onto those
    application services, validate the shared boundaries, and add CLI/API parity
    tests while preserving the tutorial's human workflow. Add researcher-readable
    acquisition receipts without exposing raw persistence entities.
-12. Validate researcher-directed acquisition against the current access policy, then
+14. Validate researcher-directed acquisition against the current access policy, then
    complete each provider's authorization and policy gate. Any pre-1.0 import support
    must use authorized data, and no unattended Find a Grave enrichment is enabled.
-13. Define import-first boundaries and provider-neutral background-job services
+15. Define import-first boundaries and provider-neutral background-job services
    before any public job API is frozen. Provider-specific unattended adapters remain
    unavailable unless their authorization gate is satisfied.
-14. Complete remaining runtime/test dependency separation; retain `Driver` and
+16. Complete remaining runtime/test dependency separation; retain `Driver` and
    implementation mechanics as internal details.
-15. Add command-specific versioned JSON envelopes as adapter projections of the same
+17. Add command-specific versioned JSON envelopes as adapter projections of the same
    typed application results.
-16. Normalize acquisition options and remove duplicate, site-shaped, and hidden
+18. Normalize acquisition options and remove duplicate, site-shaped, and hidden
    pre-1.0 compatibility paths.
-17. Support `python -m graver` through `graver.__main__`.
-18. Maintain the uv-based Python 3.11-through-3.14 CI, Conventional Commit PR-title
+19. Support `python -m graver` through `graver.__main__`.
+20. Maintain the uv-based Python 3.11-through-3.14 CI, Conventional Commit PR-title
    enforcement, reviewed changelog, and manually gated Release Please workflow.
-19. Finish the public API guide, database and 0.1 migration instructions,
+21. Finish the public API guide, database and 0.1 migration instructions,
    compatibility and release notes, and the later authorized branch/tag plan.
-20. Build the separate consumer spike against the installed wheel, validating the
+22. Build the separate consumer spike against the installed wheel, validating the
    documented facade without private imports or direct SQLite access. It may
    exercise mocked jobs but performs no live bulk acquisition.
-21. Resolve spike findings and complete any required provider-neutral job-service
+23. Resolve spike findings and complete any required provider-neutral job-service
    contracts without enabling an unauthorized provider adapter. Prepare
    `1.0.0rc1` without weakening migration,
    provenance, concurrency, or offline-test guarantees.
-22. Validate the release candidate, re-evaluate whether GEDCOM has demonstrated
+24. Validate the release candidate, re-evaluate whether GEDCOM has demonstrated
     enough value for later implementation, and release graver `1.0.0` after the core
     findings are resolved. GEDCOM is not a release criterion.
 
 Post-1.0 compatible sequence:
 
-23. Begin the production desktop GUI with workspace/database lifecycle, work queue,
+25. Begin the production desktop GUI with workspace/database lifecycle, work queue,
    subject detail, and one-person acquisition/provenance review.
-24. Connect an authorized live FamilySearch adapter to the already validated
+26. Connect an authorized live FamilySearch adapter to the already validated
    candidate, evidence, assessment, and conclusion application services. Live data
    must not redefine the offline-tested domain semantics.
-25. Implement import-first bulk acquisition for the smallest demonstrated authorized
+27. Implement import-first bulk acquisition for the smallest demonstrated authorized
    formats not already supported in 1.0.
-26. Add provider-authorized background acquisition only after a repeated policy and
+28. Add provider-authorized background acquisition only after a repeated policy and
    permission review; production GUI scheduling uses the same durable job service.
-27. Extend GUI and CLI evidence-research workflows over those services.
-28. Add WikiTree reconciliation, evidence summaries, and family work packets.
-29. Extend the production GUI across the complete reviewed research workflow.
-30. After the GUI work-queue vertical slice has been road-tested, re-evaluate GEDCOM
+29. Extend GUI and CLI evidence-research workflows over those services.
+30. Complete professional review gate R3 by repeating the original professional
+    usability audit against the production evidence workflow. Resolve or explicitly
+    accept every blocking finding before claiming production readiness or expanding
+    into WikiTree and family workflows.
+31. Add WikiTree reconciliation, evidence summaries, and family work packets.
+32. Extend the production GUI across the complete reviewed research workflow.
+33. After the GUI work-queue vertical slice has been road-tested, re-evaluate GEDCOM
     using concrete researcher needs. Only if justified, begin immutable GEDCOM 7 and
     5.5.1 inspection and repeatable comparison; reviewed mappings, relationships,
     and privacy-filtered selective export remain separately approved later stages.
