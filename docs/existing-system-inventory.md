@@ -458,6 +458,17 @@ GUI work follows graver 1.0 and begins with the stable workspace/work-queue vert
 slice before expanding alongside FamilySearch, reviewed identity, WikiTree, and
 family-work services.
 
+The accepted
+[evidence assessment and identity conclusion architecture](evidence-assessment-architecture.md)
+is now a pre-facade design gate. After the remaining subject-oriented repository and
+service refactor, a completely offline vertical slice will use curated
+FamilySearch-shaped fixtures to validate immutable discovery runs and candidate
+snapshots, assertion-level comparison signals, explainable candidate ordering,
+evolving researcher assessments, negative searches, unresolved questions, and
+immutable reviewed conclusions. This is planned work and no such persistence or
+service is implemented today. It performs no provider request, adds no public
+persistence-shaped CLI, and cannot accept an identity automatically.
+
 After the typed application boundary and researcher-directed acquisition have been
 validated, provider authorization gates and import-first/provider-neutral job
 abstractions are planned before any public background-job API is frozen. Authorized
@@ -527,14 +538,14 @@ signal unreliable. Confirm current Find a Grave terms, robots directives, and
 automation guidance before scheduling it. Do not let an unclassified live-site or
 runner failure automatically block an unrelated release.
 
-After the pre-1.0 sequence and the `1.0.0rc1` validation are complete, FamilySearch
-workflows should extend the same `work` surface rather than adding one command per
-persistence entity. A candidate is a hypothesis whose status, match signals,
-supporting and conflicting evidence, confidence, and reasoning can evolve during
-research. A
-reviewed identity conclusion must come afterward and explicitly record an
-accepted, rejected, or unresolved result. It must not be required before the
-FamilySearch research needed to support it.
+After the offline contract slice and the `1.0.0rc1` validation are complete, an
+authorized live FamilySearch adapter may extend the same application services and
+`work` surface rather than adding one command per persistence entity. A candidate is
+a hypothesis whose assessment state, explainable match signals, supporting and
+conflicting evidence, and reasoning can evolve during research. Candidate ranking
+is decision support, not proof confidence. A reviewed identity conclusion must come
+after the supporting research and explicitly record an accepted, rejected,
+unresolved, or withdrawn result.
 
 Candidate discovery must be safely repeatable for the same memorial at any time so
 that later FamilySearch corrections, newly attached sources, repaired family
