@@ -14,6 +14,7 @@ from graver.evidence import (
     ConclusionRequest,
     DiscoveryRequest,
     EvidenceInputError,
+    EvidenceNotFound,
     EvidenceService,
     StaleAssessment,
 )
@@ -88,6 +89,142 @@ def test_discovery_rejects_duplicate_provider_profiles():
                 CandidateFixture("K1AB-CDE", "2026-08-23T11:00:00Z", {}),
                 CandidateFixture("K1AB-CDE", "2026-08-23T11:00:00Z", {}),
             ),
+        )
+
+
+@pytest.mark.parametrize(
+    "factory, message",
+    (
+        (
+            lambda: DiscoveryRequest(
+                "subject", "provider", {}, "start", "end", "v1", outcome="invalid"
+            ),
+            "Invalid discovery outcome",
+        ),
+        (
+            lambda: DiscoveryRequest(
+                "subject",
+                "provider",
+                {},
+                "start",
+                "end",
+                "v1",
+                (CandidateFixture("P1", "now", {}),),
+                "no_results",
+            ),
+            "no-results",
+        ),
+        (
+            lambda: DiscoveryRequest("", "provider", {}, "start", "end", "v1"),
+            "Subject identifier",
+        ),
+        (
+            lambda: ComparisonSignalInput("birth", "invalid", "explanation"),
+            "Invalid signal classification",
+        ),
+        (
+            lambda: AssessmentUpdate("candidate", 1, "invalid", "researcher"),
+            "Invalid assessment state",
+        ),
+        (
+            lambda: AssessmentUpdate("candidate", 1, "deferred", "researcher"),
+            "reason is required",
+        ),
+        (
+            lambda: AssessmentUpdate(
+                "candidate", 1, "reopened", "researcher", "new evidence"
+            ),
+            "earlier record identifier",
+        ),
+        (
+            lambda: ConclusionRequest(
+                "candidate", "invalid", "researcher", "analysis", ({},), ()
+            ),
+            "Invalid conclusion disposition",
+        ),
+        (
+            lambda: ConclusionRequest(
+                "candidate",
+                "unresolved",
+                "researcher",
+                "analysis",
+                ({"record_id": "R1"},),
+                (),
+            ),
+            "record_id, observed_at, and assertions",
+        ),
+        (
+            lambda: ConclusionRequest(
+                "candidate",
+                "withdrawn",
+                "researcher",
+                "analysis",
+                ({"record_id": "R1", "observed_at": "now", "assertions": ["name"]},),
+                (),
+            ),
+            "prior conclusion",
+        ),
+    ),
+)
+def test_evidence_requests_reject_unsafe_inputs(factory, message):
+    with pytest.raises(EvidenceInputError, match=message):
+        factory()
+
+
+def test_service_lookup_failures_and_noop_assessment_are_safe(tmp_path):
+    path, subject_id = make_subject_database(tmp_path)
+    service = EvidenceService(str(path))
+    with pytest.raises(EvidenceInputError, match="Algorithm version"):
+        service.record_comparison("missing", "", ())
+    with pytest.raises(EvidenceNotFound, match="Candidate snapshot"):
+        service.record_comparison("missing", "fixture-ordering/1", ())
+    with pytest.raises(EvidenceNotFound, match="Research subject"):
+        service.record_discovery(
+            discovery(str(uuid.uuid4()), "2026-08-23T11:00:00Z", ())
+        )
+    snapshot = service.record_discovery(
+        discovery(
+            subject_id,
+            "2026-08-23T11:00:00Z",
+            (CandidateFixture("K1AB-CDE", "2026-08-23T11:00:00Z", {}),),
+        )
+    ).snapshots[0]
+    unchanged = service.update_assessment(
+        AssessmentUpdate(snapshot.candidate_id, 1, "new", "L. Researcher")
+    )
+    assert unchanged.version == 1
+    assert len(service.assessment_history(snapshot.candidate_id)) == 1
+    with pytest.raises(EvidenceNotFound, match="does not exist"):
+        service.get_assessment("missing")
+    with pytest.raises(EvidenceNotFound, match="does not exist"):
+        service.update_assessment(
+            AssessmentUpdate("missing", 1, "reviewing", "L. Researcher")
+        )
+    valid_reference = (
+        {"record_id": "R1", "observed_at": "now", "assertions": ["name"]},
+    )
+    with pytest.raises(EvidenceNotFound, match="does not exist"):
+        service.record_conclusion(
+            ConclusionRequest(
+                "missing",
+                "unresolved",
+                "L. Researcher",
+                "analysis",
+                valid_reference,
+                (),
+            )
+        )
+    with pytest.raises(EvidenceInputError, match="same candidate"):
+        service.record_conclusion(
+            ConclusionRequest(
+                snapshot.candidate_id,
+                "accepted",
+                "L. Researcher",
+                "analysis",
+                valid_reference,
+                (),
+                "missing-conclusion",
+            )
         )
 
 
