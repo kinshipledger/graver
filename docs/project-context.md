@@ -8,11 +8,12 @@ The repository is on the single long-lived `main` branch with only
 copyright provenance remains preserved, while the README makes clear that graver is
 independently maintained and has no ongoing upstream affiliation.
 
-The implemented foundation includes schema version 2 subject-owned research tasks,
+The implemented foundation includes schema version 3, subject-owned research tasks,
 explicit backed-up database upgrades, person-at-a-time acquisition, fail-closed
 Requests transport, the researcher tutorial, trunk-based release automation, and a
-dedicated branch-coverage CI job. The latest complete local run passed 345 tests and
-measured 90.58% branch coverage against a 90% floor. Coveralls reporting, the six
+dedicated branch-coverage CI job. The latest complete local run passed 356 tests;
+the current coverage run measured 90.83% branch coverage against a
+90% floor. Coveralls reporting, the six
 honest README badges, Python 3.11–3.14 CI, Black, locked uv environments, wheel
 verification, and Conventional Commit pull-request-title enforcement are current.
 GitHub's CI run for the current checkpoint commit `b3f780a` completed successfully.
@@ -37,8 +38,10 @@ application-service refactor now covers typed task queries, partial updates, que
 requests/results, task records, detail aggregates, one-person enrichment, and typed
 workflow failures behind `ResearchService`. All visible `work` commands use that
 boundary while legacy dictionaries and tuples remain compatibility projections.
-The next bounded slice is the offline evidence-assessment vertical slice that must
-precede the public workspace-facade freeze.
+The internal offline evidence-assessment vertical slice is now implemented with
+curated fixtures and no live provider or public CLI. Professional review gate R2 is
+the next experiential checkpoint and still precedes the public workspace-facade
+freeze.
 
 Professional alignment is controlled by the canonical
 [researcher review gates](researcher-review-gates.md). R1 blocks candidate/evidence
@@ -1002,7 +1005,7 @@ Pre-1.0 sequence:
 6. Prepare low-fidelity evidence-workflow artifacts and complete professional review
    gate R1. Resolve or explicitly accept every blocking finding before implementing
    candidate or evidence persistence.
-7. Implement the offline evidence vertical slice using curated FamilySearch-shaped
+7. **Completed internally:** Implement the offline evidence vertical slice using curated FamilySearch-shaped
    fixtures: immutable discovery runs and candidate snapshots, assertion-level
    comparison signals, explainable candidate ordering, evolving assessments,
    negative searches and unresolved questions, and immutable reviewed conclusions.

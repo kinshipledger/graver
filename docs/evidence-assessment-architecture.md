@@ -1,6 +1,7 @@
 # Evidence assessment and identity conclusion architecture
 
-**Status:** Accepted direction; implementation pending
+**Status:** R1-approved contract; internal offline vertical slice implemented;
+R2 review pending
 **Decision date:** 2026-08-22
 **Drivers:** Professional Genealogist Usability Review and principal architecture
 analysis
@@ -23,7 +24,7 @@ It will not add live FamilySearch access or a production GUI.
 
 ## Context
 
-The implemented schema-v2 research subject is an opaque owner of person-level
+The research subject introduced in schema v2 is an opaque owner of person-level
 research. Find a Grave memorials remain source records associated with that subject;
 their presence does not by itself constitute a cross-platform identity conclusion.
 
@@ -292,7 +293,7 @@ fixtures and no provider authentication or network access.
 
 It must demonstrate:
 
-1. An existing schema-v2 research subject.
+1. An existing research subject in the current schema.
 2. One discovery run returning at least two plausible candidates.
 3. Immutable candidate snapshots containing facts, relationships, and source
    references.
