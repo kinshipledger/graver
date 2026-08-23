@@ -23,7 +23,7 @@ dependencies = [
     "tqdm==4.66.1",
     "typer[all]>=0.9.0,<0.10",
     "click>=8.1,<8.2",
-    "requests>=2.31,<3",
+    "requests>=2.33.0,<3",
     "dill>=0.3.7,<0.4",
     "types-python-dateutil>=2.8.19.14,<3",
     "betamax>=0.8.1",
