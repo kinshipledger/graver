@@ -27,7 +27,7 @@ dependencies = [
     "dill>=0.3.7,<0.4",
     "types-python-dateutil>=2.8.19.14,<3",
     "betamax>=0.8.1",
-    "pytest>=7.4.4",
+    "pytest>=9.0.3",
     "faker>=21.0.1",
 ]
 
@@ -37,7 +37,7 @@ graver = "graver.cli:app"
 [dependency-groups]
 test = [
     "flake8>=6.1.0,<7",
-    "pytest>=7.4.3,<8",
+    "pytest>=9.0.3,<10",
     "pytest-cov>=7.1.0,<8",
     "pytest-helpers-namespace>=2021.12.29,<2022",
     "pytest-integration>=0.2.3,<0.3",
