@@ -350,11 +350,13 @@ Keep the existing scraper and its `graves` table as the **Find a Grave acquisiti
 The task-oriented CLI, explicit database lifecycle, and schema-v2 subject ownership
 are complete, but raw JSON, broad exports, compatibility aliases,
 dependency boundaries, and accidental internal APIs must not be frozen as the 1.0
-contract. Before
-beginning FamilySearch work, follow the ordered pre-1.0 roadmap in
-`docs/project-context.md`; the next planned work is the subject-oriented internal
-repository/application-service refactor, followed by the dedicated API-hygiene and
-documentation milestone before the public workspace facade is frozen.
+contract. Before beginning FamilySearch work, follow the ordered pre-1.0 roadmap in
+`docs/project-context.md`. The first subject-oriented application-service slice now
+provides typed task queries, updates, summaries, records, details, and input errors;
+`work list`, `next`, `show`, and `mark` use that boundary while legacy dictionary
+functions remain compatibility projections. Queue and enrichment migration are the
+next slice, followed by the dedicated API-hygiene and documentation milestone before
+the public workspace facade is frozen.
 `graver init [DATABASE]` now
 creates a new database with the current schema and selects it as the saved default.
 With no argument it creates
@@ -435,10 +437,11 @@ reassociation, preferred memorial selection, external-platform persistence,
 versioned envelopes, and hidden-command removal remain explicitly deferred.
 
 The public application-service facade is now planned alongside the subject-oriented
-API work rather than as a late packaging-only cleanup. New subject operations should
-use internal repositories and typed application services, keep persistence rows and
-SQL private, and move the `work` CLI toward the same operations future GUI clients
-will call. A synchronous workspace opened from an explicit database path is the
+API work rather than as a late packaging-only cleanup. Typed task request and result
+objects are implemented internally in `graver.research`, and the principal read and
+update CLI workflows use them. Persistence rows and SQL remain private to the
+repository/service implementation; these types are not yet the frozen public
+workspace API. A synchronous workspace opened from an explicit database path is the
 leading design because it offers cohesive ownership and discoverability without a
 long-lived connection; the CLI, not the workspace, continues to resolve database
 configuration and precedence.

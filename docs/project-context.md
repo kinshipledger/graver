@@ -11,13 +11,15 @@ independently maintained and has no ongoing upstream affiliation.
 The implemented foundation includes schema version 2 subject-owned research tasks,
 explicit backed-up database upgrades, person-at-a-time acquisition, fail-closed
 Requests transport, the researcher tutorial, trunk-based release automation, and a
-dedicated branch-coverage CI job. The latest complete local run passed 340 tests and
+dedicated branch-coverage CI job. The latest complete local run passed 345 tests and
 measured 90.58% branch coverage against a 90% floor. Coveralls reporting, the six
 honest README badges, Python 3.11–3.14 CI, Black, locked uv environments, wheel
 verification, and Conventional Commit pull-request-title enforcement are current.
 GitHub's CI run for the current checkpoint commit `b3f780a` completed successfully.
 The coverage run exposed unclosed-SQLite `ResourceWarning`s that remain explicit
-testing-lifecycle cleanup work.
+testing-lifecycle cleanup work. Repeated per-test schema construction has been
+replaced by isolated copies of one session template, reducing the protected Windows
+lane from 9m51s to 1m24s without sharing mutable database state.
 
 The professional-researcher usability baseline and principal architecture response
 are now recorded. They establish that candidate discovery, machine ranking,
@@ -30,7 +32,12 @@ step remains the subject-oriented repository and application-service refactor,
 informed by this evidence contract, followed by the offline slice, API
 hygiene/documentation, and the other pre-RC gates. GEDCOM remains a periodically
 re-evaluated nice-to-have outside the critical path. No live FamilySearch, WikiTree,
-production GUI, background-job, or GEDCOM implementation has begun.
+production GUI, background-job, or GEDCOM implementation has begun. The first
+application-service slice is implemented: typed task queries, partial-update
+commands, queue summaries, task records, detail aggregates, and input errors now sit
+behind `ResearchService`; `work list`, `next`, `show`, and `mark` use that typed
+boundary while legacy dictionary APIs remain compatibility projections. Queue and
+enrichment migration are the next bounded slice.
 
 Professional alignment is controlled by the canonical
 [researcher review gates](researcher-review-gates.md). R1 blocks candidate/evidence

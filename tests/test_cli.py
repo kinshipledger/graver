@@ -675,8 +675,8 @@ class TestCliResearcherSurface(Test):
         assert helpers.graver_cli(f"use '{saved}'").exit_code == 0
         calls = []
         monkeypatch.setattr(
-            "graver.cli.ResearchService.list_tasks",
-            lambda service, *_args: calls.append(service.database_name) or [],
+            "graver.cli.ResearchService.query_tasks",
+            lambda service, *_args: calls.append(service.database_name) or (),
         )
 
         monkeypatch.delenv("GRAVER_DB")

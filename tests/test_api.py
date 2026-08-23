@@ -37,7 +37,15 @@ from graver import (
     update_research_task,
 )
 from graver.transport import TransportRateLimited
-from graver.research import ResearchService
+from graver.research import (
+    ResearchInputError,
+    ResearchService,
+    ResearchTaskDetail,
+    ResearchTaskQuery,
+    ResearchTaskRecord,
+    ResearchTaskSummary,
+    ResearchTaskUpdate,
+)
 from tests.test import Test
 
 logging.getLogger().setLevel(logging.INFO)
@@ -760,6 +768,49 @@ class TestDatabaseOps(TestApi):
         assert updated == show_research_task(database.name, summary.memorial_id)["task"]
         assert updated["memorial_id"] == summary.memorial_id
         assert "subject_id" not in updated
+
+    def test_subject_service_exposes_typed_queries_and_updates(self, database):
+        summary = self.summary().save()
+        service = ResearchService(database.name)
+        service.queue_memorials(priority=4)
+
+        tasks = service.query_tasks(ResearchTaskQuery(limit=1))
+        detail = service.get_task(summary.memorial_id)
+        updated = service.apply_task_update(
+            ResearchTaskUpdate(summary.memorial_id, status="researching")
+        )
+
+        assert isinstance(tasks, tuple)
+        assert isinstance(tasks[0], ResearchTaskSummary)
+        assert tasks[0].memorial_id == summary.memorial_id
+        assert isinstance(detail, ResearchTaskDetail)
+        assert isinstance(detail.task, ResearchTaskRecord)
+        assert detail.task.subject_id
+        assert detail.task.memorial_id == summary.memorial_id
+        assert updated.status == "researching"
+        assert updated.subject_id == detail.task.subject_id
+        assert "subject_id" not in detail.to_compatibility_dict()["task"]
+
+    @pytest.mark.parametrize(
+        "request_factory, message",
+        [
+            (lambda: ResearchTaskQuery(status="invalid"), "Invalid task status"),
+            (lambda: ResearchTaskQuery(limit=0), "Limit must be at least 1"),
+            (
+                lambda: ResearchTaskUpdate(1075),
+                "At least one task change is required",
+            ),
+            (
+                lambda: ResearchTaskUpdate(1075, status="invalid"),
+                "Invalid task status",
+            ),
+        ],
+    )
+    def test_typed_research_requests_validate_at_the_boundary(
+        self, request_factory, message
+    ):
+        with pytest.raises(ResearchInputError, match=message):
+            request_factory()
 
     def test_show_task_includes_cemetery_and_chronological_observations(
         self, database, monkeypatch
