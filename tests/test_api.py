@@ -38,7 +38,14 @@ from graver import (
 )
 from graver.transport import TransportRateLimited
 from graver.research import (
+    EnrichmentAliasBlocked,
+    EnrichmentFailed,
+    EnrichmentNotApproved,
     ResearchInputError,
+    ResearchEnrichmentRequest,
+    ResearchEnrichmentResult,
+    ResearchQueueRequest,
+    ResearchQueueResult,
     ResearchService,
     ResearchTaskDetail,
     ResearchTaskQuery,
@@ -790,6 +797,89 @@ class TestDatabaseOps(TestApi):
         assert updated.status == "researching"
         assert updated.subject_id == detail.task.subject_id
         assert "subject_id" not in detail.to_compatibility_dict()["task"]
+
+    def test_subject_service_exposes_typed_queue_result(self, database):
+        self.summary().save()
+        service = ResearchService(database.name)
+
+        first = service.queue_research(ResearchQueueRequest(priority=4))
+        second = service.queue_research(ResearchQueueRequest(priority=9))
+
+        assert first == ResearchQueueResult(created=1, existing=0)
+        assert second == ResearchQueueResult(created=0, existing=1)
+        assert service.queue_memorials(priority=9) == (0, 1)
+
+    def test_typed_enrichment_validates_before_acquisition(self, database):
+        summary = self.summary().save()
+        service = ResearchService(database.name)
+        service.queue_research(ResearchQueueRequest())
+        calls = []
+
+        with pytest.raises(EnrichmentNotApproved):
+            service.enrich_memorial(
+                ResearchEnrichmentRequest(summary.memorial_id),
+                acquire=lambda url: calls.append(url),
+            )
+
+        assert calls == []
+
+    def test_typed_enrichment_returns_result_and_preserves_projection(self, database):
+        summary = self.summary().save()
+        service = ResearchService(database.name)
+        service.queue_research(ResearchQueueRequest())
+        service.apply_task_update(
+            ResearchTaskUpdate(summary.memorial_id, status="ready_for_full_scrape")
+        )
+
+        result = service.enrich_memorial(
+            ResearchEnrichmentRequest(summary.memorial_id),
+            acquire=lambda _url: self.full(),
+        )
+
+        assert isinstance(result, ResearchEnrichmentResult)
+        assert result.memorial_id == summary.memorial_id
+        assert result.status == "full_scrape_complete"
+        assert result.to_compatibility_dict() == {
+            "memorial_id": summary.memorial_id,
+            "status": "full_scrape_complete",
+            "full_observed_at": result.full_observed_at,
+        }
+
+    def test_typed_enrichment_records_failure_and_known_alias_blocks_network(
+        self, database
+    ):
+        summary = self.summary().save()
+        service = ResearchService(database.name)
+        service.queue_research(ResearchQueueRequest())
+        service.apply_task_update(
+            ResearchTaskUpdate(summary.memorial_id, status="ready_for_full_scrape")
+        )
+
+        with pytest.raises(EnrichmentFailed, match="mock failure"):
+            service.enrich_memorial(
+                ResearchEnrichmentRequest(summary.memorial_id),
+                acquire=lambda _url: (_ for _ in ()).throw(
+                    MemorialParseException("mock failure")
+                ),
+            )
+        record_memorial_alias(
+            database.name,
+            summary.memorial_id,
+            999999,
+            "merged",
+            reason="fixture",
+        )
+        calls = []
+        with pytest.raises(EnrichmentAliasBlocked):
+            service.enrich_memorial(
+                ResearchEnrichmentRequest(summary.memorial_id),
+                acquire=lambda url: calls.append(url),
+            )
+
+        shown = service.get_task(summary.memorial_id)
+        assert calls == []
+        assert shown.task.status == "ready_for_full_scrape"
+        assert shown.observations[-1]["fetch_outcome"] == "failure"
 
     @pytest.mark.parametrize(
         "request_factory, message",

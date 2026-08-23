@@ -279,11 +279,13 @@ their approved pre-1.0 removal has not yet occurred.
 No desktop GUI currently exists. Current CLI and Python boundaries still expose a
 mixture of persistence-shaped dictionaries, root-level functions, SQLite-oriented
 details, and CLI-coupled presentation behavior. An internal synchronous
-`ResearchService` and private subject-task repository now own queue, list, show, and
-update operations; the visible `work` adapter uses that service, while existing
-root functions remain compatibility projections. Enrichment is coordinated through
-the service but its existing acquisition persistence functions have not yet been
-relocated. The broad root exports described above are not a stable 1.0 application
+`ResearchService` and the private subject-task repository now own typed queue, list,
+show, update, and one-person enrichment workflows; the visible `work` adapter uses
+that service, while existing root functions remain compatibility projections. The
+service enforces approval and alias preconditions before injected acquisition and
+maps success, redirect, and recorded failure outcomes to typed results or errors;
+existing acquisition persistence helpers remain internal compatibility boundaries.
+The broad root exports described above are not a stable 1.0 application
 API. No workspace facade, typed public result layer, neutral progress or cancellation
 protocol, optimistic concurrency control, or GUI integration has been implemented.
 
@@ -351,12 +353,13 @@ The task-oriented CLI, explicit database lifecycle, and schema-v2 subject owners
 are complete, but raw JSON, broad exports, compatibility aliases,
 dependency boundaries, and accidental internal APIs must not be frozen as the 1.0
 contract. Before beginning FamilySearch work, follow the ordered pre-1.0 roadmap in
-`docs/project-context.md`. The first subject-oriented application-service slice now
-provides typed task queries, updates, summaries, records, details, and input errors;
-`work list`, `next`, `show`, and `mark` use that boundary while legacy dictionary
-functions remain compatibility projections. Queue and enrichment migration are the
-next slice, followed by the dedicated API-hygiene and documentation milestone before
-the public workspace facade is frozen.
+`docs/project-context.md`. The subject-oriented application service now provides
+typed task queries, updates, summaries, records, details, queue requests/results,
+one-person enrichment results, and workflow errors. Every visible `work` command
+uses that boundary while legacy dictionary- and tuple-returning functions remain
+compatibility projections. The offline evidence-assessment vertical slice is next,
+followed by the dedicated API-hygiene and documentation milestone before the public
+workspace facade is frozen.
 `graver init [DATABASE]` now
 creates a new database with the current schema and selects it as the saved default.
 With no argument it creates

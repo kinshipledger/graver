@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from typing import Any, Callable, Mapping, Optional
 
 import graver.api as legacy_api
 from graver.api import (
@@ -21,10 +22,48 @@ from graver.api import (
     _sources_for_canonical,
 )
 from graver.database import validate_current_database
+from graver.constants import MEMORIAL_CANONICAL_URL_FORMAT
 
 
 class ResearchInputError(ValueError):
     """Report an invalid application-service request without presentation details."""
+
+
+class EnrichmentNotApproved(Exception):
+    """Report that a task has not been approved for full acquisition."""
+
+
+class EnrichmentAliasBlocked(Exception):
+    """Report that known redirect evidence blocks acquisition of a memorial."""
+
+    def __init__(self, memorial_id: int, canonical_id: int, path: tuple[int, ...]):
+        self.memorial_id = memorial_id
+        self.canonical_id = canonical_id
+        self.path = path
+        super().__init__(f"Memorial {memorial_id} redirects to {canonical_id}")
+
+
+class EnrichmentRedirected(Exception):
+    """Report newly observed redirect evidence recorded during acquisition."""
+
+    def __init__(self, memorial_id: int, target_memorial_id: int):
+        self.memorial_id = memorial_id
+        self.target_memorial_id = target_memorial_id
+        super().__init__(f"Memorial {memorial_id} redirects to {target_memorial_id}")
+
+
+class EnrichmentFailed(Exception):
+    """Report a recorded acquisition failure using safe researcher-facing context."""
+
+    def __init__(self, memorial_id: int, cause: Exception):
+        self.memorial_id = memorial_id
+        self.error_type = type(cause).__name__
+        self.message = " ".join(str(cause).split())
+        super().__init__(self.message)
+
+
+class EnrichmentRedirectInvalid(EnrichmentFailed):
+    """Report malformed or mismatched redirect evidence from acquisition."""
 
 
 @dataclass(frozen=True)
@@ -70,6 +109,59 @@ class ResearchTaskUpdate:
                 "review_note": self.review_note,
             }.items()
             if value is not None
+        }
+
+
+@dataclass(frozen=True)
+class ResearchQueueRequest:
+    """Describe a request to queue acquired memorials for research."""
+
+    cemetery_id: Optional[int] = None
+    priority: int = 0
+
+
+@dataclass(frozen=True)
+class ResearchQueueResult:
+    """Summarize idempotent research-task creation."""
+
+    created: int
+    existing: int
+
+    def to_compatibility_tuple(self) -> tuple[int, int]:
+        """Project the pre-1.0 queue return contract."""
+        return self.created, self.existing
+
+
+@dataclass(frozen=True)
+class ResearchEnrichmentRequest:
+    """Request retrieval of exactly one approved memorial."""
+
+    memorial_id: int
+
+
+@dataclass(frozen=True)
+class ResearchEnrichmentResult:
+    """Describe successful persistence of one full memorial observation."""
+
+    memorial_id: int
+    status: str
+    full_observed_at: str
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "ResearchEnrichmentResult":
+        """Create a typed result from the compatibility persistence boundary."""
+        return cls(
+            memorial_id=value["memorial_id"],
+            status=value["status"],
+            full_observed_at=value["full_observed_at"],
+        )
+
+    def to_compatibility_dict(self) -> dict[str, Any]:
+        """Project the existing command/API dictionary contract."""
+        return {
+            "memorial_id": self.memorial_id,
+            "status": self.status,
+            "full_observed_at": self.full_observed_at,
         }
 
 
@@ -345,6 +437,12 @@ class _ResearchTaskRepository:
         return bool(cursor.rowcount)
 
 
+def _memorial_id_from_url(url: str) -> Optional[int]:
+    """Extract a Find a Grave memorial identifier from redirect evidence."""
+    match = re.search(r"/memorial/(\d+)(?:/|$)", url)
+    return int(match.group(1)) if match else None
+
+
 @dataclass(frozen=True)
 class ResearchService:
     """Coordinate subject-owned research work for one explicit database."""
@@ -503,6 +601,13 @@ class ResearchService:
     def queue_memorials(
         self, cemetery_id: Optional[int] = None, priority: int = 0
     ) -> tuple[int, int]:
+        """Return the transitional queue tuple for existing callers."""
+        return self.queue_research(
+            ResearchQueueRequest(cemetery_id, priority)
+        ).to_compatibility_tuple()
+
+    def queue_research(self, command: ResearchQueueRequest) -> ResearchQueueResult:
+        """Create subject-owned tasks for acquired memorials idempotently."""
         _initialize_database(self.database_name)
         timestamp = legacy_api._utc_now_iso()
         with _connect(self.database_name) as connection:
@@ -510,14 +615,14 @@ class ResearchService:
             subject_ids = [
                 _ensure_subject_for_memorial(connection, memorial_id, timestamp)
                 for memorial_id in _ResearchTaskRepository.memorial_ids(
-                    connection, cemetery_id
+                    connection, command.cemetery_id
                 )
             ]
             eligible_subjects = list(dict.fromkeys(subject_ids))
             created = 0
             for subject_id in eligible_subjects:
                 if not _ResearchTaskRepository.create_task(
-                    connection, subject_id, priority, timestamp
+                    connection, subject_id, command.priority, timestamp
                 ):
                     continue
                 created += 1
@@ -531,7 +636,55 @@ class ResearchService:
                     _row_to_dict(task),
                     reason="queued_for_research",
                 )
-        return created, len(eligible_subjects) - created
+        return ResearchQueueResult(created, len(eligible_subjects) - created)
+
+    def enrich_memorial(
+        self,
+        command: ResearchEnrichmentRequest,
+        acquire: Optional[Callable[[str], object]] = None,
+    ) -> ResearchEnrichmentResult:
+        """Acquire and persist exactly one approved memorial with fail-closed safety."""
+        current = self.get_task(command.memorial_id)
+        if current.task.status != "ready_for_full_scrape":
+            raise EnrichmentNotApproved(
+                f"Task {command.memorial_id} is not ready_for_full_scrape"
+            )
+        resolution = self.resolve_alias(command.memorial_id)
+        path = tuple(resolution["path"])
+        if len(path) > 1:
+            raise EnrichmentAliasBlocked(
+                command.memorial_id,
+                resolution["canonical_memorial_id"],
+                path,
+            )
+        attempted_url = current.grave["findagrave_url"] or (
+            MEMORIAL_CANONICAL_URL_FORMAT.format(command.memorial_id)
+        )
+        acquire_memorial = acquire or legacy_api.Memorial.parse
+        try:
+            memorial = acquire_memorial(attempted_url)
+        except legacy_api.MemorialMergedException as merged:
+            source_id = _memorial_id_from_url(merged.old_url)
+            target_id = _memorial_id_from_url(merged.new_url)
+            if source_id != command.memorial_id or target_id is None:
+                self.record_enrichment_failure(
+                    command.memorial_id, attempted_url, merged
+                )
+                raise EnrichmentRedirectInvalid(command.memorial_id, merged) from merged
+            self.record_redirect_failure(
+                command.memorial_id,
+                target_id,
+                merged.old_url,
+                merged.new_url,
+                merged,
+            )
+            raise EnrichmentRedirected(command.memorial_id, target_id) from merged
+        except Exception as ex:
+            self.record_enrichment_failure(command.memorial_id, attempted_url, ex)
+            raise EnrichmentFailed(command.memorial_id, ex) from ex
+        return ResearchEnrichmentResult.from_mapping(
+            self.complete_enrichment(command.memorial_id, memorial)
+        )
 
     def complete_enrichment(self, memorial_id: int, memorial: object) -> dict:
         """Persist one successful approved memorial acquisition atomically."""

@@ -43,7 +43,18 @@ from graver.database import (
     create_database,
     upgrade_database,
 )
-from graver.research import ResearchService, ResearchTaskQuery, ResearchTaskUpdate
+from graver.research import (
+    EnrichmentAliasBlocked,
+    EnrichmentFailed,
+    EnrichmentNotApproved,
+    EnrichmentRedirected,
+    EnrichmentRedirectInvalid,
+    ResearchEnrichmentRequest,
+    ResearchQueueRequest,
+    ResearchService,
+    ResearchTaskQuery,
+    ResearchTaskUpdate,
+)
 from graver.transport import TransportError
 
 log = logging.getLogger(__name__)
@@ -613,16 +624,16 @@ def scrape_task(
     _enrich_task(memorial_id, db, researcher_output=False, json_output=True)
 
 
-def _approved_enrichment_task(
-    memorial_id: int, db: str, researcher_output: bool
-) -> dict:
-    """Load one approved task and reject known redirects before retrieval."""
+def _enrich_task(
+    memorial_id: int, db: str, researcher_output: bool, json_output: bool
+) -> None:
+    service = ResearchService(db)
     try:
-        current = ResearchService(db).show_task(memorial_id)
-    except (NotFound, ResearchTaskNotFound) as ex:
+        result = service.enrich_memorial(ResearchEnrichmentRequest(memorial_id))
+    except (NotFound, ResearchTaskNotFound, DatabaseLifecycleError) as ex:
         typer.echo(str(ex), err=True)
         raise typer.Exit(1)
-    if current["task"]["status"] != "ready_for_full_scrape":
+    except EnrichmentNotApproved:
         message = (
             "This person is not approved for enrichment."
             if researcher_output
@@ -630,61 +641,41 @@ def _approved_enrichment_task(
         )
         typer.echo(message, err=True)
         raise typer.Exit(1)
-    resolution = ResearchService(db).resolve_alias(memorial_id)
-    if len(resolution["path"]) == 1:
-        return current
-    if researcher_output:
-        typer.echo(
-            f"Find a Grave redirects this memorial to "
-            f"{resolution['canonical_memorial_id']}. No retrieval was made.",
-            err=True,
-        )
-    else:
-        typer.echo(
-            f"Memorial {memorial_id} is an active alias; canonical target "
-            f"{resolution['canonical_memorial_id']} via "
-            f"{' -> '.join(map(str, resolution['path']))}",
-            err=True,
-        )
-    raise typer.Exit(1)
-
-
-def _enrich_task(
-    memorial_id: int, db: str, researcher_output: bool, json_output: bool
-) -> None:
-    service = ResearchService(db)
-    current = _approved_enrichment_task(memorial_id, db, researcher_output)
-    attempted_url = current["grave"]["findagrave_url"] or (
-        MEMORIAL_CANONICAL_URL_FORMAT.format(memorial_id)
-    )
-    try:
-        memorial = Memorial.parse(attempted_url)
-        result = service.complete_enrichment(memorial_id, memorial)
-    except MemorialMergedException as merged:
-        source_id, _ = format_url(merged.old_url)
-        target_id, _ = format_url(merged.new_url)
-        if source_id != memorial_id or target_id < 0:
-            service.record_enrichment_failure(memorial_id, attempted_url, merged)
+    except EnrichmentAliasBlocked as blocked:
+        if researcher_output:
             typer.echo(
-                "Merged-memorial response did not contain the expected source "
-                "and target IDs",
+                f"Find a Grave redirects this memorial to "
+                f"{blocked.canonical_id}. No retrieval was made.",
                 err=True,
             )
-            raise typer.Exit(1)
-        service.record_redirect_failure(
-            memorial_id, target_id, merged.old_url, merged.new_url, merged
+        else:
+            typer.echo(
+                f"Memorial {memorial_id} is an active alias; canonical target "
+                f"{blocked.canonical_id} via "
+                f"{' -> '.join(map(str, blocked.path))}",
+                err=True,
+            )
+        raise typer.Exit(1)
+    except EnrichmentRedirectInvalid:
+        typer.echo(
+            "Merged-memorial response did not contain the expected source "
+            "and target IDs",
+            err=True,
         )
+        raise typer.Exit(1)
+    except EnrichmentRedirected as redirected:
         message = (
-            f"Find a Grave redirects this memorial to {target_id}; "
+            f"Find a Grave redirects this memorial to "
+            f"{redirected.target_memorial_id}; "
             "the redirect was recorded for review."
             if researcher_output
-            else f"Memorial {memorial_id} redirects to {target_id}; "
+            else f"Memorial {memorial_id} redirects to "
+            f"{redirected.target_memorial_id}; "
             "alias recorded for review"
         )
         typer.echo(message, err=True)
         raise typer.Exit(1)
-    except Exception as ex:
-        service.record_enrichment_failure(memorial_id, attempted_url, ex)
+    except EnrichmentFailed as ex:
         message = (
             "Retrieval failed; the task remains ready for review. " + str(ex)
             if researcher_output
@@ -693,11 +684,11 @@ def _enrich_task(
         typer.echo(message, err=True)
         raise typer.Exit(1)
     if json_output:
-        _json_output(result)
+        _json_output(result.to_compatibility_dict())
     else:
         typer.echo(
             f"The full memorial was retrieved. Person {memorial_id} is now "
-            f"{result['status']}."
+            f"{result.status}."
         )
 
 
@@ -934,7 +925,10 @@ def work_queue(
     ),
 ):
     """Add people already acquired to the research queue."""
-    created, existing = ResearchService(db).queue_memorials(cemetery_id, priority)
+    result = ResearchService(db).queue_research(
+        ResearchQueueRequest(cemetery_id, priority)
+    )
+    created, existing = result.created, result.existing
     created_label = "person" if created == 1 else "people"
     existing_label = "person was" if existing == 1 else "people were"
     typer.echo(
