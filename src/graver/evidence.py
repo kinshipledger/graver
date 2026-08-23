@@ -70,7 +70,19 @@ def _immutable(connection: sqlite3.Connection, table: str, label: str) -> None:
 
 
 def create_evidence_schema(connection: sqlite3.Connection) -> None:
-    """Create schema-v3 evidence tables without fabricating research records."""
+    """Create evidence tables without fabricating research records."""
+    connection.execute("""CREATE TABLE IF NOT EXISTS research_source_observations (
+        observation_id TEXT PRIMARY KEY,
+        subject_id TEXT NOT NULL,
+        source_kind TEXT NOT NULL,
+        title TEXT NOT NULL,
+        citation TEXT NOT NULL,
+        observed_at TEXT NOT NULL,
+        assertions_json TEXT NOT NULL,
+        provenance_json TEXT NOT NULL,
+        actor TEXT NOT NULL,
+        FOREIGN KEY (subject_id) REFERENCES research_subjects(subject_id)
+    )""")
     connection.execute("""CREATE TABLE IF NOT EXISTS candidate_discovery_runs (
         run_id TEXT PRIMARY KEY,
         subject_id TEXT NOT NULL,
@@ -173,6 +185,7 @@ def create_evidence_schema(connection: sqlite3.Connection) -> None:
             REFERENCES identity_conclusions(conclusion_id)
     )""")
     for table, label in (
+        ("research_source_observations", "research source observations"),
         ("candidate_discovery_runs", "candidate discovery runs"),
         ("external_candidates", "external candidates"),
         ("candidate_snapshots", "candidate snapshots"),
@@ -181,6 +194,10 @@ def create_evidence_schema(connection: sqlite3.Connection) -> None:
         ("identity_conclusions", "identity conclusions"),
     ):
         _immutable(connection, table, label)
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_source_observations_subject "
+        "ON research_source_observations(subject_id, observed_at, observation_id)"
+    )
     connection.execute(
         "CREATE INDEX IF NOT EXISTS idx_discovery_runs_subject "
         "ON candidate_discovery_runs(subject_id, started_at, run_id)"
@@ -319,6 +336,48 @@ class ComparisonSignalRecord:
     classification: str
     explanation: str
     ordering_contribution: int
+    subject_assertion: Optional[Mapping[str, Any]] = None
+    candidate_assertion: Optional[Mapping[str, Any]] = None
+
+
+@dataclass(frozen=True)
+class SourceObservationInput:
+    """Request one immutable, citation-bearing research source observation."""
+
+    subject_id: str
+    source_kind: str
+    title: str
+    citation: str
+    observed_at: str
+    assertions: Mapping[str, Any]
+    provenance: Mapping[str, Any]
+    actor: str
+
+    def __post_init__(self) -> None:
+        for value, label in (
+            (self.subject_id, "Subject identifier"),
+            (self.source_kind, "Source kind"),
+            (self.title, "Source title"),
+            (self.citation, "Source citation"),
+            (self.observed_at, "Observation time"),
+            (self.actor, "Observation actor"),
+        ):
+            _require_text(value, label)
+
+
+@dataclass(frozen=True)
+class SourceObservationRecord:
+    """Expose a source observation with its citation and provenance."""
+
+    observation_id: str
+    subject_id: str
+    source_kind: str
+    title: str
+    citation: str
+    observed_at: str
+    assertions: Mapping[str, Any]
+    provenance: Mapping[str, Any]
+    actor: str
 
 
 @dataclass(frozen=True)
@@ -431,6 +490,8 @@ class ConclusionRecord:
     actor: str
     decided_at: str
     analysis: str
+    evidence_references: tuple[Mapping[str, Any], ...]
+    material_conflicts: tuple[Mapping[str, Any], ...]
     supersedes_conclusion_id: Optional[str]
 
 
@@ -439,6 +500,78 @@ class EvidenceService:
     """Coordinate one database's completely offline evidence workflow."""
 
     database_name: str
+
+    def record_source_observation(
+        self, request: SourceObservationInput
+    ) -> SourceObservationRecord:
+        """Append a citation-bearing source observation atomically."""
+        validate_current_database(self.database_name)
+        observation_id = _identifier()
+        with _connect(self.database_name) as connection:
+            if (
+                connection.execute(
+                    "SELECT 1 FROM research_subjects WHERE subject_id=?",
+                    (request.subject_id,),
+                ).fetchone()
+                is None
+            ):
+                raise EvidenceNotFound(
+                    f"Research subject {request.subject_id} does not exist"
+                )
+            connection.execute(
+                """INSERT INTO research_source_observations
+                   (observation_id, subject_id, source_kind, title, citation,
+                    observed_at, assertions_json, provenance_json, actor)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    observation_id,
+                    request.subject_id,
+                    request.source_kind,
+                    request.title,
+                    request.citation,
+                    request.observed_at,
+                    _canonical_json(request.assertions),
+                    _canonical_json(request.provenance),
+                    request.actor,
+                ),
+            )
+        return SourceObservationRecord(
+            observation_id,
+            request.subject_id,
+            request.source_kind,
+            request.title,
+            request.citation,
+            request.observed_at,
+            dict(request.assertions),
+            dict(request.provenance),
+            request.actor,
+        )
+
+    def get_source_observation(self, observation_id: str) -> SourceObservationRecord:
+        """Return one citation-bearing source observation for inspection."""
+        validate_current_database(self.database_name)
+        with _connect(self.database_name) as connection:
+            row = connection.execute(
+                """SELECT observation_id, subject_id, source_kind, title, citation,
+                          observed_at, assertions_json, provenance_json, actor
+                   FROM research_source_observations WHERE observation_id=?""",
+                (observation_id,),
+            ).fetchone()
+        if row is None:
+            raise EvidenceNotFound(
+                f"Source observation {observation_id} does not exist"
+            )
+        return SourceObservationRecord(
+            row[0],
+            row[1],
+            row[2],
+            row[3],
+            row[4],
+            row[5],
+            json.loads(row[6]),
+            json.loads(row[7]),
+            row[8],
+        )
 
     def record_discovery(self, request: DiscoveryRequest) -> DiscoveryResult:
         """Persist an immutable discovery run and candidate snapshots atomically."""
@@ -611,6 +744,16 @@ class EvidenceService:
                         signal.classification,
                         signal.explanation,
                         signal.ordering_contribution,
+                        (
+                            dict(signal.subject_assertion)
+                            if signal.subject_assertion
+                            else None
+                        ),
+                        (
+                            dict(signal.candidate_assertion)
+                            if signal.candidate_assertion
+                            else None
+                        ),
                     )
                 )
         return tuple(records)
@@ -655,7 +798,8 @@ class EvidenceService:
             for candidate in candidates:
                 rows = connection.execute(
                     """SELECT signal_id, fact_type, classification, explanation,
-                              ordering_contribution FROM comparison_signals
+                              ordering_contribution, subject_assertion_json,
+                              candidate_assertion_json FROM comparison_signals
                        WHERE candidate_id = ? AND snapshot_id = ?
                          AND algorithm_version = ? ORDER BY fact_type, signal_id""",
                     (
@@ -671,6 +815,16 @@ class EvidenceService:
                         row["classification"],
                         row["explanation"],
                         row["ordering_contribution"],
+                        (
+                            json.loads(row["subject_assertion_json"])
+                            if row["subject_assertion_json"]
+                            else None
+                        ),
+                        (
+                            json.loads(row["candidate_assertion_json"])
+                            if row["candidate_assertion_json"]
+                            else None
+                        ),
                     )
                     for row in rows
                 )
@@ -881,6 +1035,25 @@ class EvidenceService:
                     raise EvidenceInputError(
                         "Superseded conclusion must exist for the same candidate"
                     )
+            candidate_subject = row[0]
+            for reference in request.evidence_references:
+                record_id = reference["record_id"]
+                source = connection.execute(
+                    """SELECT subject_id FROM research_source_observations
+                       WHERE observation_id=?""",
+                    (record_id,),
+                ).fetchone()
+                snapshot = connection.execute(
+                    """SELECT c.subject_id FROM candidate_snapshots s
+                       JOIN external_candidates c ON c.candidate_id=s.candidate_id
+                       WHERE s.snapshot_id=?""",
+                    (record_id,),
+                ).fetchone()
+                owner = source or snapshot
+                if owner is None or owner[0] != candidate_subject:
+                    raise EvidenceInputError(
+                        f"Evidence reference {record_id} is not an inspectable observation for this subject"
+                    )
             connection.execute(
                 """INSERT INTO identity_conclusions
                    (conclusion_id, subject_id, candidate_id, disposition, actor,
@@ -907,6 +1080,8 @@ class EvidenceService:
             request.actor,
             timestamp,
             request.analysis,
+            tuple(dict(value) for value in request.evidence_references),
+            tuple(dict(value) for value in request.material_conflicts),
             request.supersedes_conclusion_id,
         )
 
@@ -916,8 +1091,22 @@ class EvidenceService:
         with _connect(self.database_name) as connection:
             rows = connection.execute(
                 """SELECT conclusion_id, candidate_id, disposition, actor, decided_at,
-                          analysis, supersedes_conclusion_id FROM identity_conclusions
+                          analysis, evidence_references_json, material_conflicts_json,
+                          supersedes_conclusion_id FROM identity_conclusions
                    WHERE candidate_id=? ORDER BY decided_at, conclusion_id""",
                 (candidate_id,),
             ).fetchall()
-        return tuple(ConclusionRecord(*row) for row in rows)
+        return tuple(
+            ConclusionRecord(
+                row[0],
+                row[1],
+                row[2],
+                row[3],
+                row[4],
+                row[5],
+                tuple(json.loads(row[6])),
+                tuple(json.loads(row[7])),
+                row[8],
+            )
+            for row in rows
+        )

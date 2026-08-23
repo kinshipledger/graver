@@ -31,6 +31,7 @@ CURRENT_TABLES = {
     "candidate_assessments",
     "candidate_assessment_events",
     "identity_conclusions",
+    "research_source_observations",
     "graver_schema",
 }
 
@@ -74,6 +75,7 @@ def test_create_database_builds_complete_current_schema(tmp_path):
             "idx_comparison_signals_candidate",
             "idx_assessment_events_candidate",
             "idx_conclusions_candidate",
+            "idx_source_observations_subject",
         } <= indexes
         assert {
             "memorial_observations_no_update",
@@ -96,6 +98,8 @@ def test_create_database_builds_complete_current_schema(tmp_path):
             "candidate_assessment_events_no_delete",
             "identity_conclusions_no_update",
             "identity_conclusions_no_delete",
+            "research_source_observations_no_update",
+            "research_source_observations_no_delete",
         } == triggers
         assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
@@ -757,6 +761,27 @@ def test_upgrade_rejects_newer_schema_without_backup(tmp_path):
 
     assert digest(path) == before
     assert not graver_database.backup_path_for(path).exists()
+
+
+def test_version_three_upgrade_adds_empty_source_observations(tmp_path):
+    path = graver_database.create_database(str(tmp_path / "version-three.db"))
+    with sqlite3.connect(path) as connection:
+        connection.execute("DROP TRIGGER research_source_observations_no_update")
+        connection.execute("DROP TRIGGER research_source_observations_no_delete")
+        connection.execute("DROP INDEX idx_source_observations_subject")
+        connection.execute("DROP TABLE research_source_observations")
+        connection.execute("UPDATE graver_schema SET version = 3")
+
+    assert graver_database.inspect_database(str(path)).state == "outdated"
+    result = graver_database.upgrade_database(str(path))
+
+    assert result.source.version == 3
+    assert result.version == graver_database.CURRENT_SCHEMA_VERSION
+    with sqlite3.connect(path) as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM research_source_observations"
+        ).fetchone() == (0,)
+    assert graver_database.inspect_database(str(path)).state == "current"
 
 
 def test_cli_upgrade_reports_source_target_backup_and_preserves_preference(

@@ -88,10 +88,24 @@ expensive to change.
 
 ## R2 — Offline workflow validation
 
-**Current status:** Ready for moderated review. The internal offline evidence slice
-and its disposable [R2 review adapter](r2-offline-workflow-review-guide.md) satisfy
-the entry criteria. The gate remains open until a context-separated professional
-researcher completes the workflow and its dated report is resolved.
+**Current status:** Passed. The
+[23 August 2026 review](professional-researcher-r2-review-2026-08-23.md) found two
+blocking failures: a same-person conclusion could supersede an earlier conclusion
+without researcher-authored analysis or inspectable evidence selection, and material
+assertions lacked visible citation-level traceability. The correction slice now
+requires authored analysis, explicit conflict treatment, and real same-subject
+evidence references; it also exposes citations, provenance, comparison references,
+and changed values.
+
+The [first focused re-review](professional-researcher-r2-rereview-2026-08-23.md)
+verified supersession safeguards, assertion traceability, and change visibility, but
+kept R2 blocked because an unresolved conclusion did not retain the evidence the
+researcher selected and the saved negative-search display omitted reproducibility
+details. After those two narrow corrections, the
+[final focused verification](professional-researcher-r2-final-verification-2026-08-23.md)
+confirmed exact evidence-selection fidelity and complete visible negative-search
+reproducibility with no new blockers. R2 therefore passes. The public workspace
+façade and detailed evidence-UX design may proceed under the validated contract.
 
 ### Objective
 

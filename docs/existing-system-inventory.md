@@ -194,7 +194,7 @@ immediately.
 - `graves` remains a current-state acquisition table rather than immutable observation history. The new upserts protect richer data but do not retain earlier versions of changed source values.
 - Ordered explicit migration, fetch timestamps, successful and failed acquisition observations, foreign keys, supporting indexes, initial work-queue state, and alias provenance now exist.
 - Accepted family relationships, live FamilySearch matches, WikiTree matches, and
-  cemetery-tag decisions are not modeled. Schema v3 now contains an internal,
+  cemetery-tag decisions are not modeled. Schema v4 now contains an internal,
   fixture-only evidence model for discovery snapshots, comparison signals,
   assessments, and reviewed identity conclusions; it is not a live provider or
   user-facing matching feature.
@@ -360,7 +360,7 @@ and 9m51s respectively.
 Keep the existing scraper and its `graves` table as the **Find a Grave acquisition component**. The additive `cemeteries`, `memorial_observations`, and `research_tasks` layer now provides provenance and a practical queue.
 
 The task-oriented CLI, explicit database lifecycle, schema-v2 subject ownership,
-and additive schema-v3 offline evidence structures
+and additive schema-v4 offline evidence structures
 are complete, but raw JSON, broad exports, compatibility aliases,
 dependency boundaries, and accidental internal APIs must not be frozen as the 1.0
 contract. Before beginning FamilySearch work, follow the ordered pre-1.0 roadmap in
@@ -369,8 +369,10 @@ typed task queries, updates, summaries, records, details, queue requests/results
 one-person enrichment results, and workflow errors. Every visible `work` command
 uses that boundary while legacy dictionary- and tuple-returning functions remain
 compatibility projections. The internal offline evidence-assessment vertical slice
-is implemented without a public CLI or live provider. Professional review gate R2
-is next; the public workspace facade remains unfrozen.
+is implemented without a public CLI or live provider. The first professional review
+gate R2 attempt did not pass; its decision-safety and citation-traceability
+corrections are implemented, but the public workspace facade remains unfrozen
+pending focused professional re-review.
 `graver init [DATABASE]` now
 creates a new database with the current schema and selects it as the saved default.
 With no argument it creates
@@ -421,7 +423,7 @@ conclusion. Migration mechanically creates one subject for every grave and
 associates only that memorial with it, including for graves without tasks. It does
 not merge records because of aliases, redirects, names, dates, or similarity.
 
-Schema v3 adds empty-on-migration evidence structures for immutable offline
+Schema v4 adds empty-on-migration evidence structures for immutable offline
 discovery runs, provider-scoped candidates and snapshots, comparison signals,
 concurrency-checked current assessments with immutable history, and immutable
 reviewed conclusions. The version-2-to-version-3 migration creates no candidates,
@@ -509,10 +511,13 @@ family-work services.
 The accepted
 [evidence assessment and identity conclusion architecture](evidence-assessment-architecture.md)
 is now implemented as an internal, completely offline vertical slice using curated
-FamilySearch-shaped fixtures. Schema v3 preserves immutable discovery runs and
+FamilySearch-shaped fixtures. Schema v4 preserves immutable discovery runs and
 candidate snapshots, assertion-level comparison signals, explainable review
 ordering, concurrency-checked assessments, reproducible negative searches,
-unresolved questions, and immutable superseding conclusions. It performs no
+unresolved questions, citation-bearing source observations, and immutable
+superseding conclusions. Conclusions require inspectable same-subject evidence
+references, and the R2 adapter requires authored analysis and explicit treatment of
+material conflicts before same-person supersession. It performs no
 provider request, adds no public persistence-shaped CLI, creates no automatic
 identity association, and cannot accept an identity automatically.
 
@@ -522,8 +527,16 @@ no new blockers and passed R1. The internal persistence and application-service
 slice now implements that accepted contract. A disposable, loopback-only browser
 adapter backed by the real evidence service is available for the moderated R2
 workflow; it is not installed product functionality, a production GUI, or a public
-API. R2 remains pending until the professional review and finding disposition are
-recorded.
+API. The first R2 review and first focused re-review are recorded as blocked. A final
+focused professional verification confirmed both remaining corrections with no new
+blockers, so R2 passes.
+
+The first focused re-review remained blocked: unresolved conclusions substituted a
+candidate snapshot for the researcher's selected source observation, and the saved
+negative-search display omitted date, variants, and method. The adapter now retains
+the exact selected source observation for unresolved conclusions and visibly
+restores all three negative-search fields. The final narrow re-review verified both
+behaviors and introduced no new blocker.
 
 After the typed application boundary and researcher-directed acquisition have been
 validated, provider authorization gates and import-first/provider-neutral job

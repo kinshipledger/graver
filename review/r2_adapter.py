@@ -28,6 +28,7 @@ from graver.evidence import (
     DiscoveryRequest,
     EvidenceError,
     EvidenceService,
+    SourceObservationInput,
 )
 
 SUBJECT = {
@@ -77,6 +78,7 @@ class ReviewScenario:
     subject_id: str
     service: EvidenceService
     candidate_ids: dict[str, str]
+    source_ids: dict[str, str]
     refreshed: bool = False
 
     @classmethod
@@ -100,6 +102,30 @@ class ReviewScenario:
                 ),
             )
         service = EvidenceService(database)
+        memorial = service.record_source_observation(
+            SourceObservationInput(
+                subject_id,
+                "findagrave_memorial",
+                "Find a Grave memorial for Eleanor May Carter",
+                'Find a Grave, "Eleanor May Carter" (1892–1967), memorial '
+                "12345678, Morris Hill Cemetery, Boise, Idaho; retained snapshot "
+                "observed 21 August 2026.",
+                "2026-08-21T15:58:00Z",
+                {
+                    "name": "Eleanor May Carter",
+                    "birth": "14 March 1892, Missouri",
+                    "death": "8 November 1967, Boise, Idaho",
+                    "burial": "Morris Hill Cemetery, Boise, Idaho",
+                    "father": "Thomas Carter",
+                },
+                {
+                    "provider": "Find a Grave",
+                    "memorial_id": "12345678",
+                    "capture_scope": "displayed memorial fields; images and underlying records not collected",
+                },
+                "R2 fixture",
+            )
+        )
         result = service.record_discovery(
             DiscoveryRequest(
                 subject_id,
@@ -119,15 +145,25 @@ class ReviewScenario:
             service.record_comparison(
                 snapshot.snapshot_id,
                 "fixture-ordering/1",
-                _signals(snapshot.provider_profile_id),
+                _signals(
+                    snapshot.provider_profile_id,
+                    memorial.observation_id,
+                    snapshot.snapshot_id,
+                ),
             )
-        return cls(database, subject_id, service, candidate_ids)
+        return cls(
+            database,
+            subject_id,
+            service,
+            candidate_ids,
+            {"memorial": memorial.observation_id},
+        )
 
     @property
     def primary_id(self) -> str:
         return self.candidate_ids["K1AB-CDE"]
 
-    def defer(self, actor: str) -> None:
+    def defer(self, actor: str, values: dict[str, Any]) -> None:
         """Record the required negative search, question, and deferral."""
         current = self.service.get_assessment(self.primary_id)
         self.service.update_assessment(
@@ -136,25 +172,27 @@ class ReviewScenario:
                 current.version,
                 "deferred",
                 actor,
-                "Parentage conflict requires independent evidence.",
-                "Check the marriage record and evaluate its informant and provenance.",
+                values.get("reason", ""),
+                values.get("notes", ""),
                 negative_searches=(
                     {
-                        "collection": "Ada County Probate Index, 1900–1970",
-                        "searched_at": "2026-08-23",
+                        "repository": values.get("repository", ""),
+                        "collection": values.get("collection", ""),
+                        "coverage": values.get("coverage", ""),
+                        "jurisdiction": values.get("jurisdiction", ""),
+                        "searched_at": values.get("searched_at", ""),
                         "variants": [
-                            "Eleanor Carter",
-                            "Eleanor Reed",
-                            "Eleanor M. Carter",
+                            item.strip()
+                            for item in values.get("variants", "").split(";")
+                            if item.strip()
                         ],
-                        "result": "no entry located",
-                        "limitation": "Index may omit unindexed or out-of-county proceedings",
+                        "method": values.get("method", ""),
+                        "result": values.get("result", ""),
+                        "limitation": values.get("limitation", ""),
                     },
                 ),
-                unresolved_questions=(
-                    "Which father is supported by an original or independently derived record?",
-                ),
-                follow_up_condition="Marriage record obtained",
+                unresolved_questions=(values.get("question", ""),),
+                follow_up_condition=values.get("follow_up", ""),
             )
         )
 
@@ -187,11 +225,57 @@ class ReviewScenario:
         self.service.record_comparison(
             result.snapshots[0].snapshot_id,
             "fixture-ordering/1",
-            _signals("K1AB-CDE"),
+            _signals(
+                "K1AB-CDE",
+                self.source_ids["memorial"],
+                result.snapshots[0].snapshot_id,
+            ),
+        )
+        marriage = self.service.record_source_observation(
+            SourceObservationInput(
+                self.subject_id,
+                "marriage_register",
+                "Ada County marriage register entry for Eleanor Carter and William Reed",
+                "Ada County, Idaho, marriage register 7:142, Carter–Reed, 12 June 1912; "
+                "fictional retained record observation, 28 August 2026.",
+                "2026-08-28T16:10:00Z",
+                {
+                    "bride": "Eleanor Carter",
+                    "groom": "William Reed",
+                    "father": "Henry Carter",
+                },
+                {"record_type": "original register image", "informant": "not stated"},
+                "R2 fixture",
+            )
+        )
+        death = self.service.record_source_observation(
+            SourceObservationInput(
+                self.subject_id,
+                "death_certificate",
+                "Idaho death certificate for Eleanor May Reed",
+                "Idaho Department of Health, death certificate 1967-009, Eleanor May Reed, "
+                "8 November 1967; fictional retained record observation, 30 August 2026.",
+                "2026-08-30T14:00:00Z",
+                {
+                    "decedent": "Eleanor May Reed",
+                    "father": "Henry Carter",
+                    "spouse": "William Reed",
+                    "informant": "William Reed",
+                },
+                {
+                    "record_type": "death certificate",
+                    "informant": "William Reed",
+                    "dependence_note": "The spouse supplied the information; repeated assertions are not treated as independent corroboration.",
+                },
+                "R2 fixture",
+            )
+        )
+        self.source_ids.update(
+            {"marriage": marriage.observation_id, "death": death.observation_id}
         )
         self.refreshed = True
 
-    def reopen(self, actor: str) -> None:
+    def reopen(self, actor: str, values: dict[str, Any]) -> None:
         """Reopen the deferred assessment and link its prior event."""
         current = self.service.get_assessment(self.primary_id)
         event_id = self.service.assessment_history(self.primary_id)[-1]["event_id"]
@@ -201,61 +285,72 @@ class ReviewScenario:
                 current.version,
                 "reopened",
                 actor,
-                "The marriage record is now available.",
-                "Evaluate the new record without treating repeated claims as independent.",
+                values.get("reason", ""),
+                values.get("notes", ""),
                 reopens_record_id=event_id,
             )
         )
 
-    def conclude_unresolved(self, actor: str) -> None:
+    def conclude_unresolved(self, actor: str, values: dict[str, Any]) -> None:
         """Append the first, deliberately unresolved conclusion."""
         if self.service.conclusion_history(self.primary_id):
             return
-        snapshot = self.service.list_snapshots(self.primary_id)[0]
+        selected = values.get("evidence_ids", [])
+        if not selected:
+            raise ValueError("Select at least one inspectable evidence record")
+        references = []
+        for record_id in selected:
+            observation = self.service.get_source_observation(record_id)
+            references.append(
+                {
+                    "record_id": observation.observation_id,
+                    "observed_at": observation.observed_at,
+                    "assertions": sorted(observation.assertions),
+                }
+            )
         self.service.record_conclusion(
             ConclusionRequest(
                 self.primary_id,
                 "unresolved",
                 actor,
-                "Parentage remains materially conflicting. Matching dates and burial place do not resolve identity.",
-                (
-                    {
-                        "record_id": snapshot.snapshot_id,
-                        "observed_at": snapshot.observed_at,
-                        "assertions": ["birth", "death", "burial", "father"],
-                    },
-                ),
+                values.get("analysis", ""),
+                tuple(references),
                 ({"fact_type": "father", "treatment": "unresolved"},),
             )
         )
 
-    def supersede(self, actor: str) -> None:
+    def supersede(self, actor: str, values: dict[str, Any]) -> None:
         """Append a same-person conclusion without editing the earlier decision."""
         history = self.service.conclusion_history(self.primary_id)
         if len(history) != 1:
             raise ValueError("Record the unresolved conclusion before superseding it")
+        selected = values.get("evidence_ids", [])
+        if len(selected) < 2:
+            raise ValueError("Select at least two inspectable evidence records")
+        references = []
+        for record_id in selected:
+            observation = self.service.get_source_observation(record_id)
+            references.append(
+                {
+                    "record_id": observation.observation_id,
+                    "observed_at": observation.observed_at,
+                    "assertions": sorted(observation.assertions),
+                }
+            )
+        conflict_treatment = values.get("conflict_treatment", "").strip()
+        if not conflict_treatment:
+            raise ValueError("Explain how the material father conflict was treated")
         self.service.record_conclusion(
             ConclusionRequest(
                 self.primary_id,
                 "accepted",
                 actor,
-                "Correlated records support the same-person conclusion. The Thomas Carter assertion remains conflicting and its cause is unknown.",
-                (
-                    {
-                        "record_id": "MR-014",
-                        "observed_at": "2026-08-28",
-                        "assertions": ["father", "spouse"],
-                    },
-                    {
-                        "record_id": "DC-009",
-                        "observed_at": "2026-08-30",
-                        "assertions": ["identity", "father", "spouse", "informant"],
-                    },
-                ),
+                values.get("analysis", ""),
+                tuple(references),
                 (
                     {
                         "fact_type": "father",
-                        "treatment": "Thomas remains conflicting and less reliable; cause unknown",
+                        "treatment": conflict_treatment,
                     },
                 ),
                 history[0].conclusion_id,
@@ -291,76 +386,113 @@ class ReviewScenario:
         return {
             "subject": SUBJECT,
             "candidates": candidates,
+            "sources": [
+                asdict(self.service.get_source_observation(record_id))
+                for record_id in self.source_ids.values()
+            ],
+            "change_summary": self._change_summary(),
             "refreshed": self.refreshed,
             "notice": "Fictional offline review case; no live provider request is made.",
         }
 
+    def _change_summary(self) -> list[dict[str, Any]]:
+        """Describe changed candidate values without hiding retained snapshots."""
+        snapshots = self.service.list_snapshots(self.primary_id)
+        if len(snapshots) < 2:
+            return []
+        before, after = snapshots[-2], snapshots[-1]
+        fields = sorted(set(before.assertions) | set(after.assertions))
+        return [
+            {
+                "field": field,
+                "before": before.assertions.get(field),
+                "after": after.assertions.get(field),
+                "before_snapshot": before.snapshot_id,
+                "after_snapshot": after.snapshot_id,
+            }
+            for field in fields
+            if before.assertions.get(field) != after.assertions.get(field)
+        ]
 
-def _signals(profile_id: str) -> tuple[ComparisonSignalInput, ...]:
+
+def _signals(
+    profile_id: str, memorial_observation_id: str, candidate_snapshot_id: str
+) -> tuple[ComparisonSignalInput, ...]:
+    def signal(
+        fact_type: str,
+        classification: str,
+        explanation: str,
+        ordering_contribution: int = 0,
+    ) -> ComparisonSignalInput:
+        return ComparisonSignalInput(
+            fact_type,
+            classification,
+            explanation,
+            {"record_id": memorial_observation_id, "assertion": fact_type},
+            {"record_id": candidate_snapshot_id, "assertion": fact_type},
+            ordering_contribution=ordering_contribution,
+        )
+
     if profile_id == "K1AB-CDE":
         return (
-            ComparisonSignalInput(
+            signal(
                 "birth",
                 "exact",
                 "Exact value agreement; not proof of truth, independence, or identity.",
                 ordering_contribution=1,
             ),
-            ComparisonSignalInput(
+            signal(
                 "death",
                 "exact",
                 "Exact value agreement; not proof of identity.",
                 ordering_contribution=1,
             ),
-            ComparisonSignalInput(
+            signal(
                 "burial",
                 "exact",
                 "Exact value agreement in the displayed representations.",
                 ordering_contribution=1,
             ),
-            ComparisonSignalInput(
+            signal(
                 "birthplace",
                 "compatible",
                 "Candidate is more specific; the memorial does not establish the city.",
             ),
-            ComparisonSignalInput(
+            signal(
                 "father",
                 "conflict",
                 "Thomas Carter and Henry Carter are affirmative, incompatible claims requiring research.",
                 ordering_contribution=-1,
             ),
-            ComparisonSignalInput(
+            signal(
                 "mother",
                 "missing",
                 "Not stated in the comparison source; missing is not negative evidence.",
             ),
-            ComparisonSignalInput(
+            signal(
                 "spouse",
                 "missing",
                 "Not stated in the comparison source; external research is required.",
             ),
         )
     return (
-        ComparisonSignalInput(
+        signal(
             "name",
             "exact",
             "Exact value agreement; not proof of identity.",
             ordering_contribution=1,
         ),
-        ComparisonSignalInput(
-            "birth", "compatible", "Birth year agrees but place conflicts."
-        ),
-        ComparisonSignalInput(
+        signal("birth", "compatible", "Birth year agrees but place conflicts."),
+        signal(
             "birthplace",
             "conflict",
             "Missouri and Kansas conflict.",
             ordering_contribution=-1,
         ),
-        ComparisonSignalInput(
+        signal(
             "death", "conflict", "1967 and 1968 conflict.", ordering_contribution=-1
         ),
-        ComparisonSignalInput(
-            "burial", "missing", "Candidate supplies no burial value."
-        ),
+        signal("burial", "missing", "Candidate supplies no burial value."),
     )
 
 
@@ -385,11 +517,13 @@ class ReviewHandler(BaseHTTPRequestHandler):
         payload = json.loads(self.rfile.read(length) or b"{}")
         actor = payload.get("actor", "L. Researcher")
         actions = {
-            "/api/defer": lambda: self.server.scenario.defer(actor),
+            "/api/defer": lambda: self.server.scenario.defer(actor, payload),
             "/api/refresh": self.server.scenario.refresh,
-            "/api/reopen": lambda: self.server.scenario.reopen(actor),
-            "/api/conclude": lambda: self.server.scenario.conclude_unresolved(actor),
-            "/api/supersede": lambda: self.server.scenario.supersede(actor),
+            "/api/reopen": lambda: self.server.scenario.reopen(actor, payload),
+            "/api/conclude": lambda: self.server.scenario.conclude_unresolved(
+                actor, payload
+            ),
+            "/api/supersede": lambda: self.server.scenario.supersede(actor, payload),
         }
         action = actions.get(self.path)
         if action is None:

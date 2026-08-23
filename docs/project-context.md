@@ -8,10 +8,10 @@ The repository is on the single long-lived `main` branch with only
 copyright provenance remains preserved, while the README makes clear that graver is
 independently maintained and has no ongoing upstream affiliation.
 
-The implemented foundation includes schema version 3, subject-owned research tasks,
+The implemented foundation includes schema version 4, subject-owned research tasks,
 explicit backed-up database upgrades, person-at-a-time acquisition, fail-closed
 Requests transport, the researcher tutorial, trunk-based release automation, and a
-dedicated branch-coverage CI job. The latest complete local run passed 368 tests;
+dedicated branch-coverage CI job. The latest complete local run passed 370 tests;
 the current coverage run measured 91.89% branch coverage against a
 90% floor. Coveralls reporting, the six
 honest README badges, Python 3.11–3.14 CI, Black, locked uv environments, wheel
@@ -38,9 +38,12 @@ application-service refactor now covers typed task queries, partial updates, que
 requests/results, task records, detail aggregates, one-person enrichment, and typed
 workflow failures behind `ResearchService`. All visible `work` commands use that
 boundary while legacy dictionaries and tuples remain compatibility projections.
-The internal offline evidence-assessment vertical slice is now implemented with
-curated fixtures and no live provider or public CLI. Professional review gate R2 is
-the next experiential checkpoint and still precedes the public workspace-facade
+The internal offline evidence-assessment vertical slice is implemented with curated
+fixtures and no live provider or public CLI. The first R2 review did not pass. Its
+two blockers drove citation-bearing source observations, inspectable assertion
+references, mandatory researcher-authored conclusion analysis, explicit conflict
+treatment, and visible acquisition change summaries. A focused, context-separated
+R2 re-review must verify those corrections before the public workspace-facade
 freeze.
 
 Professional alignment is controlled by the canonical
@@ -53,8 +56,14 @@ experience passes a repeat of the original professional review.
 
 The first R1 review on 23 August 2026 did not pass. A focused independent re-review
 verified all seven minimum corrections with no new blockers and passed R1.
-Candidate/evidence persistence may now proceed under the accepted contract; R2
-still blocks the public façade freeze and detailed evidence-GUI design.
+Candidate/evidence persistence proceeded under the accepted R1 contract. The first
+R2 review on 23 August 2026 did not pass, and its first focused re-review found two
+remaining defects. The final focused verification confirmed exact evidence-selection
+fidelity and complete visible negative-search reproducibility with no new blockers.
+R2 now passes and no longer blocks the public façade or detailed evidence-UX design.
+
+The failed R2 reports remain preserved as decision history rather than being
+rewritten by the passing result.
 
 ## Objective
 

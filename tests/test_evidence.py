@@ -16,6 +16,7 @@ from graver.evidence import (
     EvidenceInputError,
     EvidenceNotFound,
     EvidenceService,
+    SourceObservationInput,
     StaleAssessment,
 )
 
@@ -56,7 +57,7 @@ def discovery(subject_id, observed_at, candidates):
     )
 
 
-def test_schema_v3_upgrade_adds_empty_evidence_structures(tmp_path):
+def test_schema_v2_upgrade_adds_empty_current_evidence_structures(tmp_path):
     path = graver_database.create_database(str(tmp_path / "v2.db"))
     with sqlite3.connect(path) as connection:
         for table in sorted(graver_database.EVIDENCE_TABLES):
@@ -68,10 +69,10 @@ def test_schema_v3_upgrade_adds_empty_evidence_structures(tmp_path):
 
     assert result.changed is True
     assert result.source.version == 2
-    assert result.version == 3
+    assert result.version == graver_database.CURRENT_SCHEMA_VERSION
     with sqlite3.connect(path) as connection:
         assert connection.execute("SELECT version FROM graver_schema").fetchone() == (
-            3,
+            graver_database.CURRENT_SCHEMA_VERSION,
         )
         for table in graver_database.EVIDENCE_TABLES:
             assert connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone() == (
@@ -478,6 +479,23 @@ def test_conclusions_require_inspectable_evidence_and_supersede_immutably(tmp_pa
             ({"fact_type": "father", "treatment": "unresolved"},),
         )
     )
+    marriage = service.record_source_observation(
+        SourceObservationInput(
+            subject_id,
+            "civil_marriage_register",
+            "Eleanor Carter–William Reed marriage entry",
+            "Ada County, Idaho, marriage register 12:47, Carter–Reed, 1912; fictional R2 fixture.",
+            "2026-08-28",
+            {"father": "Henry Carter", "spouse": "William Reed"},
+            {
+                "repository": "Ada County Recorder",
+                "locator": "Marriage register 12:47",
+                "image_examined": True,
+                "informant": "not stated",
+            },
+            "L. Researcher",
+        )
+    )
     accepted = service.record_conclusion(
         ConclusionRequest(
             snapshot.candidate_id,
@@ -486,8 +504,8 @@ def test_conclusions_require_inspectable_evidence_and_supersede_immutably(tmp_pa
             "Correlated records support the same-person conclusion; individual assertions retain their status.",
             (
                 {
-                    "record_id": "MR-014",
-                    "observed_at": "2026-08-28",
+                    "record_id": marriage.observation_id,
+                    "observed_at": marriage.observed_at,
                     "assertions": ["father", "spouse", "informant"],
                 },
             ),
@@ -504,9 +522,92 @@ def test_conclusions_require_inspectable_evidence_and_supersede_immutably(tmp_pa
     history = service.conclusion_history(snapshot.candidate_id)
     assert [item.disposition for item in history] == ["unresolved", "accepted"]
     assert accepted.supersedes_conclusion_id == unresolved.conclusion_id
+    assert history[1].evidence_references[0]["record_id"] == marriage.observation_id
+    assert service.get_source_observation(marriage.observation_id).citation.startswith(
+        "Ada County"
+    )
     with sqlite3.connect(path) as connection:
         assert connection.execute(
             "SELECT COUNT(*) FROM identity_conclusions"
         ).fetchone() == (2,)
         with pytest.raises(sqlite3.IntegrityError, match="immutable"):
             connection.execute("UPDATE identity_conclusions SET disposition='rejected'")
+        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+            connection.execute(
+                "UPDATE research_source_observations SET citation='rewritten'"
+            )
+
+
+def test_conclusion_rejects_missing_and_cross_subject_evidence(tmp_path):
+    path, subject_id = make_subject_database(tmp_path)
+    service = EvidenceService(str(path))
+    candidate = service.record_discovery(
+        discovery(
+            subject_id,
+            "2026-08-23T11:00:00Z",
+            (CandidateFixture("K1AB-CDE", "2026-08-23T11:00:00Z", {}),),
+        )
+    ).snapshots[0]
+    with pytest.raises(EvidenceInputError, match="not an inspectable observation"):
+        service.record_conclusion(
+            ConclusionRequest(
+                candidate.candidate_id,
+                "unresolved",
+                "L. Researcher",
+                "The available evidence is insufficient.",
+                (
+                    {
+                        "record_id": "invented-reference",
+                        "observed_at": "2026-08-23",
+                        "assertions": ["identity"],
+                    },
+                ),
+                (),
+            )
+        )
+
+    other_subject = str(uuid.uuid4())
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            "INSERT INTO research_subjects (subject_id, created_at) VALUES (?, ?)",
+            (other_subject, "2026-08-23T12:00:00Z"),
+        )
+        connection.execute(
+            """INSERT INTO research_subject_events
+               (subject_id, event_type, occurred_at, reason, after_json)
+               VALUES (?, 'subject_created', ?, 'test', ?)""",
+            (
+                other_subject,
+                "2026-08-23T12:00:00Z",
+                json.dumps({"subject_id": other_subject}),
+            ),
+        )
+    unrelated = service.record_source_observation(
+        SourceObservationInput(
+            other_subject,
+            "record",
+            "Unrelated record",
+            "A complete but unrelated citation.",
+            "2026-08-23",
+            {"name": "Someone Else"},
+            {"repository": "Archive"},
+            "L. Researcher",
+        )
+    )
+    with pytest.raises(EvidenceInputError, match="not an inspectable observation"):
+        service.record_conclusion(
+            ConclusionRequest(
+                candidate.candidate_id,
+                "unresolved",
+                "L. Researcher",
+                "The available evidence is insufficient.",
+                (
+                    {
+                        "record_id": unrelated.observation_id,
+                        "observed_at": unrelated.observed_at,
+                        "assertions": ["name"],
+                    },
+                ),
+                (),
+            )
+        )
