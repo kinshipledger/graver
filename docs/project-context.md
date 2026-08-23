@@ -11,16 +11,18 @@ independently maintained and has no ongoing upstream affiliation.
 The implemented foundation includes schema version 4, subject-owned research tasks,
 explicit backed-up database upgrades, person-at-a-time acquisition, fail-closed
 Requests transport, the researcher tutorial, trunk-based release automation, and a
-dedicated branch-coverage CI job. The latest complete local run passed 370 tests;
-the current coverage run measured 91.89% branch coverage against a
-90% floor. Coveralls reporting, the six
-honest README badges, Python 3.11–3.14 CI, Black, locked uv environments, wheel
+dedicated branch-coverage CI job. The latest complete local run passed 375 tests;
+the current coverage run measured 91.96% branch coverage against a
+90% floor. Coveralls reporting, the seven
+honest README badges, Python 3.11–3.14 CI, Black, Ruff, locked uv environments, wheel
 verification, and Conventional Commit pull-request-title enforcement are current.
 GitHub's CI run for the current checkpoint commit `b3f780a` completed successfully.
-The coverage run exposed unclosed-SQLite `ResourceWarning`s that remain explicit
-testing-lifecycle cleanup work. Repeated per-test schema construction has been
-replaced by isolated copies of one session template, reducing the protected Windows
-lane from 9m51s to 1m24s without sharing mutable database state.
+SQLite connections now use one deterministic context-managed lifecycle that
+preserves commit/rollback behavior and closes on every exit path. Pytest promotes
+SQLite `ResourceWarning`s and unraisable finalizer warnings to errors. Repeated
+per-test schema construction has been replaced by isolated copies of one session
+template, reducing the protected Windows lane from 9m51s to 1m24s without sharing
+mutable database state.
 
 The professional-researcher usability baseline and principal architecture response
 are now recorded. They establish that candidate discovery, machine ranking,
@@ -506,12 +508,16 @@ verification; the canonical inventory records only behavior actually implemented
 
 ### API hygiene and documentation milestone
 
-After the subject-oriented schema, application-service, and CLI refactor is stable,
-but before the workspace facade is frozen as graver's 1.0 contract, complete a
-dedicated API hygiene and documentation milestone. Keep it separate from the
-schema-version-2 migration and from substantial behavioral changes.
+This milestone is partially implemented and must finish before the workspace facade
+is frozen as graver's 1.0 contract. The initial `graver.application` boundary,
+explicit exports, typed request/result services, developer guide, bounded mypy and
+Google-convention docstring checks, and installed-wheel import verification are
+current. Workspace composition, optimistic concurrency, executable installed-wheel
+client examples, evidenced dead-code cleanup, and broader documentation/link
+validation remain. Keep that work separate from schema migrations and substantial
+behavioral changes.
 
-The intended public API will use Google-style docstrings. Every supported public
+The supported boundary uses Google-style docstrings. Every supported public
 module, class, protocol, exception, function, method, typed command, query, and
 result object needs a useful docstring describing its purpose, arguments, return
 value, raised graver-owned exceptions, side effects, transaction behavior, thread
@@ -519,8 +525,9 @@ and cancellation expectations, and a short example where useful. Self-explanator
 private helpers, tests, and trivial accessors do not need verbose documentation.
 Docstrings must explain contracts rather than merely repeat names or annotations.
 
-Complete type annotations across the supported boundary and define explicit public
-import paths and `__all__` exports. Public exceptions and results are graver-owned.
+Type annotations, an explicit `graver.application` import path, and contract-tested
+`__all__` exports now protect the initial boundary. Public exceptions and results are
+graver-owned.
 CLI and presentation types, Typer, Rich, SQLite connections and rows, SQL helpers,
 parsers, Requests objects, and internal transport implementations stay outside the
 facade. The API guide will document stability expectations and additive enum
@@ -542,13 +549,13 @@ invoking acquisition through injected services. Network-capable examples must be
 marked explicitly. Examples support CLI parity and the future GUI consumer while
 remaining distinct from the researcher tutorial.
 
-Before adding release gates, evaluate and document narrowly scoped tools for
-Google-style docstring presence and style, type checking, unused-code detection,
-and documentation build/link validation. Prefer one deterministic command per
-validation category, initially scoped to the documented public API and changed
-files where appropriate, with bounded correction rules. Record each tool and its
-rationale before adding dependencies or CI requirements; do not recreate the prior
-unbounded Flake8 workflow.
+Mypy and Ruff now provide deterministic, narrowly scoped type and Google-style
+docstring gates over the application-facing modules in local commands, pre-commit,
+and CI. The previously installed `deadcode` heuristic was removed after failing on
+supported Python 3.14; unused-code removal instead requires corroborating reference,
+test, coverage, export, and compatibility evidence. Broader documentation build/link
+validation still requires a reviewed tool choice. Any expansion must retain bounded
+correction rules and must not recreate the prior unbounded Flake8 workflow.
 
 Use separate commits for public exports and type boundaries; evidenced dead-code
 and dependency removal; Google-style docstrings and API examples; bounded CI
@@ -907,9 +914,9 @@ Test infrastructure must also follow these rules:
 - Branch-coverage reporting now runs once per CI workflow on Ubuntu/Python 3.14.
   The measured 2026-08-22 baseline is 91%, with a 90% non-regression floor and a
   Coveralls report. Raise the floor only as meaningful behavior is covered;
-  coverage percentage must not substitute for useful assertions. The same run
-  exposed unclosed-SQLite `ResourceWarning`s that remain lifecycle-cleanup work and
-  must not be hidden by coverage configuration.
+  coverage percentage must not substitute for useful assertions. The connection-
+  lifecycle cleanup is complete: SQLite context managers close deterministically,
+  and resource/finalizer warnings now fail the suite rather than being hidden.
 
 ### Live Find a Grave contract probe
 
@@ -1027,9 +1034,12 @@ Pre-1.0 sequence:
    end-to-end offline workflow using the disposable local experiential adapter.
    Resolve or explicitly accept every blocking finding before freezing the public
    workspace façade or detailed evidence-GUI information architecture.
-9. Complete the dedicated API hygiene and documentation milestone: explicit public
-   exports and type boundaries, Google-style public docstrings, evidenced dead-code
-   cleanup, offline API examples, and bounded documentation/type/unused-code checks.
+9. Finish the partially implemented API hygiene and documentation milestone. The
+   explicit pre-1.0 application exports, bounded mypy and Google-style docstring
+   gates, developer guide, and wheel import check are complete. Remaining work is
+   evidenced dead-code cleanup, the synchronous workspace composition, optimistic
+   concurrency, broader documentation/link validation, and executable installed-
+   wheel client examples before the 1.0 surface is frozen.
 10. Maintain the completed dependency-security and software-supply-chain baseline:
    keep runtime and development dependencies separated, review weekly grouped
    Dependabot proposals for Python and GitHub Actions, verify the locked dependency

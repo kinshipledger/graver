@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sqlite3
 import tempfile
 import uuid
 import webbrowser
@@ -19,10 +18,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
+from graver._sqlite import connect_database
 from graver.database import create_database
 from graver.evidence import (
     AssessmentUpdate,
-    CandidateFixture,
+    CandidateInput,
     ComparisonSignalInput,
     ConclusionRequest,
     DiscoveryRequest,
@@ -40,7 +40,7 @@ SUBJECT = {
 }
 
 FIRST_CANDIDATES = (
-    CandidateFixture(
+    CandidateInput(
         "K1AB-CDE",
         "2026-08-21T16:00:00Z",
         {
@@ -55,7 +55,7 @@ FIRST_CANDIDATES = (
         },
         "https://example.invalid/tree/person/K1AB-CDE",
     ),
-    CandidateFixture(
+    CandidateInput(
         "L2FG-HJK",
         "2026-08-21T16:00:00Z",
         {
@@ -86,7 +86,7 @@ class ReviewScenario:
         """Create and seed a fresh fictional review case."""
         database = str(create_database(str(directory / "r2-review.db")))
         subject_id = str(uuid.uuid4())
-        with sqlite3.connect(database) as connection:
+        with connect_database(database) as connection:
             connection.execute(
                 "INSERT INTO research_subjects (subject_id, created_at) VALUES (?, ?)",
                 (subject_id, "2026-08-21T15:55:00Z"),
@@ -209,7 +209,7 @@ class ReviewScenario:
                 "2026-08-28T16:00:00Z",
                 "fixture-search/1",
                 (
-                    CandidateFixture(
+                    CandidateInput(
                         "K1AB-CDE",
                         "2026-08-28T16:00:00Z",
                         {

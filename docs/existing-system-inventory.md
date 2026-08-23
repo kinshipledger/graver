@@ -296,15 +296,19 @@ service enforces approval and alias preconditions before injected acquisition an
 maps success, redirect, and recorded failure outcomes to typed results or errors;
 existing acquisition persistence helpers remain internal compatibility boundaries.
 The broad root exports described above are not a stable 1.0 application
-API. No workspace facade, typed public result layer, neutral progress or cancellation
-protocol, optimistic concurrency control, or GUI integration has been implemented.
+API. An explicit pre-1.0 typed boundary now exists at `graver.application`, with
+contract-tested `__all__` exports and no CLI, transport, or SQLite implementation
+types. No workspace facade, neutral progress or cancellation protocol, optimistic
+concurrency control, or GUI integration has been implemented.
 
 The approved target is a separate installable desktop component, with PyQt6 as the
 leading but not mandated toolkit candidate, depending only on graver's documented
-public application facade. In that target design, SQLite connections and schema
+public application boundary and later workspace facade. In that target design,
+SQLite connections and schema
 details remain internal, connections are scoped per operation or unit of work and
 never shared across GUI threads, and CLI and GUI remain peer adapters. The facade,
-its exact names, and its typed contracts are planned work, not current behavior.
+workspace composition, progress/cancellation protocols, and frozen 1.0 names remain
+planned work rather than being implied by the initial pre-1.0 boundary.
 The completed researcher tutorial supplies a useful behavioral acceptance workflow
 for future CLI/application-API/GUI parity tests.
 
@@ -339,9 +343,11 @@ override provider terms, policies, controls, or instructions.
   contribution, and private-reporting practices. No release tags exist yet.
 
 The baseline coverage run also reported numerous unclosed-SQLite
-`ResourceWarning`s. Tests still pass, but the warnings are an honest lifecycle-
-cleanup finding for the testing-modernization milestone; coverage configuration
-must not suppress them merely to reduce output.
+`ResourceWarning`s. That lifecycle finding was resolved on 2026-08-23 with a shared
+internal connection factory that preserves transaction semantics and closes on
+context exit, including exception paths. Focused commit/rollback tests protect the
+boundary, and pytest now treats SQLite resource warnings and unraisable finalizer
+warnings as errors rather than suppressing them.
 
 The 2026-08-23 Windows/Python 3.14 lane passed all 340 tests but took 9m28s inside
 pytest. Its slow-test report showed that fixture setup—not dependency installation
@@ -458,25 +464,23 @@ separate versioned-envelope milestone. Merge, split, manual association or
 reassociation, preferred memorial selection, live external-provider adapters,
 versioned envelopes, and hidden-command removal remain explicitly deferred.
 
-The public application-service facade is now planned alongside the subject-oriented
-API work rather than as a late packaging-only cleanup. Typed task request and result
-objects are implemented internally in `graver.research`, and the principal read and
-update CLI workflows use them. Persistence rows and SQL remain private to the
-repository/service implementation; these types are not yet the frozen public
-workspace API. A synchronous workspace opened from an explicit database path is the
-leading design because it offers cohesive ownership and discoverability without a
-long-lived connection; the CLI, not the workspace, continues to resolve database
-configuration and precedence.
+The initial public application-service boundary is implemented at
+`graver.application`. It explicitly exports typed database lifecycle, research, and
+evidence services while excluding `Driver`, transport objects, CLI frameworks, and
+SQLite types. Import-contract tests, bounded mypy enforcement, Google-convention
+docstring coverage, a developer API guide, and installed-wheel import verification
+protect that boundary. Persistence rows and SQL remain private to repository/service
+implementations; these names are supported during pre-1.0 development but are not
+yet the frozen workspace API. A synchronous workspace opened from an explicit
+database path remains the leading next composition because it offers cohesive
+ownership and discoverability without a long-lived connection; the CLI, not the
+workspace, continues to resolve database configuration and precedence.
 
-After that planned subject-oriented API/CLI service refactor, a dedicated **API
-hygiene and documentation** milestone will run before the workspace facade is
-frozen. It is planned work, not current behavior, and remains separate from the
-completed version-2 migration. It will establish explicit public imports and
-`__all__` exports, complete
-public type contracts and graver-owned results and exceptions, and useful Google-
-style docstrings across the supported boundary. Typer, Rich, SQLite connections and
-rows, SQL helpers, parsers, Requests objects, `Driver`, and transport implementation
-types will remain outside the public facade.
+The dedicated **API hygiene and documentation** milestone is now partially complete:
+explicit imports, `__all__`, typed graver-owned results and exceptions, bounded
+mypy/docstring gates, and offline developer guidance are implemented. Typer, Rich,
+SQLite connections and rows, SQL helpers, parsers, Requests objects, `Driver`, and
+transport implementation types remain outside the boundary as intended.
 
 That milestone will review broad root and wildcard exports, hidden commands,
 commented-out or empty test scaffolding, obsolete compatibility helpers, and unused
@@ -487,13 +491,14 @@ receive release notes. Separate commits will cover export/type boundaries,
 evidenced dead-code and dependency removal, Google-style docstrings and installed-
 wheel API examples, bounded CI enforcement, and migration/release notes.
 
-Tools for docstring style and presence, typing, unused-code detection, and
-documentation build/link validation remain to be evaluated and documented before
-becoming release gates. Enforcement will use bounded deterministic commands scoped
-initially to the public API and changed files where appropriate, without recreating
-the previous Flake8 loop. Acceptance requires tested public imports, complete useful
-public docstrings and types, no third-party or implementation-type leakage, offline
-installed-wheel examples for workspace opening, work inspection, concurrency-safe
+Ruff now enforces Google-convention public docstring coverage, and mypy enforces the
+four application-facing modules through deterministic local, pre-commit, and CI
+commands. The `deadcode` package was removed after its AST visitor failed on
+supported Python 3.14; unused-code decisions require corroborating repository,
+tests, coverage, exports, and compatibility evidence instead. Broader documentation
+build/link validation remains to be selected. Final acceptance still
+requires the workspace composition, optimistic concurrency, and offline installed-
+wheel examples for workspace opening, work inspection, concurrency-safe
 task updates, and injected acquisition, evidenced removals, release notes, and green
 reproducible checks. The researcher tutorial remains separate from this developer
 API reference.

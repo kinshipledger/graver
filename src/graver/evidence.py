@@ -12,6 +12,27 @@ from typing import Any, Mapping, Optional, Sequence
 from graver.api import _connect, _utc_now_iso
 from graver.database import validate_current_database
 
+__all__ = (
+    "AssessmentRecord",
+    "AssessmentUpdate",
+    "CandidateInput",
+    "CandidateSnapshotRecord",
+    "ComparisonSignalInput",
+    "ComparisonSignalRecord",
+    "ConclusionRecord",
+    "ConclusionRequest",
+    "DiscoveryRequest",
+    "DiscoveryResult",
+    "EvidenceError",
+    "EvidenceInputError",
+    "EvidenceNotFound",
+    "EvidenceService",
+    "RankedCandidate",
+    "SourceObservationInput",
+    "SourceObservationRecord",
+    "StaleAssessment",
+)
+
 DISCOVERY_OUTCOMES = (
     "completed",
     "no_results",
@@ -238,8 +259,8 @@ def _require_text(value: str, label: str) -> None:
 
 
 @dataclass(frozen=True)
-class CandidateFixture:
-    """Represent one curated provider-shaped candidate observation."""
+class CandidateInput:
+    """Represent one external-profile candidate supplied by a provider adapter."""
 
     provider_profile_id: str
     observed_at: str
@@ -257,7 +278,7 @@ class DiscoveryRequest:
     started_at: str
     completed_at: str
     strategy_version: str
-    candidates: Sequence[CandidateFixture] = ()
+    candidates: Sequence[CandidateInput] = ()
     outcome: str = "completed"
     error_kind: Optional[str] = None
 

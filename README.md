@@ -3,6 +3,7 @@
 [![Python: 3.11–3.14](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Lint: Ruff](https://img.shields.io/badge/lint-Ruff-D7FF64?logo=ruff&logoColor=261230)](https://docs.astral.sh/ruff/)
 [![Package manager: uv](https://img.shields.io/badge/package%20manager-uv-DE5FE9?logo=uv)](https://docs.astral.sh/uv/)
 
 graver
@@ -204,6 +205,7 @@ For researchers:
 For contributors and maintainers:
 
 - [Contribution guide](CONTRIBUTING.md)
+- [Developer API guide](docs/api.md)
 - [Security policy](SECURITY.md)
 - [Project context and roadmap](docs/project-context.md)
 - [Verified implementation inventory](docs/existing-system-inventory.md)

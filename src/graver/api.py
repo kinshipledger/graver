@@ -11,12 +11,13 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from re import Match
 from time import sleep
-from typing import Any, Dict, List, Optional, cast
+from typing import Dict, List, Optional, cast
 from urllib.parse import parse_qsl, urljoin, urlparse, urlunparse
 
 from bs4 import BeautifulSoup, Tag
 from tqdm import tqdm
 
+from ._sqlite import connect_database
 from .constants import FINDAGRAVE_BASE_URL, FINDAGRAVE_ROWS_PER_PAGE
 from .transport import (
     DEFAULT_TIMEOUT,
@@ -367,7 +368,7 @@ def _utc_now_iso() -> str:
 
 
 def _connect(database_name: str) -> sqlite3.Connection:
-    connection = sqlite3.connect(database_name)
+    connection = connect_database(database_name)
     connection.execute("PRAGMA foreign_keys = ON")
     return connection
 
@@ -1599,25 +1600,17 @@ class Memorial(_MemorialSummaryFields):
     def get_by_id(cls, memorial_id: int):
         dbname = os.getenv("DATABASE_NAME", "graves.db")
         _require_current_database(dbname)
-        con = _connect(dbname)
-        con.row_factory = sqlite3.Row
+        with _connect(dbname) as connection:
+            connection.row_factory = sqlite3.Row
+            record = connection.execute(
+                f"SELECT {', '.join(FULL_FIELDS)} FROM graves WHERE memorial_id=?",
+                (memorial_id,),
+            ).fetchone()
 
-        cur = con.cursor()
-        cur.execute(
-            f"SELECT {', '.join(FULL_FIELDS)} FROM graves WHERE memorial_id=?",
-            (memorial_id,),
-        )
+            if record is None:
+                raise NotFound(f"memorial_id={memorial_id} not present in {dbname}")
 
-        record = cur.fetchone()
-
-        if record is None:
-            raise NotFound(f"memorial_id={memorial_id} not present in {dbname}")
-
-        memorial = Memorial(**record)  # Row can be unpacked as dict
-
-        con.close()
-
-        return memorial
+            return Memorial(**record)  # Row can be unpacked as dict
 
 
 class _MemorialParser:
@@ -1989,9 +1982,7 @@ class _MemorialParser:
 
 
 class _SearchWorker:
-    def __init__(  # noqa: max-complexity=23
-        self, cemetery: Cemetery = cast(Cemetery, None), **kwargs
-    ) -> None:
+    def __init__(self, cemetery: Cemetery = cast(Cemetery, None), **kwargs) -> None:
         self.cemetery: Cemetery = cemetery
         self.params: dict = {}
 

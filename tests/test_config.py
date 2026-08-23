@@ -1,12 +1,12 @@
 import hashlib
 import json
-import sqlite3
 from pathlib import Path
 
 import pytest
 
 from graver import Memorial
 from graver import config as graver_config
+from graver._sqlite import connect_database
 
 
 def database_digest(path: Path) -> str:
@@ -76,7 +76,7 @@ def test_validation_rejects_non_graver_inputs(tmp_path, kind):
     elif kind == "text":
         path.write_text("not sqlite")
     elif kind == "sqlite":
-        with sqlite3.connect(path) as connection:
+        with connect_database(path) as connection:
             connection.execute("CREATE TABLE something_else (value TEXT)")
 
     with pytest.raises(graver_config.GraverConfigurationError):
@@ -85,7 +85,7 @@ def test_validation_rejects_non_graver_inputs(tmp_path, kind):
 
 def test_validation_does_not_modify_or_migrate_database(tmp_path):
     database = tmp_path / "legacy.db"
-    with sqlite3.connect(database) as connection:
+    with connect_database(database) as connection:
         connection.execute("""CREATE TABLE graves (
                 memorial_id INTEGER PRIMARY KEY, findagrave_url TEXT, name TEXT,
                 birth TEXT, death TEXT, cemetery_id INTEGER
@@ -100,7 +100,7 @@ def test_validation_does_not_modify_or_migrate_database(tmp_path):
 
     assert database_digest(database) == before_digest
     assert database.stat().st_mtime_ns == before_mtime
-    with sqlite3.connect(database) as connection:
+    with connect_database(database) as connection:
         tables = {
             row[0]
             for row in connection.execute(

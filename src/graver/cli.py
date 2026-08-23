@@ -12,7 +12,6 @@ from urllib.parse import urlparse
 import typer
 from tqdm import tqdm
 
-from graver import config as graver_config
 from graver import (
     Cemetery,
     Driver,
@@ -25,12 +24,13 @@ from graver import (
     get_memorial_alias,
     list_memorial_aliases,
     list_research_tasks,
-    queue_memorials as queue_memorials_in_database,
     record_memorial_alias,
     retract_memorial_alias,
     show_research_task,
     update_research_task,
 )
+from graver import config as graver_config
+from graver import queue_memorials as queue_memorials_in_database
 from graver.constants import (
     APP_NAME,
     FINDAGRAVE_BASE_URL,

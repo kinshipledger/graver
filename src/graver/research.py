@@ -21,8 +21,27 @@ from graver.api import (
     _row_to_dict,
     _sources_for_canonical,
 )
-from graver.database import validate_current_database
 from graver.constants import MEMORIAL_CANONICAL_URL_FORMAT
+from graver.database import validate_current_database
+
+__all__ = (
+    "EnrichmentAliasBlocked",
+    "EnrichmentFailed",
+    "EnrichmentNotApproved",
+    "EnrichmentRedirectInvalid",
+    "EnrichmentRedirected",
+    "ResearchEnrichmentRequest",
+    "ResearchEnrichmentResult",
+    "ResearchInputError",
+    "ResearchQueueRequest",
+    "ResearchQueueResult",
+    "ResearchService",
+    "ResearchTaskDetail",
+    "ResearchTaskQuery",
+    "ResearchTaskRecord",
+    "ResearchTaskSummary",
+    "ResearchTaskUpdate",
+)
 
 
 class ResearchInputError(ValueError):
@@ -585,6 +604,10 @@ class ResearchService:
                 result = _ResearchTaskRepository.task_for_subject(
                     connection, current["subject_id"]
                 )
+                if result is None:
+                    raise ResearchTaskNotFound(
+                        f"Research task {command.memorial_id} disappeared during update"
+                    )
                 _record_task_event(
                     connection,
                     current["subject_id"],

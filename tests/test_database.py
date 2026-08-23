@@ -1,7 +1,7 @@
+import hashlib
 import json
 import os
 import sqlite3
-import hashlib
 import uuid
 from pathlib import Path
 
@@ -12,6 +12,7 @@ from graver import Memorial
 from graver import api as graver_api
 from graver import config as graver_config
 from graver import database as graver_database
+from graver._sqlite import connect_database
 
 CURRENT_TABLES = {
     "cemeteries",
@@ -49,7 +50,7 @@ def test_create_database_builds_complete_current_schema(tmp_path):
 
     assert path == (tmp_path / "research.db").resolve()
     assert graver_config.validate_graver_database(str(path)) == path
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         connection.execute("PRAGMA foreign_keys = ON")
         objects = connection.execute(
             "SELECT type, name FROM sqlite_master " "WHERE name NOT LIKE 'sqlite_%'"
@@ -139,7 +140,7 @@ def test_create_database_refuses_every_existing_path(tmp_path, kind):
     elif kind == "binary":
         path.write_bytes(b"\x00\x01\xff")
     elif kind == "sqlite":
-        with sqlite3.connect(path) as connection:
+        with connect_database(path) as connection:
             connection.execute("CREATE TABLE unrelated (value TEXT)")
     elif kind == "directory":
         path.mkdir()
@@ -362,7 +363,7 @@ def make_legacy_database(path: Path, full: bool = False) -> Path:
         if full
         else ""
     )
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         connection.execute(
             "CREATE TABLE graves (memorial_id INTEGER PRIMARY KEY, "
             "findagrave_url TEXT, name TEXT, birth TEXT, death TEXT, "
@@ -376,7 +377,7 @@ def make_legacy_database(path: Path, full: bool = False) -> Path:
 
 
 def make_version_1_database(path: Path, metadata: bool = True) -> Path:
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         graver_api._create_graves_table(connection)
         graver_api._create_cemeteries_table(connection)
         graver_api._create_research_schema(connection, task_schema_version=1)
@@ -409,26 +410,26 @@ def test_read_only_schema_inspection_classifies_supported_shapes(tmp_path, kind,
     if kind in {"summary", "full"}:
         make_legacy_database(path, full=kind == "full")
     elif kind == "current_unversioned":
-        with sqlite3.connect(path) as connection:
+        with connect_database(path) as connection:
             graver_database._create_current_schema(connection)
     elif kind in {"version_1", "version_1_unversioned"}:
         make_version_1_database(path, metadata=kind == "version_1")
     elif kind in {"current", "newer"}:
         graver_database.create_database(str(path))
         if kind == "newer":
-            with sqlite3.connect(path) as connection:
+            with connect_database(path) as connection:
                 connection.execute(
                     "UPDATE graver_schema SET version = ?",
                     (graver_database.CURRENT_SCHEMA_VERSION + 1,),
                 )
     elif kind == "empty":
-        with sqlite3.connect(path):
+        with connect_database(path):
             pass
     elif kind == "unrelated":
-        with sqlite3.connect(path) as connection:
+        with connect_database(path) as connection:
             connection.execute("CREATE TABLE notes (value TEXT)")
     else:
-        with sqlite3.connect(path) as connection:
+        with connect_database(path) as connection:
             connection.execute("CREATE TABLE graves (memorial_id INTEGER PRIMARY KEY)")
     before = digest(path)
     before_mtime = path.stat().st_mtime_ns
@@ -475,7 +476,7 @@ def test_upgrade_legacy_preserves_rows_values_and_creates_verified_backup(
     assert result.changed is True
     assert result.backup_path is not None
     assert graver_database.inspect_database(str(path)).current
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         assert connection.execute(
             "SELECT memorial_id, name, legacy_note FROM graves ORDER BY memorial_id"
         ).fetchall() == [
@@ -506,7 +507,7 @@ def test_upgrade_legacy_preserves_rows_values_and_creates_verified_backup(
     assert graver_database.inspect_database(str(result.backup_path)).state == (
         "legacy_0_1" if full else "legacy_summary"
     )
-    with sqlite3.connect(result.backup_path) as backup_connection:
+    with connect_database(result.backup_path) as backup_connection:
         assert backup_connection.execute(
             "SELECT memorial_id, name, legacy_note FROM graves ORDER BY memorial_id"
         ).fetchall() == [
@@ -517,12 +518,12 @@ def test_upgrade_legacy_preserves_rows_values_and_creates_verified_backup(
 
 def test_upgrade_current_unversioned_adds_only_metadata(tmp_path):
     path = tmp_path / "unversioned.db"
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         graver_database._create_current_schema(connection)
 
     graver_database.upgrade_database(str(path))
 
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         assert connection.execute("SELECT COUNT(*) FROM graves").fetchone() == (0,)
         assert connection.execute("SELECT version FROM graver_schema").fetchone() == (
             graver_database.CURRENT_SCHEMA_VERSION,
@@ -531,7 +532,7 @@ def test_upgrade_current_unversioned_adds_only_metadata(tmp_path):
 
 def test_upgrade_version_1_creates_mechanical_subjects_and_preserves_tasks(tmp_path):
     path = make_version_1_database(tmp_path / "version-1.db")
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         connection.executemany(
             "INSERT INTO graves (memorial_id, name) VALUES (?, ?)",
             [(11, "First Person"), (22, "Second Person")],
@@ -554,7 +555,7 @@ def test_upgrade_version_1_creates_mechanical_subjects_and_preserves_tasks(tmp_p
 
     assert result.source.state == "outdated"
     assert result.source.version == 1
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         connection.row_factory = sqlite3.Row
         subjects = connection.execute(
             "SELECT subject_id FROM research_subjects ORDER BY subject_id"
@@ -621,7 +622,7 @@ def test_upgrade_version_1_creates_mechanical_subjects_and_preserves_tasks(tmp_p
         with pytest.raises(sqlite3.IntegrityError, match="immutable"):
             connection.execute("UPDATE research_subject_events SET reason='changed'")
 
-    with sqlite3.connect(result.backup_path) as backup:
+    with connect_database(result.backup_path) as backup:
         assert backup.execute("SELECT version FROM graver_schema").fetchone() == (1,)
         assert "research_subjects" not in {
             row[0]
@@ -650,7 +651,7 @@ def test_version_1_migration_failure_rolls_back_all_subject_changes(
     tmp_path, monkeypatch
 ):
     path = make_version_1_database(tmp_path / "version-1.db")
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         connection.execute("INSERT INTO graves (memorial_id) VALUES (11)")
     before = digest(path)
 
@@ -667,7 +668,7 @@ def test_version_1_migration_failure_rolls_back_all_subject_changes(
     assert digest(path) == before
     assert error.value.backup_path.exists()
     assert graver_database.inspect_database(str(path)).state == "outdated"
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         assert "research_subjects" not in {
             row[0]
             for row in connection.execute(
@@ -705,7 +706,7 @@ def test_migration_failure_rolls_back_and_preserves_backup(tmp_path, monkeypatch
 
     assert digest(path) == before
     assert error.value.backup_path.exists()
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         assert "should_rollback" not in {
             row[1] for row in connection.execute("PRAGMA table_info(graves)")
         }
@@ -743,7 +744,7 @@ def test_post_migration_validation_failure_preserves_upgraded_data_and_backup(
         graver_database.upgrade_database(str(path))
 
     assert error.value.backup_path.exists()
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         assert connection.execute("SELECT version FROM graver_schema").fetchone() == (
             graver_database.CURRENT_SCHEMA_VERSION,
         )
@@ -752,7 +753,7 @@ def test_post_migration_validation_failure_preserves_upgraded_data_and_backup(
 
 def test_upgrade_rejects_newer_schema_without_backup(tmp_path):
     path = graver_database.create_database(str(tmp_path / "future.db"))
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         connection.execute("UPDATE graver_schema SET version = 99")
     before = digest(path)
 
@@ -765,7 +766,7 @@ def test_upgrade_rejects_newer_schema_without_backup(tmp_path):
 
 def test_version_three_upgrade_adds_empty_source_observations(tmp_path):
     path = graver_database.create_database(str(tmp_path / "version-three.db"))
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         connection.execute("DROP TRIGGER research_source_observations_no_update")
         connection.execute("DROP TRIGGER research_source_observations_no_delete")
         connection.execute("DROP INDEX idx_source_observations_subject")
@@ -777,7 +778,7 @@ def test_version_three_upgrade_adds_empty_source_observations(tmp_path):
 
     assert result.source.version == 3
     assert result.version == graver_database.CURRENT_SCHEMA_VERSION
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         assert connection.execute(
             "SELECT COUNT(*) FROM research_source_observations"
         ).fetchone() == (0,)

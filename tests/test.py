@@ -1,29 +1,9 @@
 import json
 import os
-from datetime import datetime
 
 import pytest
 
 from graver import Memorial
-
-
-@pytest.mark.usefixtures("betamax_parametrized_session")
-def test_vcr(betamax_parametrized_session):
-    response = betamax_parametrized_session.get("http://www.iana.org/domains/reserved")
-    assert b"Example domains" in response.content
-
-
-def test_faker(faker):
-    name = faker.name()
-    assert isinstance(name, str)
-    address = faker.address()
-    assert isinstance(address, str)
-    dt = faker.date_time()
-    assert isinstance(dt, datetime)
-    prof = faker.profile()
-    assert isinstance(prof, dict)
-    url = faker.url(schemes=["https"])
-    assert isinstance(url, str)
 
 
 @pytest.mark.usefixtures("helpers")
@@ -45,13 +25,7 @@ class Test:
     @pytest.mark.usefixtures("faker")
     def test_gen_memorial(self, faker):
         num_memorials = 50
-        memorials = []
-        for _ in range(num_memorials):
-            m = faker.memorial(faker)
-            assert isinstance(m, Memorial)
-            memorials.append(m)
-        pass
+        memorials = [faker.memorial(faker) for _ in range(num_memorials)]
 
-    @staticmethod
-    def fake_result_set(source: str, num: int, faker):
-        pass
+        assert len(memorials) == num_memorials
+        assert all(isinstance(memorial, Memorial) for memorial in memorials)

@@ -8,11 +8,11 @@ from typing import Any
 
 import pytest
 import requests
+from bs4 import BeautifulSoup
 from urllib3 import exceptions
 
 import graver.api
 import graver.database
-from bs4 import BeautifulSoup
 from graver import (
     Cemetery,
     Driver,
@@ -36,14 +36,14 @@ from graver import (
     show_research_task,
     update_research_task,
 )
-from graver.transport import TransportRateLimited
+from graver._sqlite import connect_database
 from graver.research import (
     EnrichmentAliasBlocked,
     EnrichmentFailed,
     EnrichmentNotApproved,
-    ResearchInputError,
     ResearchEnrichmentRequest,
     ResearchEnrichmentResult,
+    ResearchInputError,
     ResearchQueueRequest,
     ResearchQueueResult,
     ResearchService,
@@ -53,6 +53,7 @@ from graver.research import (
     ResearchTaskSummary,
     ResearchTaskUpdate,
 )
+from graver.transport import TransportRateLimited
 from tests.test import Test
 
 logging.getLogger().setLevel(logging.INFO)
@@ -464,7 +465,7 @@ class TestCemetery(TestApi):
 class TestDatabaseOps(TestApi):
     def test_explicit_upgrade_migrates_additive_columns(self, tmp_path):
         database_name = tmp_path / "legacy.db"
-        with sqlite3.connect(database_name) as connection:
+        with connect_database(database_name) as connection:
             connection.execute("""CREATE TABLE graves (
                     memorial_id INTEGER PRIMARY KEY, findagrave_url TEXT,
                     name TEXT, birth TEXT, death TEXT, original_name TEXT,
@@ -476,7 +477,7 @@ class TestDatabaseOps(TestApi):
 
         graver.database.upgrade_database(str(database_name))
 
-        with sqlite3.connect(database_name) as connection:
+        with connect_database(database_name) as connection:
             columns = {
                 row[1]
                 for row in connection.execute("PRAGMA table_info(graves)").fetchall()
@@ -596,7 +597,7 @@ class TestDatabaseOps(TestApi):
         cemetery.name = "Updated name"
         cemetery.save(str(database_name))
 
-        with sqlite3.connect(database_name) as connection:
+        with connect_database(database_name) as connection:
             row = connection.execute(
                 "SELECT name, first_observed_at, last_observed_at FROM cemeteries"
             ).fetchone()
@@ -617,7 +618,7 @@ class TestDatabaseOps(TestApi):
     def test_new_summary_records_detail_level_and_timestamp(self, database):
         summary = self.summary().save()
 
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             row = connection.execute(
                 "SELECT detail_level, summary_fetched_at, full_fetched_at "
                 "FROM graves WHERE memorial_id = ?",
@@ -640,7 +641,7 @@ class TestDatabaseOps(TestApi):
         assert observation[4] == "success"
         assert observation[5]
         assert json.loads(observation[6]) == summary.to_dict()
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             cemetery = connection.execute(
                 """SELECT cemetery_id, url, name, first_observed_at,
                           last_observed_at FROM cemeteries"""
@@ -664,7 +665,7 @@ class TestDatabaseOps(TestApi):
             ]
         ).save()
 
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             observation = connection.execute("""SELECT acquisition_level, payload_json
                    FROM memorial_observations""").fetchone()
         assert observation[0] == "full"
@@ -681,14 +682,14 @@ class TestDatabaseOps(TestApi):
         summary.save()
         self.summary(name="second observation").save()
 
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             observations = connection.execute("""SELECT observation_id, payload_json
                    FROM memorial_observations ORDER BY observation_id""").fetchall()
         assert len(observations) == 2
         assert observations[0][0] != observations[1][0]
         assert json.loads(observations[0][1])["name"] == "first observation"
         assert json.loads(observations[1][1])["name"] == "second observation"
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             with pytest.raises(
                 sqlite3.IntegrityError, match="memorial observations are immutable"
             ):
@@ -703,7 +704,7 @@ class TestDatabaseOps(TestApi):
     def test_observation_failure_rolls_back_grave_upsert(self, database):
         summary = self.summary(name="preserved name")
         summary.save()
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             connection.execute("""CREATE TRIGGER fail_observation
                    BEFORE INSERT ON memorial_observations
                    BEGIN
@@ -713,7 +714,7 @@ class TestDatabaseOps(TestApi):
         with pytest.raises(sqlite3.IntegrityError, match="observation failed"):
             self.summary(name="rolled back name").save()
 
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             grave_name = connection.execute(
                 "SELECT name FROM graves WHERE memorial_id = ?",
                 (summary.memorial_id,),
@@ -734,7 +735,7 @@ class TestDatabaseOps(TestApi):
             summary.save()
 
         assert queue_memorials(database.name, cemetery_id=10, priority=7) == (2, 0)
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             connection.execute(
                 """UPDATE research_tasks SET status = 'researching', owner = 'owner',
                    priority = 99, review_note = 'keep', updated_at = 'updated',
@@ -751,7 +752,7 @@ class TestDatabaseOps(TestApi):
         assert queue_memorials(database.name, cemetery_id=10, priority=1) == (0, 2)
         assert queue_memorials(database.name, priority=3) == (1, 2)
 
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             task_count = connection.execute(
                 "SELECT COUNT(*) FROM research_tasks"
             ).fetchone()[0]
@@ -764,7 +765,7 @@ class TestDatabaseOps(TestApi):
         assert after == preserved
 
     def test_list_tasks_filters_orders_and_defaults_to_twenty(self, database):
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             connection.executemany(
                 "INSERT INTO graves (memorial_id, name, cemetery_id) VALUES (?, ?, ?)",
                 [
@@ -775,7 +776,7 @@ class TestDatabaseOps(TestApi):
             for number in range(1, 26):
                 graver.api._ensure_subject_for_memorial(connection, number, "fixture")
         queue_memorials(database.name)
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             connection.execute(
                 """UPDATE research_tasks SET status = 'researching' WHERE subject_id =
                    (SELECT subject_id FROM subject_memorials WHERE memorial_id = 1)"""
@@ -854,6 +855,24 @@ class TestDatabaseOps(TestApi):
         assert updated.status == "researching"
         assert updated.subject_id == detail.task.subject_id
         assert "subject_id" not in detail.to_compatibility_dict()["task"]
+
+    def test_subject_service_rolls_back_if_updated_task_disappears(
+        self, database, monkeypatch
+    ):
+        summary = self.summary().save()
+        service = ResearchService(database.name)
+        service.queue_memorials()
+        monkeypatch.setattr(
+            "graver.research._ResearchTaskRepository.task_for_subject",
+            lambda _connection, _subject_id: None,
+        )
+
+        with pytest.raises(ResearchTaskNotFound, match="disappeared during update"):
+            service.apply_task_update(
+                ResearchTaskUpdate(summary.memorial_id, status="researching")
+            )
+
+        assert service.get_task(summary.memorial_id).task.status == "unprocessed"
 
     def test_subject_service_exposes_typed_queue_result(self, database):
         self.summary().save()
@@ -995,7 +1014,7 @@ class TestDatabaseOps(TestApi):
     def test_show_task_distinguishes_missing_memorial_and_task(self, database):
         with pytest.raises(graver.api.NotFound, match="Memorial 999"):
             show_research_task(database.name, 999)
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             connection.execute("INSERT INTO graves (memorial_id) VALUES (999)")
             graver.api._ensure_subject_for_memorial(connection, 999, "fixture")
         with pytest.raises(ResearchTaskNotFound, match="Research task 999"):
@@ -1005,7 +1024,7 @@ class TestDatabaseOps(TestApi):
         summary = self.summary()
         summary.save()
         queue_memorials(database.name, priority=7)
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             connection.execute(
                 """UPDATE research_tasks SET owner = 'owner', review_note = 'keep',
                    updated_at = 'old-update', last_activity_at = 'old-activity'"""
@@ -1019,7 +1038,7 @@ class TestDatabaseOps(TestApi):
             database.name, summary.memorial_id, status="researching"
         )
 
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             task_events = connection.execute(
                 """SELECT event_type, before_json, after_json
                    FROM research_task_events ORDER BY event_id"""
@@ -1044,7 +1063,7 @@ class TestDatabaseOps(TestApi):
         summary = self.summary(name="summary name")
         summary.save()
         queue_memorials(database.name, priority=8)
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             connection.execute(
                 """UPDATE research_tasks SET status = 'ready_for_full_scrape',
                    owner = 'owner', review_note = 'note'"""
@@ -1074,7 +1093,7 @@ class TestDatabaseOps(TestApi):
         summary = self.summary(name="preserved")
         summary.save()
         queue_memorials(database.name, priority=9)
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             connection.execute(
                 """UPDATE research_tasks SET status = 'ready_for_full_scrape',
                    owner = 'owner', review_note = 'human note'"""
@@ -1114,7 +1133,7 @@ class TestDatabaseOps(TestApi):
         summary.save()
         self.full().save()
 
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             row = connection.execute(
                 "SELECT detail_level, summary_fetched_at, full_fetched_at "
                 "FROM graves WHERE memorial_id = ?",
@@ -1136,7 +1155,7 @@ class TestDatabaseOps(TestApi):
 
         self.summary(name="refreshed summary").save()
 
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             row = connection.execute(
                 "SELECT detail_level, name, original_name, coords, "
                 "summary_fetched_at, full_fetched_at FROM graves "
@@ -1161,7 +1180,7 @@ class TestDatabaseOps(TestApi):
 
         summary = self.summary(name="new summary", plot="new plot").save()
 
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             row = connection.execute(
                 "SELECT name, plot, detail_level, summary_fetched_at "
                 "FROM graves WHERE memorial_id = ?",
@@ -1178,7 +1197,7 @@ class TestDatabaseOps(TestApi):
 
         full = self.full(original_name=None, coords=None).save()
 
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             row = connection.execute(
                 "SELECT original_name, coords, detail_level, full_fetched_at "
                 "FROM graves WHERE memorial_id = ?",
@@ -1226,7 +1245,7 @@ class TestMemorialAliases:
         return MemorialSummary.from_dict(values)
 
     def test_schema_constraints_foreign_keys_indexes_and_triggers(self, database):
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             tables = {
                 r[0]
                 for r in connection.execute(
@@ -1325,7 +1344,7 @@ class TestMemorialAliases:
         record_memorial_alias(
             database.name, first.memorial_id, second.memorial_id, "merged"
         )
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             with pytest.raises(sqlite3.IntegrityError, match="immutable"):
                 connection.execute("DELETE FROM memorial_alias_observations")
             connection.execute("PRAGMA foreign_keys=OFF")
@@ -1344,7 +1363,7 @@ class TestMemorialAliases:
     ):
         source = self.summary().save()
         queue_memorials(database.name)
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             connection.execute(
                 "UPDATE research_tasks SET status='ready_for_full_scrape', "
                 "updated_at='before', last_activity_at='before'"
@@ -1367,7 +1386,7 @@ class TestMemorialAliases:
                 error.new_url,
                 error,
             )
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             assert (
                 connection.execute("SELECT COUNT(*) FROM memorial_aliases").fetchone()[
                     0

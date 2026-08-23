@@ -1,4 +1,4 @@
-.PHONY: help init sync run test lint format clean
+.PHONY: help init sync run test lint typecheck doccheck format clean
 
 # Default goal when running just `make`
 .DEFAULT_GOAL := help
@@ -25,11 +25,19 @@ run: ## Run the main application
 test: ## Run tests using pytest
 	PYTHONPATH=src uv run --group test pytest
 
-lint: ## Lint code using the configured Flake8 checks
-	uv run --group test flake8 src/graver tests --count --max-complexity=10 --max-line-length=127 --statistics
+lint: ## Run required formatting and lint checks
+	uv run --group dev black --check src/graver tests review
+	uv run --group dev ruff check src/graver tests review
 
-format: ## Format code using Black
-	uv run --group dev black .
+typecheck: ## Type-check the supported application boundary
+	uv run --group dev mypy
+
+doccheck: ## Check public application docstring coverage and style
+	uv run --group dev ruff check --select D --ignore D105,D107 src/graver/application.py src/graver/database.py src/graver/evidence.py src/graver/research.py
+
+format: ## Apply safe lint fixes and Black formatting
+	uv run --group dev ruff check --fix src/graver tests review
+	uv run --group dev black src/graver tests review
 
 clean: ## Remove virtual environment and build artifacts
 	rm -rf .venv

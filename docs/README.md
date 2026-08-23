@@ -9,6 +9,9 @@ using the implemented command-line workflow.
 The [access policy](access-policy.md) defines current project governance for
 responsible acquisition behavior and contributions.
 
+The [developer API guide](api.md) documents the supported pre-1.0 typed application
+boundary for CLI, future GUI, and other client adapters.
+
 The [GEDCOM integration architecture](gedcom-integration.md) records a deliberately
 optional, periodically re-evaluated direction for immutable import, comparison,
 relationships, privacy, and selective export.
