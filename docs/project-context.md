@@ -810,9 +810,12 @@ Test infrastructure must also follow these rules:
 - Register meaningful `unit`, `integration`, `recorded`, and `slow` markers and
   enable strict marker checking. Evaluate pytest importlib mode against the current
   `src` layout before adopting it.
-- Establish branch-coverage reporting from the measured baseline, then introduce a
-  modest non-regression threshold and raise it only as meaningful behavior is
-  covered; coverage percentage must not substitute for useful assertions.
+- Branch-coverage reporting now runs once per CI workflow on Ubuntu/Python 3.14.
+  The measured 2026-08-22 baseline is 91%, with a 90% non-regression floor and a
+  Coveralls report. Raise the floor only as meaningful behavior is covered;
+  coverage percentage must not substitute for useful assertions. The same run
+  exposed unclosed-SQLite `ResourceWarning`s that remain lifecycle-cleanup work and
+  must not be hidden by coverage configuration.
 
 ### Live Find a Grave contract probe
 

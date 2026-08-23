@@ -1,7 +1,9 @@
 [![CI](https://github.com/mcqueary/graver/actions/workflows/python-package.yml/badge.svg)](https://github.com/mcqueary/graver/actions/workflows/python-package.yml)
+[![Coverage Status](https://coveralls.io/repos/github/mcqueary/graver/badge.svg?branch=main)](https://coveralls.io/github/mcqueary/graver?branch=main)
+[![Python: 3.11–3.14](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Coverage Status](https://coveralls.io/repos/github/mcqueary/graver/badge.svg)](https://coveralls.io/github/mcqueary/graver)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Package manager: uv](https://img.shields.io/badge/package%20manager-uv-DE5FE9?logo=uv)](https://docs.astral.sh/uv/)
 
 graver
 ======
@@ -82,6 +84,12 @@ For development, install every dependency group and run the test suite with:
 ```shell
 uv sync --all-groups --locked
 uv run --group test pytest
+```
+
+Measure the same branch coverage reported by CI with:
+
+```shell
+uv run --group test pytest --cov=graver --cov-report=term-missing
 ```
 
 ### Create or select a database

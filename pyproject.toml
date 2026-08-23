@@ -36,11 +36,9 @@ graver = "graver.cli:app"
 
 [dependency-groups]
 test = [
-    "coverage",
-    "coveralls>=3.3.1,<4",
     "flake8>=6.1.0,<7",
     "pytest>=7.4.3,<8",
-    "pytest-cov>=4.1.0,<5",
+    "pytest-cov>=7.1.0,<8",
     "pytest-helpers-namespace>=2021.12.29,<2022",
     "pytest-integration>=0.2.3,<0.3",
     "requests-mock>=1.11.0,<2",
@@ -67,3 +65,15 @@ ignore-names-in-files = ["migrations"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 filterwarnings = ["ignore::DeprecationWarning:betamax.*"]
+
+[tool.coverage.run]
+branch = true
+source = ["graver"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = true
+
+[tool.coverage.xml]
+output = "coverage.xml"

@@ -299,13 +299,21 @@ override provider terms, policies, controls, or instructions.
   3.11 through 3.14. Commitizen is no longer a dependency.
 - GitHub Actions uses uv for locked installation, offline tests, Black, lock
   consistency, wheel construction, and Python 3.11-through-3.14 validation on
-  Ubuntu, with Python 3.14 coverage on macOS and Windows.
+  Ubuntu, with Python 3.14 coverage on macOS and Windows. One dedicated Ubuntu
+  Python 3.14 job measures branch coverage, enforces the measured 90% non-regression
+  floor, writes Cobertura XML, and publishes it to Coveralls. The 2026-08-22 local
+  baseline was 91% across 2,090 statements and 564 branches with 340 passing tests.
 - Conventional Commit pull-request titles and squash merging provide commit
   hygiene. Release Please is configured as the sole changelog/version/tag/GitHub
   Release preparation tool, but remains manually triggered before the 1.0 release
   gates are satisfied.
 - `CHANGELOG.md`, `CONTRIBUTING.md`, and `SECURITY.md` establish the release-note,
   contribution, and private-reporting practices. No release tags exist yet.
+
+The baseline coverage run also reported numerous unclosed-SQLite
+`ResourceWarning`s. Tests still pass, but the warnings are an honest lifecycle-
+cleanup finding for the testing-modernization milestone; coverage configuration
+must not suppress them merely to reduce output.
 
 ## Approved pre-1.0 direction
 
@@ -485,9 +493,9 @@ explicit locale. Move all test-only packages out of runtime dependencies. Replac
 leaking temporary files and global environment mutation with pytest-managed
 lifecycle fixtures. Remove generic tool smoke tests, empty tests, and commented-out
 bodies. Register strict `unit`, `integration`, `recorded`, and `slow` markers;
-evaluate importlib mode for the `src` layout; and establish branch-coverage reporting
-and a modest non-regression threshold from the measured baseline rather than an
-arbitrary target.
+evaluate importlib mode for the `src` layout. Branch-coverage reporting and a modest
+90% non-regression threshold are now established from the measured 91% baseline;
+future work should raise the floor only through meaningful behavioral tests.
 
 Add a distinct live-contract maintenance probe after the offline test boundaries are
 established. It should retrieve the public George Washington memorial at

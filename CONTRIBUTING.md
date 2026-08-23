@@ -31,9 +31,15 @@ Install the locked environment and run the offline checks:
 ```shell
 uv sync --locked --group test --group dev
 uv run pytest
+uv run pytest --cov=graver --cov-report=term-missing --cov-report=xml
 uv run black --check src/graver tests
 uv lock --check
 ```
+
+The first test command is the ordinary fast suite. The second reproduces the
+dedicated CI branch-coverage measurement and should be run when behavior or tests
+change. Coverage is reported from one Ubuntu/Python lane rather than duplicated
+across every supported Python and operating-system lane.
 
 Tests and ordinary CI must not contact genealogy providers. Use temporary databases
 and configuration paths; never commit research databases, credentials, cookies,
