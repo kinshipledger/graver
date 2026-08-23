@@ -193,15 +193,20 @@ immediately.
   stable fixture guarantee because the ignored database remains mutable user data.
 - `graves` remains a current-state acquisition table rather than immutable observation history. The new upserts protect richer data but do not retain earlier versions of changed source values.
 - Ordered explicit migration, fetch timestamps, successful and failed acquisition observations, foreign keys, supporting indexes, initial work-queue state, and alias provenance now exist.
-- Family relationships, source evidence, FamilySearch matches, WikiTree matches, identity conclusions, and cemetery-tag decisions are not modeled.
+- Accepted family relationships, live FamilySearch matches, WikiTree matches, and
+  cemetery-tag decisions are not modeled. Schema v3 now contains an internal,
+  fixture-only evidence model for discovery snapshots, comparison signals,
+  assessments, and reviewed identity conclusions; it is not a live provider or
+  user-facing matching feature.
 - Legacy rows are deliberately not assigned a `detail_level` during migration because their acquisition level cannot be inferred reliably. They become classified when subsequently saved through the summary or full persistence path.
 - Legacy rows deliberately do not receive fabricated observation records during migration because their original timestamp and exact observed payload are unknown.
 - Some acquisition commands still reflect scraper implementation terminology. Their information architecture is intentionally deferred; this milestone changes only the research and alias-maintenance surfaces.
-- Full memorial pages expose structured related-member groups with linked memorial
-  IDs, URLs, displayed names, life-year text, and sometimes marriage-year text. The
-  current parser does not capture or persist that panel. Future capture must retain
-  it as immutable source-observed relationship assertions rather than accepted
-  family relationships or automatic research-subject associations.
+- Full memorial acquisition now captures structured Find a Grave-displayed
+  relationship links with the displayed group, linked memorial ID and URL, name,
+  life text, separately available birth/death text, and marriage year. They live
+  only in the immutable full-observation payload and are explicitly website
+  displays—not accepted family relationships, reciprocal evidence, automatic
+  linked-page retrieval, or research-subject associations.
 - `research_tasks` is now keyed by `subject_id`; `subject_memorials` keeps existing
   memorial-ID lookup convenient. The schema can represent a subject with zero or
   multiple memorials, but reviewed association, reassociation, merge, split,
@@ -354,7 +359,8 @@ and 9m51s respectively.
 
 Keep the existing scraper and its `graves` table as the **Find a Grave acquisition component**. The additive `cemeteries`, `memorial_observations`, and `research_tasks` layer now provides provenance and a practical queue.
 
-The task-oriented CLI, explicit database lifecycle, and schema-v2 subject ownership
+The task-oriented CLI, explicit database lifecycle, schema-v2 subject ownership,
+and additive schema-v3 offline evidence structures
 are complete, but raw JSON, broad exports, compatibility aliases,
 dependency boundaries, and accidental internal APIs must not be frozen as the 1.0
 contract. Before beginning FamilySearch work, follow the ordered pre-1.0 roadmap in
@@ -362,9 +368,9 @@ contract. Before beginning FamilySearch work, follow the ordered pre-1.0 roadmap
 typed task queries, updates, summaries, records, details, queue requests/results,
 one-person enrichment results, and workflow errors. Every visible `work` command
 uses that boundary while legacy dictionary- and tuple-returning functions remain
-compatibility projections. The offline evidence-assessment vertical slice is next,
-followed by the dedicated API-hygiene and documentation milestone before the public
-workspace facade is frozen.
+compatibility projections. The internal offline evidence-assessment vertical slice
+is implemented without a public CLI or live provider. Professional review gate R2
+is next; the public workspace facade remains unfrozen.
 `graver init [DATABASE]` now
 creates a new database with the current schema and selects it as the saved default.
 With no argument it creates
@@ -406,8 +412,8 @@ tests. Acquisition-option cleanup must remove those warnings and apply the appro
 pre-RC exit criteria; recurring unsupported behavior or disproportionate framework
 maintenance would trigger migration to direct Click before 1.0.
 
-The implemented current schema is version 2. It uses canonical lowercase UUIDv4
-`TEXT` subject IDs and adds
+The implemented current schema is version 3. The schema-v2 foundation uses
+canonical lowercase UUIDv4 `TEXT` subject IDs and adds
 `research_subjects`, `subject_memorials`, immutable `research_subject_events`,
 subject-keyed `research_tasks`, and immutable `research_task_events`. A subject is an
 opaque organizational owner for person-level research, not a genealogical identity
@@ -415,13 +421,19 @@ conclusion. Migration mechanically creates one subject for every grave and
 associates only that memorial with it, including for graves without tasks. It does
 not merge records because of aliases, redirects, names, dates, or similarity.
 
+Schema v3 adds empty-on-migration evidence structures for immutable offline
+discovery runs, provider-scoped candidates and snapshots, comparison signals,
+concurrency-checked current assessments with immutable history, and immutable
+reviewed conclusions. The version-2-to-version-3 migration creates no candidates,
+assessments, comparisons, conclusions, relationships, or identity associations.
+
 The association constraint permits at most one current subject per memorial and
 structurally permits a subject to have zero or multiple memorials. Multiple-
 memorial association is nevertheless a reviewed identity decision and will remain
 unavailable until its evidence and correction policy exists. Memorial observations
 remain memorial-owned, alias observations remain alias-source-owned, and tasks
 become subject-owned. Aliases do not confer subject membership. FamilySearch and
-WikiTree candidates will be subject-linked hypotheses, while later family work
+WikiTree candidates are designed as subject-linked hypotheses, while later family work
 packets will group subjects rather than replace them.
 
 The version-1-to-version-2 migration preserves the mandatory explicit backup,
@@ -441,7 +453,7 @@ researcher lookup keys. The lowest associated memorial ID is only a deterministi
 temporary display fallback where no reviewed preferred memorial exists; it is not
 canonical identity. Existing pre-1.0 JSON will be compatibility-projected until the
 separate versioned-envelope milestone. Merge, split, manual association or
-reassociation, preferred memorial selection, external-platform persistence,
+reassociation, preferred memorial selection, live external-provider adapters,
 versioned envelopes, and hidden-command removal remain explicitly deferred.
 
 The public application-service facade is now planned alongside the subject-oriented
@@ -496,19 +508,18 @@ family-work services.
 
 The accepted
 [evidence assessment and identity conclusion architecture](evidence-assessment-architecture.md)
-is now a pre-facade design gate. After the remaining subject-oriented repository and
-service refactor, a completely offline vertical slice will use curated
-FamilySearch-shaped fixtures to validate immutable discovery runs and candidate
-snapshots, assertion-level comparison signals, explainable candidate ordering,
-evolving researcher assessments, negative searches, unresolved questions, and
-immutable reviewed conclusions. This is planned work and no such persistence or
-service is implemented today. It performs no provider request, adds no public
-persistence-shaped CLI, and cannot accept an identity automatically.
+is now implemented as an internal, completely offline vertical slice using curated
+FamilySearch-shaped fixtures. Schema v3 preserves immutable discovery runs and
+candidate snapshots, assertion-level comparison signals, explainable review
+ordering, concurrency-checked assessments, reproducible negative searches,
+unresolved questions, and immutable superseding conclusions. It performs no
+provider request, adds no public persistence-shaped CLI, creates no automatic
+identity association, and cannot accept an identity automatically.
 
 The first R1 professional review on 23 August 2026 did not pass. A focused
 independent re-review verified all seven semantic and provenance corrections with
-no new blockers and passed R1. Candidate/evidence persistence remains unimplemented
-but may now proceed under the accepted contract.
+no new blockers and passed R1. The internal persistence and application-service
+slice now implements that accepted contract; R2 remains pending.
 
 After the typed application boundary and researcher-directed acquisition have been
 validated, provider authorization gates and import-first/provider-neutral job

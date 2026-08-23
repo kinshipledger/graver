@@ -33,6 +33,8 @@ laws, provider terms, and access policies. See the project
 - Retrieves a full memorial only after the researcher explicitly approves that
   person for enrichment.
 - Preserves immutable acquisition observations alongside the current record.
+- Captures Find a Grave-displayed relationship links from full memorial pages as
+  dated website observations—not as proven family relationships.
 - Records Find a Grave redirects for review without silently merging people or
   transferring research.
 
