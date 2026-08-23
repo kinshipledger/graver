@@ -66,3 +66,17 @@ The name graver covers the core library, application services, and command-line
 tool. Cemetery-to-World-Tree is the broader project context. A future desktop
 application may have a separate product name; do not assume or establish that
 name in graver documentation before it is chosen.
+
+## Documentation voice
+
+Write for the reader's immediate goal before introducing implementation or roadmap
+detail. Prefer plain, warm, direct language; define necessary genealogy and software
+terms, and move specialist material behind clear links or advanced command groups.
+Claims must distinguish current behavior from planned work and must not overstate
+evidence, identity, provenance, provider authorization, or data completeness.
+
+Occasional restrained humor, wordplay, or self-awareness is welcome when it makes
+an unfamiliar workflow feel more approachable. Keep it sparse and never use it to
+trivialize research evidence, living-person privacy, data loss, failures, security,
+legal obligations, or provider access restrictions. Clarity and trust always win
+the tie.
