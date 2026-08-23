@@ -21,7 +21,7 @@ from graver.api import (
 )
 from graver.config import DEFAULT_DATABASE
 
-CURRENT_SCHEMA_VERSION = 3
+CURRENT_SCHEMA_VERSION = 4
 SCHEMA_TABLE = "graver_schema"
 VERSION_1_TABLES = {
     "cemeteries",
@@ -43,6 +43,7 @@ CURRENT_TABLES = VERSION_1_TABLES | {
     "candidate_assessments",
     "candidate_assessment_events",
     "identity_conclusions",
+    "research_source_observations",
 }
 CURRENT_GRAVE_COLUMNS = {
     "memorial_id",
@@ -72,6 +73,7 @@ CURRENT_INDEXES = {
     "idx_comparison_signals_candidate",
     "idx_assessment_events_candidate",
     "idx_conclusions_candidate",
+    "idx_source_observations_subject",
 }
 CURRENT_TRIGGERS = {
     "memorial_observations_no_update",
@@ -94,8 +96,11 @@ CURRENT_TRIGGERS = {
     "candidate_assessment_events_no_delete",
     "identity_conclusions_no_update",
     "identity_conclusions_no_delete",
+    "research_source_observations_no_update",
+    "research_source_observations_no_delete",
 }
 EVIDENCE_TABLES = {
+    "research_source_observations",
     "candidate_discovery_runs",
     "external_candidates",
     "candidate_snapshots",
@@ -105,6 +110,7 @@ EVIDENCE_TABLES = {
     "identity_conclusions",
 }
 EVIDENCE_INDEXES = {
+    "idx_source_observations_subject",
     "idx_discovery_runs_subject",
     "idx_candidates_subject",
     "idx_candidate_snapshots_candidate",
@@ -113,6 +119,8 @@ EVIDENCE_INDEXES = {
     "idx_conclusions_candidate",
 }
 EVIDENCE_TRIGGERS = {
+    "research_source_observations_no_update",
+    "research_source_observations_no_delete",
     "candidate_discovery_runs_no_update",
     "candidate_discovery_runs_no_delete",
     "external_candidates_no_update",
@@ -129,6 +137,12 @@ EVIDENCE_TRIGGERS = {
 VERSION_2_TABLES = CURRENT_TABLES - EVIDENCE_TABLES
 VERSION_2_INDEXES = CURRENT_INDEXES - EVIDENCE_INDEXES
 VERSION_2_TRIGGERS = CURRENT_TRIGGERS - EVIDENCE_TRIGGERS
+VERSION_3_TABLES = CURRENT_TABLES - {"research_source_observations"}
+VERSION_3_INDEXES = CURRENT_INDEXES - {"idx_source_observations_subject"}
+VERSION_3_TRIGGERS = CURRENT_TRIGGERS - {
+    "research_source_observations_no_update",
+    "research_source_observations_no_delete",
+}
 VERSION_1_INDEXES = VERSION_2_INDEXES - {
     "idx_subject_memorials_subject",
     "idx_research_subject_events_subject",
@@ -281,8 +295,23 @@ def _structurally_version_2(connection: sqlite3.Connection) -> bool:
     )
 
 
+def _structurally_version_3(connection: sqlite3.Connection) -> bool:
+    indexes, triggers = _schema_objects(connection)
+    return (
+        VERSION_3_TABLES <= _tables(connection)
+        and "research_source_observations" not in _tables(connection)
+        and CURRENT_GRAVE_COLUMNS <= _columns(connection, "graves")
+        and "subject_id" in _columns(connection, "research_tasks")
+        and "memorial_id" not in _columns(connection, "research_tasks")
+        and VERSION_3_INDEXES <= indexes
+        and VERSION_3_TRIGGERS <= triggers
+        and _subject_invariants_hold(connection)
+        and _evidence_invariants_hold(connection)
+    )
+
+
 def _evidence_invariants_hold(connection: sqlite3.Connection) -> bool:
-    checks = (
+    checks = [
         """SELECT 1 FROM external_candidates c LEFT JOIN research_subjects s
            ON s.subject_id=c.subject_id WHERE s.subject_id IS NULL LIMIT 1""",
         """SELECT 1 FROM candidate_snapshots cs LEFT JOIN external_candidates c
@@ -314,7 +343,11 @@ def _evidence_invariants_hold(connection: sqlite3.Connection) -> bool:
         """SELECT 1 FROM identity_conclusions i
            JOIN external_candidates c ON c.candidate_id=i.candidate_id
            WHERE i.subject_id<>c.subject_id LIMIT 1""",
-    )
+    ]
+    if "research_source_observations" in _tables(connection):
+        checks.append("""SELECT 1 FROM research_source_observations o
+               LEFT JOIN research_subjects s ON s.subject_id=o.subject_id
+               WHERE s.subject_id IS NULL LIMIT 1""")
     return all(connection.execute(sql).fetchone() is None for sql in checks)
 
 
@@ -366,6 +399,8 @@ def _inspect_connection(path: Path, connection: sqlite3.Connection) -> SchemaIns
             return SchemaInspection(path, "outdated", version)
         if version == 2 and _structurally_version_2(connection):
             return SchemaInspection(path, "outdated", version)
+        if version == 3 and _structurally_version_3(connection):
+            return SchemaInspection(path, "outdated", version)
         if version != CURRENT_SCHEMA_VERSION or not _structurally_current(connection):
             return SchemaInspection(path, "unknown", version)
         return SchemaInspection(path, "current", version)
@@ -373,6 +408,8 @@ def _inspect_connection(path: Path, connection: sqlite3.Connection) -> SchemaIns
         return SchemaInspection(path, "non_graver")
     grave_columns = _columns(connection, "graves")
     if _structurally_current(connection):
+        return SchemaInspection(path, "current_unversioned", 4)
+    if _structurally_version_3(connection):
         return SchemaInspection(path, "current_unversioned", 3)
     if _structurally_version_2(connection):
         return SchemaInspection(path, "current_unversioned", 2)
@@ -640,7 +677,20 @@ def _migration_2_to_3(connection: sqlite3.Connection) -> None:
     connection.execute(f"UPDATE {SCHEMA_TABLE} SET version = 3 WHERE singleton = 1")
 
 
-MIGRATIONS = {0: _migration_0_to_1, 1: _migration_1_to_2, 2: _migration_2_to_3}
+def _migration_3_to_4(connection: sqlite3.Connection) -> None:
+    """Add citation-bearing source observations without inventing evidence."""
+    from graver.evidence import create_evidence_schema
+
+    create_evidence_schema(connection)
+    connection.execute(f"UPDATE {SCHEMA_TABLE} SET version = 4 WHERE singleton = 1")
+
+
+MIGRATIONS = {
+    0: _migration_0_to_1,
+    1: _migration_1_to_2,
+    2: _migration_2_to_3,
+    3: _migration_3_to_4,
+}
 
 
 def backup_path_for(path: Path) -> Path:
@@ -716,7 +766,7 @@ def upgrade_database(database: str) -> DatabaseUpgradeResult:
             connection.execute("BEGIN IMMEDIATE")
             try:
                 version = source.version or 0
-                if source.state == "current_unversioned" and version in {2, 3}:
+                if source.state == "current_unversioned" and version in {2, 3, 4}:
                     _record_schema_version(connection, version)
                 while version < CURRENT_SCHEMA_VERSION:
                     migration = MIGRATIONS.get(version)
