@@ -48,6 +48,10 @@ offline workflow has been validated; R3 blocks production-readiness claims and
 downstream WikiTree/family workflow expansion until the production evidence
 experience passes a repeat of the original professional review.
 
+The first R1 review on 23 August 2026 did not pass. Its seven minimum corrections
+are represented in the revised prototype, but candidate/evidence persistence remains
+blocked until a focused independent re-review verifies them.
+
 ## Objective
 
 Systematically connect well-researched people to the WikiTree World Tree, beginning with populations discovered from Find a Grave cemeteries.

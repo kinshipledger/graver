@@ -33,6 +33,12 @@ researcher review will happen later does not complete a gate.
 
 ## R1 — Evidence contract review
 
+**Current status:** Does not pass. The
+[23 August 2026 review](professional-researcher-r1-review-2026-08-23.md) identified
+one blocking and nine important findings. The low-fidelity artifact has been
+revised, but candidate/evidence persistence remains blocked until a focused
+independent re-review verifies the seven minimum corrections.
+
 ### Objective
 
 Validate the meaning and presentation of candidate, evidence, ranking, assessment,

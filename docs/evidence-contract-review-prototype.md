@@ -1,8 +1,11 @@
 # Evidence contract review prototype
 
-**Status:** Low-fidelity review artifact; not implemented product behavior<br>
+**Status:** Revised after blocked R1 review; pending focused re-review; not implemented product behavior<br>
 **Gate:** R1 — Evidence contract review<br>
 **Scenario:** Fictional and offline; no live provider data
+
+The initial review and unresolved gate decision are recorded in the
+[23 August 2026 R1 report](professional-researcher-r1-review-2026-08-23.md).
 
 ## How to use this artifact
 
@@ -13,7 +16,7 @@ are under review; none of the controls below are implemented commands or screens
 
 ## 1. Keep the active subject visible
 
-### Active research subject
+### Active working research subject
 
 **Eleanor May Carter**<br>
 Born **14 March 1892**, Missouri<br>
@@ -30,7 +33,9 @@ Research state: reviewing external candidates
 
 ## 2. Review candidate ordering without implying confidence
 
-Two candidates were returned by the same fictional offline discovery run.
+Two candidates were returned by the same fictional offline discovery run. The
+counts below are unweighted discovery-comparison counts. They measure neither
+evidentiary strength nor confidence.
 
 | Order | Candidate | Evidence summary | Material conflicts | Unknowns |
 | ---: | --- | --- | ---: | ---: |
@@ -46,7 +51,7 @@ relationship conflict remains material and unresolved.
 confidence rating, or recommendation to accept candidate 1. Ordering cannot change
 an assessment or create an identity conclusion.
 
-Ordering method: `fixture-ordering/1` — agreements first, then material conflicts,
+Ordering method: `fixture-ordering/1` — value agreements first, then material conflicts,
 then stable provider identifier. Missing data contributes neither agreement nor
 conflict.
 
@@ -61,13 +66,13 @@ Snapshot source: curated offline fixture
 | Assertion | Find a Grave observation | Candidate snapshot | Classification | Explanation |
 | --- | --- | --- | --- | --- |
 | Name | Eleanor May Carter | Eleanor M. Carter | compatible | Middle initial is compatible with the observed middle name; it is not an exact textual match. |
-| Birth | 14 Mar 1892 | 14 Mar 1892 | exact | Original observed dates agree. |
+| Birth | 14 Mar 1892 | 14 Mar 1892 | exact value agreement | The displayed values agree; this does not establish truth, source independence, or identity. |
 | Birthplace | Missouri | St. Louis, Missouri | compatible | Candidate is more specific; the memorial does not establish the city. |
-| Death | 8 Nov 1967 | 8 Nov 1967 | exact | Original observed dates agree. |
-| Burial | Morris Hill Cemetery, Boise | Morris Hill Cemetery, Boise | exact | Cemetery name and locality agree. |
+| Death | 8 Nov 1967 | 8 Nov 1967 | exact value agreement | The displayed values agree; this does not establish truth, source independence, or identity. |
+| Burial | Morris Hill Cemetery, Boise | Morris Hill Cemetery, Boise | exact value agreement | Cemetery name and locality agree; the classification compares representations only. |
 | Father | Thomas Carter | Henry Carter | conflict — material | Both sources make affirmative, incompatible claims about the same relationship. Parentage may distinguish two people and requires resolution. |
-| Mother | not stated | Alice Brown Carter | missing | The memorial supplies no value. Missing information is not negative evidence by itself. |
-| Spouse | not stated | William Reed | review required | The candidate assertion has no memorial value to compare. Additional sources may corroborate or oppose it. |
+| Mother | not stated | Alice Brown Carter | not stated in comparison source | The memorial supplies no value; external research is required. Missing information is not negative evidence. |
+| Spouse | not stated | William Reed | not stated in comparison source | The memorial supplies no comparison value; external research is required. The separate website-displayed family link below remains only a lead. |
 
 ### Assertion provenance on demand
 
@@ -87,7 +92,7 @@ Snapshot source: curated offline fixture
 
 The conflict is visible, but neither side is automatically preferred.
 
-### Related memorials observed on the source page
+### Find a Grave-displayed relationship links — website display, not proven kinship
 
 The full Find a Grave observation also captured the page's dedicated family panel:
 
@@ -105,23 +110,34 @@ has not yet retrieved the linked pages, verified reciprocity, or concluded that 
 people are related. A later observation may add, remove, or relabel links without
 rewriting this snapshot.
 
-Review question: is **related memorial observation** sufficiently clear, or does
-another term better prevent a displayed family link from being mistaken for a
-proved relationship?
+The non-proof warning is part of the heading and must travel with these values in
+every display, citation, export, and machine-readable representation.
 
 ## 4. Record evolving assessment separately from a conclusion
 
 ### Assessment controls
 
-Proposed states: **new**, **reviewing**, **deferred**, **reopened**, and
-**ready for decision**.
+Proposed states:
+
+- **New:** no substantive candidate assessment has begun.
+- **Reviewing:** research and comparison are in progress.
+- **Deferred:** work is intentionally paused; a reason and follow-up condition or
+  review date are required.
+- **Reopened:** a prior assessment or conclusion requires renewed review; a reason
+  and link to the earlier record are required.
+- **Ready for decision:** the researcher elects to consider a conclusion. This is a
+  workflow state—not confidence, proof, certification of reasonably exhaustive
+  research, or permission to conclude automatically.
 
 Current state: **reviewing**<br>
 Version: **3**
 
 Research notes:
 
-- Negative search: no probate record located in the first Ada County index search.
+- Negative search: no entry located for Eleanor Carter, Eleanor Reed, or Eleanor M.
+  Carter in the fictional Ada County Probate Index, 1900–1970, surname and variant
+  search, conducted 21 August 2026. The index may omit unindexed or out-of-county
+  proceedings; this result is not proof that no probate record exists.
 - Unresolved question: which father is supported by an original or independently
   derived record?
 - Candidate disposition: defer until parentage and spouse evidence are checked.
@@ -138,16 +154,21 @@ Candidate order and assessment state cannot populate this decision.
 
 Proposed dispositions:
 
-- **Accepted:** the reviewed evidence supports the same-person conclusion.
-- **Rejected:** the reviewed evidence supports that this is a different person.
+- **Accepted as the same person** (short interface label: **Accepted**): the reviewed
+  evidence supports the same-person conclusion. It does not accept every assertion
+  on either profile; each assertion retains its own evidentiary status.
+- **Rejected as a different person** (short interface label: **Rejected**): the
+  reviewed evidence supports that this is a different person.
 - **Unresolved:** the available evidence does not support acceptance or rejection.
-- **Withdrawn:** a prior conclusion is no longer endorsed; the prior record remains.
+- **Withdrawn:** status applied to a prior conclusion that is no longer endorsed;
+  it is not a new identity determination, and the prior record remains.
 
 A conclusion requires:
 
 1. researcher or reviewer;
 2. reasoned analysis;
-3. references to the evidence and comparisons relied upon;
+3. specific, inspectable references to the observations or records and assertions
+   relied upon, including observation date;
 4. explicit treatment of every material conflict; and
 5. the prior conclusion identifier when superseding or withdrawing a decision.
 
@@ -156,16 +177,25 @@ Example first decision:
 > **Unresolved** — Parentage remains materially conflicting, and the available
 > assertions appear derivative. Matching dates and burial place are substantial but
 > do not resolve whether the profiles represent the same Eleanor Carter. Review by
-> L. Researcher, 23 August 2026. Evidence references: birth, death, burial, father.
+> L. Researcher, 23 August 2026. Evidence references: Find a Grave full memorial
+> snapshot observed 21 August 2026, birth/death/burial and biography-father
+> assertions; FamilySearch-shaped candidate snapshot K1AB-CDE observed 21 August
+> 2026, birth/death/burial and father assertions; comparison C-001 rows 2–7.
 
 Example later decision after new evidence:
 
-> **Accepted; supersedes conclusion C-001** — A contemporaneous marriage record and
-> death certificate independently identify Henry Carter as father and William Reed
-> as spouse. The memorial biography's Thomas Carter statement is treated as an
-> unresolved transcription error, not silently discarded. Review by L. Researcher,
-> 2 September 2026. Evidence references: prior comparison plus marriage and death
-> certificate observations.
+> **Accepted as the same person; supersedes conclusion C-001** — A 1912 marriage
+> record names Henry Carter as Eleanor's father and William Reed as spouse. A 1967
+> death certificate repeats both claims, but its informant was William and the
+> records are not treated as independent for those assertions. Correlated residence,
+> age, and associates support the identity conclusion. The memorial biography's
+> Thomas Carter assertion remains conflicting and is judged less reliable because
+> it cites no underlying source; its cause is unknown and it is not discarded.
+> Review by L. Researcher, 2 September 2026. Evidence references: marriage-record
+> observation MR-014 observed 28 August 2026, spouse/father/informant assertions;
+> death-certificate observation DC-009 observed 30 August 2026,
+> identity/father/spouse/informant assertions; comparison C-004; prior conclusion
+> C-001.
 
 Both decisions remain in history. The later decision does not edit C-001.
 
@@ -181,8 +211,10 @@ Completed: 21 August 2026, 10:14:05 MDT
 
 - 20 records discovered
 - 18 new memorials created
-- 2 existing memorials updated from new summary observations
-- 20 immutable observations appended
+- 2 existing memorial working representations changed from new summary observations:
+  - memorial `11223344`: death year `1966` → `1967`; inspect snapshots O-018 and O-041
+  - memorial `99887766`: burial place `Morris Hill Cemetery` → `Morris Hill Cemetery, Boise, Idaho`; inspect snapshots O-019 and O-042
+- 20 dated snapshots retained without replacing earlier snapshots
 - 0 failures
 - No full memorial pages retrieved
 
@@ -195,10 +227,12 @@ facts are correct or that any memorial identifies a FamilySearch person.
 
 ### Draft Find a Grave citation
 
-> Find a Grave, database and images, “Eleanor May Carter” (1892–1967), memorial
+> Find a Grave, memorial database, “Eleanor May Carter” (1892–1967), memorial
 > 12345678, Morris Hill Cemetery, Boise, Ada County, Idaho; memorial page observed
-> 21 August 2026, `https://www.findagrave.com/memorial/12345678`; contributor and
-> image attribution not present in the captured observation.
+> 21 August 2026, `https://www.findagrave.com/memorial/12345678`; retained full-page
+> snapshot O-001. Contributor information, images, image attribution, and underlying
+> sources were outside this fictional capture's scope and were not collected; this
+> citation does not imply that an image or underlying record was examined.
 
 This projection uses only captured metadata. Missing contributor, image, and
 underlying-source details are identified rather than invented. The immutable

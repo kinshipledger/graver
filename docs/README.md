@@ -27,6 +27,10 @@ The [evidence contract review prototype](evidence-contract-review-prototype.md) 
 the fictional, low-fidelity artifact for professional researcher gate R1. It is not
 implemented product behavior.
 
+The [first R1 professional researcher review](professional-researcher-r1-review-2026-08-23.md)
+records the blocking and important findings from that artifact. R1 did not pass;
+candidate and evidence persistence remains blocked pending correction and re-review.
+
 The [professional researcher review gates](researcher-review-gates.md) define the
 R1 contract review, R2 offline-workflow validation, and R3 production acceptance
 checkpoints. Each engagement uses the canonical

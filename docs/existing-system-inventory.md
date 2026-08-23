@@ -505,6 +505,11 @@ immutable reviewed conclusions. This is planned work and no such persistence or
 service is implemented today. It performs no provider request, adds no public
 persistence-shaped CLI, and cannot accept an identity automatically.
 
+The first R1 professional review on 23 August 2026 did not pass. The prototype now
+contains the requested semantic and provenance corrections, but the gate remains
+closed pending focused independent re-review; no candidate/evidence persistence may
+begin before it passes.
+
 After the typed application boundary and researcher-directed acquisition have been
 validated, provider authorization gates and import-first/provider-neutral job
 abstractions are planned before any public background-job API is frozen. Authorized
