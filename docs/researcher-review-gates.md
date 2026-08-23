@@ -88,6 +88,11 @@ expensive to change.
 
 ## R2 — Offline workflow validation
 
+**Current status:** Ready for moderated review. The internal offline evidence slice
+and its disposable [R2 review adapter](r2-offline-workflow-review-guide.md) satisfy
+the entry criteria. The gate remains open until a context-separated professional
+researcher completes the workflow and its dated report is resolved.
+
 ### Objective
 
 Validate research continuity and evidentiary control after the complete offline
@@ -229,3 +234,31 @@ concrete example and a bounded question.
 Do not engage the professional researcher merely to validate internal refactors,
 dependency changes, migration mechanics, CI, test organization, or adapter changes
 that preserve visible behavior.
+
+## Front-end UX and UI review cadence
+
+Production front-end work uses small, decision-timed reviews rather than a single
+late design sign-off. Each review receives a concrete artifact, written objectives,
+representative tasks, recorded findings, and an explicit disposition. Purely
+internal refactors do not trigger these reviews.
+
+1. **Information architecture and content review:** before navigation, terminology,
+   subject/candidate context, or evidence hierarchy is frozen. Use low-fidelity
+   flows and include a professional researcher and UX lead.
+2. **Interaction and continuity review:** after the primary workflow is clickable
+   but before production widget implementation is expensive to change. Exercise
+   interruption, resumption, conflicts, errors, empty states, and stale edits.
+3. **Visual-system and accessibility review:** before the component system and
+   production layouts are declared stable. Check keyboard-only operation, focus,
+   semantics, contrast, scaling, reduced motion, error recovery, and platform
+   conventions; include disabled users or an accessibility specialist when
+   practical.
+4. **Pre-release usability review:** against an installable release candidate with
+   representative data and ordinary documentation. R3 supplies the professional
+   evidence-workflow portion; additional usability and accessibility findings are
+   recorded separately rather than diluted into R3.
+
+A front-end phase cannot pass its corresponding design freeze with an unresolved
+blocking finding unless the risk, rationale, owner, and review date are explicitly
+accepted. Important findings receive tracked issues. Follow-up observations remain
+in the UX backlog with enough context to reproduce them.

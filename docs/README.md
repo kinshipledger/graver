@@ -37,6 +37,11 @@ R1 contract review, R2 offline-workflow validation, and R3 production acceptance
 checkpoints. Each engagement uses the canonical
 [professional researcher review report template](templates/professional-researcher-review-report.md).
 
+The [R2 offline workflow review guide](r2-offline-workflow-review-guide.md) runs the
+fictional ambiguous case through a disposable local browser adapter backed by the
+real offline evidence service. It is a moderated-review artifact, not a production
+GUI or supported public interface.
+
 The outer project-level `docs/*.md` paths are local compatibility symbolic links
 for tools and conversations that begin at the parent project root. Future
 inventory, context, and roadmap changes must be made only in this directory.

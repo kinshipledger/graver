@@ -519,7 +519,11 @@ identity association, and cannot accept an identity automatically.
 The first R1 professional review on 23 August 2026 did not pass. A focused
 independent re-review verified all seven semantic and provenance corrections with
 no new blockers and passed R1. The internal persistence and application-service
-slice now implements that accepted contract; R2 remains pending.
+slice now implements that accepted contract. A disposable, loopback-only browser
+adapter backed by the real evidence service is available for the moderated R2
+workflow; it is not installed product functionality, a production GUI, or a public
+API. R2 remains pending until the professional review and finding disposition are
+recorded.
 
 After the typed application boundary and researcher-directed acquisition have been
 validated, provider authorization gates and import-first/provider-neutral job
