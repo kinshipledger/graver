@@ -105,6 +105,7 @@ uv run graver use --clear
 `use` selects an existing database and does not create or upgrade it. An explicit
 `--db` applies to one command without changing the saved selection. Run
 `graver use --show` whenever you need to confirm which database is active.
+Genealogy has enough mysteries; the active database should not be one of them.
 
 ### Upgrade an older database
 
