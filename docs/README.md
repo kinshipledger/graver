@@ -12,6 +12,16 @@ responsible acquisition behavior and contributions.
 The [developer API guide](api.md) documents the supported pre-1.0 typed application
 boundary for CLI, future GUI, and other client adapters.
 
+The [source-neutral adapter strategy](source-adapter-strategy.md) defines graver's
+scope boundary, adapter roles, admission gates, prioritization scorecard, and
+professional-review cadence. It is a guardrail against both source-specific core
+design and unfocused expansion into a universal genealogy application.
+
+The [trust, transparency, and openness architecture](trust-transparency-architecture.md)
+defines the visible evidence, comparison, workflow, and conclusion layers needed
+for professional trust; distinguishes computational replay from genealogical
+reproducibility; and defines independently verifiable research artifacts.
+
 The [GEDCOM integration architecture](gedcom-integration.md) records a deliberately
 optional, periodically re-evaluated direction for immutable import, comparison,
 relationships, privacy, and selective export.

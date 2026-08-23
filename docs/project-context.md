@@ -11,12 +11,11 @@ independently maintained and has no ongoing upstream affiliation.
 The implemented foundation includes schema version 4, subject-owned research tasks,
 explicit backed-up database upgrades, person-at-a-time acquisition, fail-closed
 Requests transport, the researcher tutorial, trunk-based release automation, and a
-dedicated branch-coverage CI job. The latest complete local run passed 375 tests;
-the current coverage run measured 91.96% branch coverage against a
+dedicated branch-coverage CI job. The latest complete local run passed 376 tests;
+the current coverage run measured 91.97% branch coverage against a
 90% floor. Coveralls reporting, the seven
 honest README badges, Python 3.11–3.14 CI, Black, Ruff, locked uv environments, wheel
 verification, and Conventional Commit pull-request-title enforcement are current.
-GitHub's CI run for the current checkpoint commit `b3f780a` completed successfully.
 SQLite connections now use one deterministic context-managed lifecycle that
 preserves commit/rollback behavior and closes on every exit path. Pytest promotes
 SQLite `ResourceWarning`s and unraisable finalizer warnings to errors. Repeated
@@ -44,9 +43,8 @@ The internal offline evidence-assessment vertical slice is implemented with cura
 fixtures and no live provider or public CLI. The first R2 review did not pass. Its
 two blockers drove citation-bearing source observations, inspectable assertion
 references, mandatory researcher-authored conclusion analysis, explicit conflict
-treatment, and visible acquisition change summaries. A focused, context-separated
-R2 re-review must verify those corrections before the public workspace-facade
-freeze.
+treatment, and visible acquisition change summaries. Two focused re-reviews then
+verified the corrections, and R2 passed before the public workspace-facade freeze.
 
 Professional alignment is controlled by the canonical
 [researcher review gates](researcher-review-gates.md). R1 blocks candidate/evidence
@@ -87,6 +85,20 @@ Find a Grave cemetery
 ```
 
 Find a Grave observations must remain preserved as original provenance. Later research conclusions must be stored separately rather than replacing the original record.
+
+This operating model describes the first proven workflow, not a permanent
+requirement that every research subject originate with a cemetery memorial. graver
+should become source-neutral only where demonstrated researcher workflows require
+it. It is not intended to become a universal genealogy suite, tree editor, document
+repository, or adapter for every available provider and format. The governing
+[source-neutral adapter strategy](source-adapter-strategy.md) separates source
+class, carrier format, access surface, and workflow role, and requires explicit
+admission gates, scoring, non-goals, and professional review before expansion.
+Professional adoption also depends on the
+[trust, transparency, and openness architecture](trust-transparency-architecture.md):
+researchers must be able to inspect source fidelity, comparison transformations,
+workflow decisions, and conclusion evidence without treating source availability or
+configurable rules as substitutes for genealogical reproducibility.
 
 ## Identity and family research
 
@@ -475,6 +487,15 @@ Application services should follow researcher goals rather than mirror tables:
 - future FamilySearch discovery and assessment;
 - future WikiTree reconciliation; and
 - future family work packets.
+
+Future source work distinguishes discovery, observation, import, and export adapter
+roles. Provider or format integrations must project into graver-owned source,
+snapshot, assertion, relationship, provenance, comparison, and evidence-reference
+concepts without creating accepted facts or conclusions. This is an incremental
+compatibility requirement for the public boundary, not a commitment to design a
+universal source ontology or implement the candidate adapters now. The detailed
+selection and review rules live in the
+[source-neutral adapter strategy](source-adapter-strategy.md).
 
 Acquisition remains memorial-specific; person-level work belongs to subjects. The
 CLI owns option parsing, database-precedence resolution, terminal and Rich
@@ -1030,10 +1051,13 @@ Pre-1.0 sequence:
    creating accepted family relationships.
    Perform no live FamilySearch request, expose no persistence-shaped public CLI,
    and allow no automatic identity acceptance.
-8. **Ready for review:** Complete professional review gate R2 against the
+8. **Completed:** Complete professional review gate R2 against the
    end-to-end offline workflow using the disposable local experiential adapter.
    Resolve or explicitly accept every blocking finding before freezing the public
-   workspace façade or detailed evidence-GUI information architecture.
+   workspace façade or detailed evidence-GUI information architecture. The initial
+   review and focused re-review found blockers; final focused verification passed
+   after evidence-selection fidelity and negative-search reproducibility were
+   corrected.
 9. Finish the partially implemented API hygiene and documentation milestone. The
    explicit pre-1.0 application exports, bounded mypy and Google-style docstring
    gates, developer guide, and wheel import check are complete. Remaining work is
@@ -1049,7 +1073,19 @@ Pre-1.0 sequence:
 11. Modernize offline test boundaries, default network denial, deterministic domain
    fixtures and Faker, temporary lifecycle, markers, replay-only contracts, and the
    bounded live-contract probe.
-12. Define and freeze the public graver workspace facade, typed requests and results,
+12. Before freezing source-facing public types, prototype a small internal,
+   source-neutral evidence packet with privacy-safe marriage/death, census, and
+   probate examples. The packet must also exercise the minimum privacy-conscious
+   audit projection and
+   candidate-specific comparison trace: exact snapshot/assertion inputs, original
+   and normalized representations, applied rule identifiers and versions,
+   overrides, ordering effects, conflicts, and plain-language explanations. Conduct
+   a focused Professional Genealogist contract and trust review, resolve blocking
+   findings, and require deterministic replay while keeping evidence-integrity
+   safeguards non-configurable. This validates shared distinctions and adapter
+   seams; it does not add a live provider, public interchange format, universal
+   ontology, or new 1.0 product workflow. Then define and freeze the public graver
+   workspace facade, typed requests and results,
    documented imports and stability policy, exception taxonomy, transaction and
    threading contract, progress, cancellation, stale-update handling, injectable
    transport and nondeterminism, semantic-versioning policy, and typed candidate,
@@ -1087,7 +1123,14 @@ Pre-1.0 sequence:
    provenance, concurrency, or offline-test guarantees.
 24. Validate the release candidate, re-evaluate whether GEDCOM has demonstrated
     enough value for later implementation, and release graver `1.0.0` after the core
-    findings are resolved. GEDCOM is not a release criterion.
+    findings are resolved. Reconcile the source-adapter strategy, API guide, access
+    policy, review gates, inventory, roadmap, tutorial, and README; confirm that
+    scope and non-goals remain achievable. GEDCOM is not a release criterion.
+
+The evidence contract, integrity invariants, default comparison and ordering
+definitions, citation/provenance projections, approved audit format, synthetic
+validation cases, known limitations, and change histories must remain independently
+verifiable.
 
 Post-1.0 compatible sequence:
 
@@ -1095,7 +1138,10 @@ Post-1.0 compatible sequence:
    subject detail, and one-person acquisition/provenance review. Apply the formal
    front-end review cadence: information architecture before navigation freeze,
    interaction/continuity review on a clickable prototype, and visual-system and
-   accessibility review before production layout freeze.
+   accessibility review before production layout freeze. Before adopting a GUI
+   toolkit or binding, complete a dependency-license, packaging, distribution, and
+   supported-platform compliance review; record only the resulting public technical
+   constraints in the development project.
 26. Connect an authorized live FamilySearch adapter to the already validated
    candidate, evidence, assessment, and conclusion application services. Live data
    must not redefine the offline-tested domain semantics.
@@ -1116,6 +1162,13 @@ Post-1.0 compatible sequence:
     using concrete researcher needs. Only if justified, begin immutable GEDCOM 7 and
     5.5.1 inspection and repeatable comparison; reviewed mappings, relationships,
     and privacy-filtered selective export remain separately approved later stages.
+
+After 1.0, admit new source adapters one bounded vertical slice at a time. Re-score
+the candidate portfolio after every two completed adapters or six months, whichever
+comes first, and review materially new evidence semantics with a Professional
+Genealogist before implementation and after the first usable slice. A blocking
+evidentiary finding prevents the affected contract from being frozen or described
+as production-ready.
 
 Open decisions include the final GUI toolkit and package name, nested-repository
 versus future-monorepo governance, exact facade class and method names, the exact
