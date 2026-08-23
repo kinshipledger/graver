@@ -1,11 +1,13 @@
 # Evidence contract review prototype
 
-**Status:** Revised after blocked R1 review; pending focused re-review; not implemented product behavior<br>
+**Status:** Passed focused R1 re-review; accepted contract artifact; not implemented product behavior<br>
 **Gate:** R1 — Evidence contract review<br>
 **Scenario:** Fictional and offline; no live provider data
 
-The initial review and unresolved gate decision are recorded in the
-[23 August 2026 R1 report](professional-researcher-r1-review-2026-08-23.md).
+The initial blocked review is recorded in the
+[23 August 2026 R1 report](professional-researcher-r1-review-2026-08-23.md). The
+[focused re-review](professional-researcher-r1-rereview-2026-08-23.md) verified all
+seven minimum corrections and passed R1.
 
 ## How to use this artifact
 

@@ -47,8 +47,9 @@ Original values remain preserved. Normalized values and later conclusions never
 replace them.
 
 For a full Find a Grave observation, source assertions may include the page's
-structured related-memorial groups (for example Parents, Spouse, Children, or
-Siblings). Preserve the displayed relationship label, linked memorial ID and URL,
+structured **Find a Grave-displayed relationship links — website display, not
+proven kinship** (for example Parents, Spouse, Children, or Siblings). Preserve the
+displayed relationship label, linked memorial ID and URL,
 displayed name and life detail, and observation time. Such a record asserts only
 that Find a Grave displayed the link in that group. It does not prove the
 relationship, retrieve or validate the linked memorial, establish reciprocity,
@@ -160,7 +161,9 @@ mutable matched profile. An assertion reference identifies:
 - Plain-language explanation
 - Creation timestamp
 
-Initial classifications are:
+Initial classifications are implementation identifiers. Researcher-facing clients
+must render `exact` as **exact value agreement** and explain that it establishes
+neither truth, source independence, nor identity:
 
 - `exact`
 - `compatible`
@@ -183,13 +186,20 @@ Assessment workflow states are distinct from conclusions:
 - `reopened`
 - `ready_for_decision`
 
+Deferral requires a reason and follow-up condition or review date. Reopening
+requires a reason and a link to the earlier record. Ready for decision is a workflow
+choice, not confidence, proof, certification of reasonably exhaustive research, or
+automatic permission to conclude.
+
 Assessment history retains actor, timestamp, reason, before and after state, notes,
 negative searches, unresolved questions, and researcher dispositions of comparison
 signals. No-op updates create no event.
 
 ### Identity conclusion
 
-Conclusion dispositions are:
+Conclusion dispositions are implementation identifiers. Researcher-facing
+acceptance means **accepted as the same person** and does not accept every assertion
+on either profile; assertions retain their own evidentiary status:
 
 - `accepted`
 - `rejected`
@@ -203,7 +213,8 @@ Each conclusion requires:
 - Researcher or reviewer
 - Decision timestamp
 - Reasoned analysis
-- Evidence and comparison references
+- Specific, inspectable evidence and comparison references identifying the
+  observation or record, observation date, and relevant assertions
 - Explicit treatment of every material conflict
 - Reference to the superseded conclusion when applicable
 
@@ -262,13 +273,17 @@ slice. Search and enrichment services should return a typed receipt containing:
 - database or workspace identity;
 - provider and requested scope;
 - records discovered, created, changed, unchanged, and failed;
-- observations appended;
+- changed memorial identifiers and before-and-after working values, with routes to
+  earlier and later snapshots;
+- dated snapshots retained without replacing earlier snapshots;
 - start and completion times; and
 - a suggested next action.
 
-Citation projections derive only from captured source metadata. They must identify
-missing citation elements rather than invent them. Every displayed acquired fact
-must be traceable to its source observation.
+Citation projections derive only from captured source metadata. They must
+distinguish information absent in the observed source from information not
+collected, outside scope, or unavailable; they must not imply that an image or
+underlying record was examined when it was not. Every displayed acquired fact must
+be traceable to its source observation.
 
 ## Offline vertical slice
 

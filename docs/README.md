@@ -29,7 +29,8 @@ implemented product behavior.
 
 The [first R1 professional researcher review](professional-researcher-r1-review-2026-08-23.md)
 records the blocking and important findings from that artifact. R1 did not pass;
-candidate and evidence persistence remains blocked pending correction and re-review.
+the [focused R1 re-review](professional-researcher-r1-rereview-2026-08-23.md)
+subsequently verified all seven minimum corrections and passed the gate.
 
 The [professional researcher review gates](researcher-review-gates.md) define the
 R1 contract review, R2 offline-workflow validation, and R3 production acceptance
