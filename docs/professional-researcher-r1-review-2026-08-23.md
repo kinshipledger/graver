@@ -124,10 +124,10 @@ working direction pending re-review:
 
 ## Blocking-finding resolution
 
-R1-01 is unresolved in the reviewed artifact. A revised artifact must demonstrate
-specific, durable, human-readable evidence references. The gate remains closed
-until an independent follow-up review verifies the correction. No risk acceptance
-has been granted.
+R1-01 was unresolved in the artifact reviewed by this report. The revised artifact
+demonstrates specific, durable, human-readable evidence references. The independent
+[focused re-review](professional-researcher-r1-rereview-2026-08-23.md) verified all
+seven minimum corrections and passed R1. No risk acceptance was required.
 
 ## Deferred questions
 
@@ -161,5 +161,5 @@ Minimum changes required before re-review:
 
 ## Next review trigger
 
-Conduct a focused R1 re-review after the low-fidelity artifact visibly resolves all
-seven minimum changes. Do not begin candidate/evidence persistence first.
+Completed: the focused R1 re-review passed on 23 August 2026. The next engagement is
+R2 after the complete curated offline workflow becomes experiential.

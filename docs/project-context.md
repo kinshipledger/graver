@@ -48,9 +48,10 @@ offline workflow has been validated; R3 blocks production-readiness claims and
 downstream WikiTree/family workflow expansion until the production evidence
 experience passes a repeat of the original professional review.
 
-The first R1 review on 23 August 2026 did not pass. Its seven minimum corrections
-are represented in the revised prototype, but candidate/evidence persistence remains
-blocked until a focused independent re-review verifies them.
+The first R1 review on 23 August 2026 did not pass. A focused independent re-review
+verified all seven minimum corrections with no new blockers and passed R1.
+Candidate/evidence persistence may now proceed under the accepted contract; R2
+still blocks the public façade freeze and detailed evidence-GUI design.
 
 ## Objective
 
