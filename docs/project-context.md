@@ -33,11 +33,12 @@ informed by this evidence contract, followed by the offline slice, API
 hygiene/documentation, and the other pre-RC gates. GEDCOM remains a periodically
 re-evaluated nice-to-have outside the critical path. No live FamilySearch, WikiTree,
 production GUI, background-job, or GEDCOM implementation has begun. The first
-application-service slice is implemented: typed task queries, partial-update
-commands, queue summaries, task records, detail aggregates, and input errors now sit
-behind `ResearchService`; `work list`, `next`, `show`, and `mark` use that typed
-boundary while legacy dictionary APIs remain compatibility projections. Queue and
-enrichment migration are the next bounded slice.
+application-service refactor now covers typed task queries, partial updates, queue
+requests/results, task records, detail aggregates, one-person enrichment, and typed
+workflow failures behind `ResearchService`. All visible `work` commands use that
+boundary while legacy dictionaries and tuples remain compatibility projections.
+The next bounded slice is the offline evidence-assessment vertical slice that must
+precede the public workspace-facade freeze.
 
 Professional alignment is controlled by the canonical
 [researcher review gates](researcher-review-gates.md). R1 blocks candidate/evidence
