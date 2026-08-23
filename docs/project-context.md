@@ -11,7 +11,7 @@ independently maintained and has no ongoing upstream affiliation.
 The implemented foundation includes schema version 3, subject-owned research tasks,
 explicit backed-up database upgrades, person-at-a-time acquisition, fail-closed
 Requests transport, the researcher tutorial, trunk-based release automation, and a
-dedicated branch-coverage CI job. The latest complete local run passed 367 tests;
+dedicated branch-coverage CI job. The latest complete local run passed 368 tests;
 the current coverage run measured 91.89% branch coverage against a
 90% floor. Coveralls reporting, the six
 honest README badges, Python 3.11–3.14 CI, Black, locked uv environments, wheel
@@ -1014,7 +1014,8 @@ Pre-1.0 sequence:
    creating accepted family relationships.
    Perform no live FamilySearch request, expose no persistence-shaped public CLI,
    and allow no automatic identity acceptance.
-8. Complete professional review gate R2 against the end-to-end offline workflow.
+8. **Ready for review:** Complete professional review gate R2 against the
+   end-to-end offline workflow using the disposable local experiential adapter.
    Resolve or explicitly accept every blocking finding before freezing the public
    workspace façade or detailed evidence-GUI information architecture.
 9. Complete the dedicated API hygiene and documentation milestone: explicit public
@@ -1072,7 +1073,10 @@ Pre-1.0 sequence:
 Post-1.0 compatible sequence:
 
 25. Begin the production desktop GUI with workspace/database lifecycle, work queue,
-   subject detail, and one-person acquisition/provenance review.
+   subject detail, and one-person acquisition/provenance review. Apply the formal
+   front-end review cadence: information architecture before navigation freeze,
+   interaction/continuity review on a clickable prototype, and visual-system and
+   accessibility review before production layout freeze.
 26. Connect an authorized live FamilySearch adapter to the already validated
    candidate, evidence, assessment, and conclusion application services. Live data
    must not redefine the offline-tested domain semantics.
@@ -1082,9 +1086,11 @@ Post-1.0 compatible sequence:
    permission review; production GUI scheduling uses the same durable job service.
 29. Extend GUI and CLI evidence-research workflows over those services.
 30. Complete professional review gate R3 by repeating the original professional
-    usability audit against the production evidence workflow. Resolve or explicitly
-    accept every blocking finding before claiming production readiness or expanding
-    into WikiTree and family workflows.
+   usability audit against the production evidence workflow. Resolve or explicitly
+   accept every blocking finding before claiming production readiness or expanding
+   into WikiTree and family workflows. Pair R3 with a broader pre-release UX and
+   accessibility review rather than treating genealogical acceptance as the only
+   front-end quality gate.
 31. Add WikiTree reconciliation, evidence summaries, and family work packets.
 32. Extend the production GUI across the complete reviewed research workflow.
 33. After the GUI work-queue vertical slice has been road-tested, re-evaluate GEDCOM
