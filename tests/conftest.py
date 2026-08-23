@@ -1,7 +1,7 @@
 import os
 import shlex
-import tempfile
-from datetime import datetime
+import shutil
+from types import SimpleNamespace
 
 import pytest
 from betamax import Betamax
@@ -9,7 +9,7 @@ from click.testing import Result
 from faker import Faker
 from typer.testing import CliRunner
 
-from graver import Cemetery, Driver, Memorial, config as graver_config
+from graver import Driver, Memorial, config as graver_config
 from graver.cli import app
 from tests.memorial_provider import MemorialProvider, ResultSetProvider
 
@@ -31,10 +31,6 @@ def sanitize_cassette_interaction(interaction, _cassette):
             response_headers.pop(name)
 
 
-def pytest_configure():
-    pass
-
-
 @pytest.fixture(autouse=True)
 def customize_faker(faker: Faker):
     faker.add_provider(MemorialProvider)
@@ -47,12 +43,12 @@ def disable_progress_bars(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def isolate_graver_configuration(monkeypatch, tmp_path):
+def isolate_graver_configuration(monkeypatch, tmp_path, database_template):
     """Prevent CLI tests from reading or writing the developer's preferences."""
     config_path = tmp_path / "user-config" / "graver" / "config.json"
     default_database = tmp_path / "user-config" / "default.db"
     default_database.parent.mkdir(parents=True)
-    Memorial.create_table(str(default_database))
+    shutil.copyfile(database_template, default_database)
     real_configuration_path = graver_config.configuration_path
 
     def isolated_path(environment=None, platform=None, home=None):
@@ -63,6 +59,14 @@ def isolate_graver_configuration(monkeypatch, tmp_path):
     monkeypatch.setattr(graver_config, "configuration_path", isolated_path)
     monkeypatch.setenv("GRAVER_DB", str(default_database))
     return config_path
+
+
+@pytest.fixture(scope="session")
+def database_template(tmp_path_factory):
+    """Create one empty current-schema database for isolated per-test copies."""
+    template = tmp_path_factory.mktemp("database-template") / "current.db"
+    Memorial.create_table(str(template))
+    return template
 
 
 # configure Betamax
@@ -84,18 +88,16 @@ def driver(betamax_parametrized_session):
 # configure Faker
 @pytest.fixture(scope="session", autouse=True)
 def faker_seed() -> int:
-    seed: int = int(datetime.now().timestamp())
-    return seed
+    return 20260822
 
 
 @pytest.fixture
-def database():
-    """Creates an empty graver database as a tempfile"""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tf:
-        os.environ["DATABASE_NAME"] = tf.name
-        Memorial.create_table(database_name=tf.name)
-        Cemetery.create_table(database_name=tf.name)
-        yield tf
+def database(tmp_path, database_template, monkeypatch):
+    """Provide an isolated current-schema database removed by pytest cleanup."""
+    path = tmp_path / "fixture.db"
+    shutil.copyfile(database_template, path)
+    monkeypatch.setenv("DATABASE_NAME", str(path))
+    yield SimpleNamespace(name=str(path))
 
 
 class Helpers:
