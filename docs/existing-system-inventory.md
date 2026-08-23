@@ -339,7 +339,9 @@ construct another. Test isolation now uses one session-built, empty current-sche
 template copied to a distinct pytest-managed path for each test. The general
 database fixture no longer uses an undeleted `NamedTemporaryFile` or directly
 mutates the process environment. Tests continue to receive independent databases;
-the optimization does not share mutable SQLite state.
+the optimization does not share mutable SQLite state. The protected Windows rerun
+completed pytest in 63.34s and the whole required lane in 1m24s, down from 9m28s
+and 9m51s respectively.
 
 ## Approved pre-1.0 direction
 
