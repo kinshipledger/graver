@@ -7,9 +7,10 @@ import uuid
 import pytest
 
 from graver import database as graver_database
+from graver._sqlite import connect_database
 from graver.evidence import (
     AssessmentUpdate,
-    CandidateFixture,
+    CandidateInput,
     ComparisonSignalInput,
     ConclusionRequest,
     DiscoveryRequest,
@@ -25,7 +26,7 @@ def make_subject_database(tmp_path):
     """Create a current database with one honest subject and no memorial."""
     path = graver_database.create_database(str(tmp_path / "evidence.db"))
     subject_id = str(uuid.uuid4())
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute(
             "INSERT INTO research_subjects (subject_id, created_at) VALUES (?, ?)",
@@ -59,7 +60,7 @@ def discovery(subject_id, observed_at, candidates):
 
 def test_schema_v2_upgrade_adds_empty_current_evidence_structures(tmp_path):
     path = graver_database.create_database(str(tmp_path / "v2.db"))
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         for table in sorted(graver_database.EVIDENCE_TABLES):
             connection.execute(f"DROP TABLE {table}")
         connection.execute("UPDATE graver_schema SET version=2")
@@ -70,7 +71,7 @@ def test_schema_v2_upgrade_adds_empty_current_evidence_structures(tmp_path):
     assert result.changed is True
     assert result.source.version == 2
     assert result.version == graver_database.CURRENT_SCHEMA_VERSION
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         assert connection.execute("SELECT version FROM graver_schema").fetchone() == (
             graver_database.CURRENT_SCHEMA_VERSION,
         )
@@ -87,8 +88,8 @@ def test_discovery_rejects_duplicate_provider_profiles():
             str(uuid.uuid4()),
             "2026-08-23T11:00:00Z",
             (
-                CandidateFixture("K1AB-CDE", "2026-08-23T11:00:00Z", {}),
-                CandidateFixture("K1AB-CDE", "2026-08-23T11:00:00Z", {}),
+                CandidateInput("K1AB-CDE", "2026-08-23T11:00:00Z", {}),
+                CandidateInput("K1AB-CDE", "2026-08-23T11:00:00Z", {}),
             ),
         )
 
@@ -110,7 +111,7 @@ def test_discovery_rejects_duplicate_provider_profiles():
                 "start",
                 "end",
                 "v1",
-                (CandidateFixture("P1", "now", {}),),
+                (CandidateInput("P1", "now", {}),),
                 "no_results",
             ),
             "no-results",
@@ -187,7 +188,7 @@ def test_service_lookup_failures_and_noop_assessment_are_safe(tmp_path):
         discovery(
             subject_id,
             "2026-08-23T11:00:00Z",
-            (CandidateFixture("K1AB-CDE", "2026-08-23T11:00:00Z", {}),),
+            (CandidateInput("K1AB-CDE", "2026-08-23T11:00:00Z", {}),),
         )
     ).snapshots[0]
     unchanged = service.update_assessment(
@@ -237,7 +238,7 @@ def test_offline_discovery_preserves_changed_and_absent_candidates(tmp_path):
             subject_id,
             "2026-08-23T11:00:00Z",
             (
-                CandidateFixture(
+                CandidateInput(
                     "K1AB-CDE",
                     "2026-08-23T11:00:00Z",
                     {
@@ -253,7 +254,7 @@ def test_offline_discovery_preserves_changed_and_absent_candidates(tmp_path):
                     },
                     "https://example.invalid/tree/person/K1AB-CDE",
                 ),
-                CandidateFixture(
+                CandidateInput(
                     "L2FG-HJK",
                     "2026-08-23T11:00:00Z",
                     {"name": "Eleanor May Carter", "father": "Thomas Carter"},
@@ -266,7 +267,7 @@ def test_offline_discovery_preserves_changed_and_absent_candidates(tmp_path):
             subject_id,
             "2026-08-24T11:00:00Z",
             (
-                CandidateFixture(
+                CandidateInput(
                     "K1AB-CDE",
                     "2026-08-24T11:00:00Z",
                     {
@@ -284,7 +285,7 @@ def test_offline_discovery_preserves_changed_and_absent_candidates(tmp_path):
     assert first.snapshots[0].content_hash != second.snapshots[0].content_hash
     assert len(service.list_snapshots(first.snapshots[0].candidate_id)) == 2
     assert len(service.list_snapshots(first.snapshots[1].candidate_id)) == 1
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         assert connection.execute(
             "SELECT COUNT(*) FROM external_candidates"
         ).fetchone() == (2,)
@@ -310,10 +311,10 @@ def test_comparison_orders_review_without_creating_a_conclusion(tmp_path):
             subject_id,
             "2026-08-23T11:00:00Z",
             (
-                CandidateFixture(
+                CandidateInput(
                     "K1AB-CDE", "2026-08-23T11:00:00Z", {"birth": "14 Mar 1892"}
                 ),
-                CandidateFixture("L2FG-HJK", "2026-08-23T11:00:00Z", {"birth": "1892"}),
+                CandidateInput("L2FG-HJK", "2026-08-23T11:00:00Z", {"birth": "1892"}),
             ),
         )
     )
@@ -359,7 +360,7 @@ def test_comparison_orders_review_without_creating_a_conclusion(tmp_path):
     assert ranked[0].agreement_count == 1
     assert ranked[0].material_conflict_count == 1
     assert not hasattr(ranked[0], "confidence")
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         assert connection.execute(
             "SELECT COUNT(*) FROM identity_conclusions"
         ).fetchone() == (0,)
@@ -374,11 +375,7 @@ def test_assessment_deferral_reopening_and_stale_edit_history(tmp_path):
         discovery(
             subject_id,
             "2026-08-23T11:00:00Z",
-            (
-                CandidateFixture(
-                    "K1AB-CDE", "2026-08-23T11:00:00Z", {"name": "Eleanor"}
-                ),
-            ),
+            (CandidateInput("K1AB-CDE", "2026-08-23T11:00:00Z", {"name": "Eleanor"}),),
         )
     ).snapshots[0]
 
@@ -446,11 +443,7 @@ def test_conclusions_require_inspectable_evidence_and_supersede_immutably(tmp_pa
         discovery(
             subject_id,
             "2026-08-23T11:00:00Z",
-            (
-                CandidateFixture(
-                    "K1AB-CDE", "2026-08-23T11:00:00Z", {"name": "Eleanor"}
-                ),
-            ),
+            (CandidateInput("K1AB-CDE", "2026-08-23T11:00:00Z", {"name": "Eleanor"}),),
         )
     ).snapshots[0]
     with pytest.raises(EvidenceInputError, match="inspectable"):
@@ -526,7 +519,7 @@ def test_conclusions_require_inspectable_evidence_and_supersede_immutably(tmp_pa
     assert service.get_source_observation(marriage.observation_id).citation.startswith(
         "Ada County"
     )
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         assert connection.execute(
             "SELECT COUNT(*) FROM identity_conclusions"
         ).fetchone() == (2,)
@@ -545,7 +538,7 @@ def test_conclusion_rejects_missing_and_cross_subject_evidence(tmp_path):
         discovery(
             subject_id,
             "2026-08-23T11:00:00Z",
-            (CandidateFixture("K1AB-CDE", "2026-08-23T11:00:00Z", {}),),
+            (CandidateInput("K1AB-CDE", "2026-08-23T11:00:00Z", {}),),
         )
     ).snapshots[0]
     with pytest.raises(EvidenceInputError, match="not an inspectable observation"):
@@ -567,7 +560,7 @@ def test_conclusion_rejects_missing_and_cross_subject_evidence(tmp_path):
         )
 
     other_subject = str(uuid.uuid4())
-    with sqlite3.connect(path) as connection:
+    with connect_database(path) as connection:
         connection.execute(
             "INSERT INTO research_subjects (subject_id, created_at) VALUES (?, ?)",
             (other_subject, "2026-08-23T12:00:00Z"),

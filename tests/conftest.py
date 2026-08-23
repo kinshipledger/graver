@@ -9,7 +9,8 @@ from click.testing import Result
 from faker import Faker
 from typer.testing import CliRunner
 
-from graver import Driver, Memorial, config as graver_config
+from graver import Driver, Memorial
+from graver import config as graver_config
 from graver.cli import app
 from tests.memorial_provider import MemorialProvider, ResultSetProvider
 

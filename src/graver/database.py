@@ -1,7 +1,7 @@
 """Explicit database creation, read-only inspection, and ordered upgrades."""
 
-import os
 import json
+import os
 import sqlite3
 import stat
 import uuid
@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
 
+from graver._sqlite import connect_database
 from graver.api import (
     _create_cemeteries_table,
     _create_current_schema,
@@ -20,6 +21,17 @@ from graver.api import (
     _migrate_graves_table,
 )
 from graver.config import DEFAULT_DATABASE
+
+__all__ = (
+    "DatabaseInitializationError",
+    "DatabaseInspectionError",
+    "DatabaseLifecycleError",
+    "DatabaseUpgradeError",
+    "create_database",
+    "inspect_database",
+    "upgrade_database",
+    "validate_current_database",
+)
 
 CURRENT_SCHEMA_VERSION = 4
 SCHEMA_TABLE = "graver_schema"
@@ -434,7 +446,7 @@ def inspect_database(database: str) -> SchemaInspection:
         )
     path = supplied_path.resolve()
     try:
-        with sqlite3.connect(_readonly_uri(path), uri=True) as connection:
+        with connect_database(_readonly_uri(path), uri=True) as connection:
             connection.execute("PRAGMA query_only = ON")
             return _inspect_connection(path, connection)
     except sqlite3.Error as ex:
@@ -468,7 +480,7 @@ def validate_current_database(database: str) -> Path:
             f"({inspection.source_label}): {path}"
         )
     try:
-        with sqlite3.connect(_readonly_uri(path), uri=True) as connection:
+        with connect_database(_readonly_uri(path), uri=True) as connection:
             connection.execute("PRAGMA query_only = ON")
             if connection.execute("PRAGMA quick_check").fetchone() != ("ok",):
                 raise DatabaseInspectionError(
@@ -537,7 +549,7 @@ def create_database(database: Optional[str] = None) -> Path:
         os.close(descriptor)
 
     try:
-        connection = sqlite3.connect(path)
+        connection = connect_database(path)
         try:
             with connection:
                 connection.execute("PRAGMA foreign_keys = ON")
@@ -709,10 +721,10 @@ def _create_verified_backup(source: Path, backup: Path) -> None:
         created_stat = os.fstat(descriptor)
         os.close(descriptor)
         descriptor = None
-        with sqlite3.connect(_readonly_uri(source), uri=True) as source_connection:
-            with sqlite3.connect(backup) as backup_connection:
+        with connect_database(_readonly_uri(source), uri=True) as source_connection:
+            with connect_database(backup) as backup_connection:
                 source_connection.backup(backup_connection)
-        with sqlite3.connect(_readonly_uri(backup), uri=True) as connection:
+        with connect_database(_readonly_uri(backup), uri=True) as connection:
             if connection.execute("PRAGMA integrity_check").fetchone() != ("ok",):
                 raise sqlite3.DatabaseError("backup integrity check failed")
     except Exception as ex:
@@ -761,7 +773,7 @@ def upgrade_database(database: str) -> DatabaseUpgradeResult:
     backup = backup_path_for(path)
     _create_verified_backup(path, backup)
     try:
-        with sqlite3.connect(path, isolation_level=None) as connection:
+        with connect_database(path, isolation_level=None) as connection:
             connection.execute("PRAGMA foreign_keys = ON")
             connection.execute("BEGIN IMMEDIATE")
             try:

@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import random
-import sqlite3
 from pathlib import Path
 from typing import Dict
 
@@ -19,6 +18,7 @@ from graver import (
     MemorialParseException,
     MemorialSummary,
 )
+from graver._sqlite import connect_database
 from graver.constants import APP_NAME
 from graver.transport import TransportAccessBlocked
 
@@ -398,7 +398,7 @@ class TestCliQueueMemorials(TestCli):
     def test_queues_without_network_requests(self, helpers, tmp_path, monkeypatch):
         database = tmp_path / "queue.db"
         Memorial.create_table(str(database))
-        with sqlite3.connect(database) as connection:
+        with connect_database(database) as connection:
             connection.executemany(
                 "INSERT INTO graves (memorial_id, cemetery_id) VALUES (?, ?)",
                 [(1, 10), (2, 10), (3, 20)],
@@ -419,7 +419,7 @@ class TestCliQueueMemorials(TestCli):
 
         assert result.exit_code == 0
         assert "Created 2 research tasks; 0 already present." in result.output
-        with sqlite3.connect(database) as connection:
+        with connect_database(database) as connection:
             tasks = connection.execute("""SELECT sm.memorial_id, t.status, t.priority
                    FROM research_tasks t
                    JOIN subject_memorials sm ON sm.subject_id=t.subject_id
@@ -483,7 +483,7 @@ class TestCliResearchTasks(Test):
 
     def test_missing_memorial_and_missing_task_exit_nonzero(self, helpers, database):
         missing_memorial = helpers.graver_cli(f"show-task 999 --db '{database.name}'")
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             connection.execute("INSERT INTO graves (memorial_id) VALUES (999)")
             graver.api._ensure_subject_for_memorial(connection, 999, "fixture")
         missing_task = helpers.graver_cli(f"show-task 999 --db '{database.name}'")
@@ -825,7 +825,7 @@ class TestCliResearcherSurface(Test):
     def test_work_list_does_not_guess_legacy_acquisition_level(self, helpers, database):
         summary = self.summary().save()
         graver.api.queue_memorials(database.name)
-        with sqlite3.connect(database.name) as connection:
+        with connect_database(database.name) as connection:
             connection.execute(
                 "UPDATE graves SET detail_level=NULL WHERE memorial_id=?",
                 (summary.memorial_id,),
@@ -1142,7 +1142,7 @@ class TestCliSearch(TestCli):
         result = helpers.graver_cli(f"search --db '{database}'")
 
         assert result.exit_code == 0
-        with sqlite3.connect(database) as connection:
+        with connect_database(database) as connection:
             row = connection.execute(
                 "SELECT memorial_id, detail_level, summary_fetched_at "
                 "FROM graves WHERE memorial_id = ?",
