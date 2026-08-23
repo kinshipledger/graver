@@ -1001,6 +1001,9 @@ Pre-1.0 sequence:
    fixtures: immutable discovery runs and candidate snapshots, assertion-level
    comparison signals, explainable candidate ordering, evolving assessments,
    negative searches and unresolved questions, and immutable reviewed conclusions.
+   Capture Find a Grave's structured related-member panel as immutable
+   source-observed relationship assertions, without retrieving linked memorials or
+   creating accepted family relationships.
    Perform no live FamilySearch request, expose no persistence-shaped public CLI,
    and allow no automatic identity acceptance.
 8. Complete professional review gate R2 against the end-to-end offline workflow.

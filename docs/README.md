@@ -23,6 +23,10 @@ defines the boundary between candidate discovery, machine ranking, researcher
 assessment, and reviewed conclusions. It is the governing contract for the planned
 offline evidence vertical slice and later FamilySearch-facing clients.
 
+The [evidence contract review prototype](evidence-contract-review-prototype.md) is
+the fictional, low-fidelity artifact for professional researcher gate R1. It is not
+implemented product behavior.
+
 The [professional researcher review gates](researcher-review-gates.md) define the
 R1 contract review, R2 offline-workflow validation, and R3 production acceptance
 checkpoints. Each engagement uses the canonical
