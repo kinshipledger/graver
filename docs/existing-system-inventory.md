@@ -1,6 +1,6 @@
 # Existing system inventory: `graver`
 
-Inspection dates: 2026-08-11; refreshed 2026-08-21
+Inspection dates: 2026-08-11; refreshed 2026-08-22
 
 ## What is present
 
@@ -18,6 +18,16 @@ subject/task events, and memorial-ID compatibility for existing researcher workf
 use pull requests and squash merges. The obsolete `master` branch was never a
 formal release or supported production state and has been retired. `develop` is
 retired by the release-workflow transition. No release tags exist yet.
+
+The only configured Git remote is `origin`, pointing to
+`https://github.com/mcqueary/graver.git`. The obsolete local `upstream` remote to
+`pirtleshell/scrape-a-grave` was removed on 2026-08-22, and GitHub presents graver as
+an independent repository rather than a fork. The Git history nevertheless begins
+with Robert Pirtle's 2016 MIT-licensed commits and later refactors descend from that
+work. The applicable historical copyright notice therefore remains in `LICENSE`;
+the README describes the historical inspiration while explicitly disclaiming an
+ongoing affiliation or upstream relationship. Rewriting history or removing the
+notice is not planned.
 
 ## Current behavior
 
@@ -303,6 +313,8 @@ override provider terms, policies, controls, or instructions.
   Python 3.14 job measures branch coverage, enforces the measured 90% non-regression
   floor, writes Cobertura XML, and publishes it to Coveralls. The 2026-08-22 local
   baseline was 91% across 2,090 statements and 564 branches with 340 passing tests.
+  GitHub's CI run for commit `b3f780a` completed successfully after the coverage
+  workflow was introduced.
 - Conventional Commit pull-request titles and squash merging provide commit
   hygiene. Release Please is configured as the sole changelog/version/tag/GitHub
   Release preparation tool, but remains manually triggered before the 1.0 release

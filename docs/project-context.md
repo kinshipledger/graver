@@ -1,5 +1,32 @@
 # Project context
 
+## Resume checkpoint — 2026-08-22
+
+The repository is on the single long-lived `main` branch with only
+`https://github.com/mcqueary/graver.git` configured as `origin`. The obsolete
+`pirtleshell/scrape-a-grave` upstream remote has been removed. Historical MIT
+copyright provenance remains preserved, while the README makes clear that graver is
+independently maintained and has no ongoing upstream affiliation.
+
+The implemented foundation includes schema version 2 subject-owned research tasks,
+explicit backed-up database upgrades, person-at-a-time acquisition, fail-closed
+Requests transport, the researcher tutorial, trunk-based release automation, and a
+dedicated branch-coverage CI job. The latest complete local run passed 340 tests and
+measured 90.58% branch coverage against a 90% floor. Coveralls reporting, the six
+honest README badges, Python 3.11–3.14 CI, Black, locked uv environments, wheel
+verification, and Conventional Commit pull-request-title enforcement are current.
+GitHub's CI run for the current checkpoint commit `b3f780a` completed successfully.
+The coverage run exposed unclosed-SQLite `ResourceWarning`s that remain explicit
+testing-lifecycle cleanup work.
+
+The next conversation is intentionally a high-level review of the true critical
+path to `1.0.0rc1`; that review was deferred for housekeeping and has not yet
+changed the ordered roadmap below. The current leading implementation step remains
+the subject-oriented repository and application-service refactor, followed by API
+hygiene/documentation and the other pre-RC gates. GEDCOM remains a periodically
+re-evaluated nice-to-have outside the critical path. No FamilySearch, WikiTree,
+production GUI, background-job, or GEDCOM implementation has begun.
+
 ## Objective
 
 Systematically connect well-researched people to the WikiTree World Tree, beginning with populations discovered from Find a Grave cemeteries.
