@@ -856,6 +856,24 @@ class TestDatabaseOps(TestApi):
         assert updated.subject_id == detail.task.subject_id
         assert "subject_id" not in detail.to_compatibility_dict()["task"]
 
+    def test_subject_service_rolls_back_if_updated_task_disappears(
+        self, database, monkeypatch
+    ):
+        summary = self.summary().save()
+        service = ResearchService(database.name)
+        service.queue_memorials()
+        monkeypatch.setattr(
+            "graver.research._ResearchTaskRepository.task_for_subject",
+            lambda _connection, _subject_id: None,
+        )
+
+        with pytest.raises(ResearchTaskNotFound, match="disappeared during update"):
+            service.apply_task_update(
+                ResearchTaskUpdate(summary.memorial_id, status="researching")
+            )
+
+        assert service.get_task(summary.memorial_id).task.status == "unprocessed"
+
     def test_subject_service_exposes_typed_queue_result(self, database):
         self.summary().save()
         service = ResearchService(database.name)
