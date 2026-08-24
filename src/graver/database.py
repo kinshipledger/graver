@@ -192,16 +192,20 @@ class DatabaseUpgradeError(DatabaseLifecycleError):
 
 @dataclass(frozen=True)
 class SchemaInspection:
+    """Describe a read-only classification of one database schema."""
+
     path: Path
     state: str
     version: Optional[int] = None
 
     @property
     def current(self) -> bool:
+        """Return whether the inspected schema is the current supported version."""
         return self.state == "current"
 
     @property
     def source_label(self) -> str:
+        """Return a concise human-readable label for the detected schema."""
         labels = {
             "legacy_0_1": "legacy 0.1 schema",
             "legacy_summary": "legacy summary-only schema",
@@ -214,6 +218,8 @@ class SchemaInspection:
 
 @dataclass(frozen=True)
 class DatabaseUpgradeResult:
+    """Describe the outcome and backup of one explicit schema upgrade."""
+
     path: Path
     source: SchemaInspection
     version: int

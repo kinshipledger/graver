@@ -17,7 +17,34 @@ the project is still pre-1.0. Changes will be documented in release notes, and t
 consumer spike validate this design. The broad imports retained at package root are
 legacy compatibility conveniences, not the future façade.
 
-Application code should import from `graver.application`:
+Application code should prefer the synchronous workspace façade from
+`graver.application`:
+
+```python
+from graver.application import ResearchTaskQuery, open_workspace
+
+workspace = open_workspace("research.db")
+inspection = workspace.database.inspect()
+tasks = workspace.work.list(ResearchTaskQuery(limit=10))
+```
+
+`open_workspace()` requires an explicit, existing current database. It never reads
+CLI defaults, creates a missing file, or upgrades an older schema. The workspace is
+immutable and holds no SQLite connection; each operation owns a short-lived internal
+unit of work.
+
+The first façade slice intentionally contains only database inspection and typed
+work-queue list, show, and idempotent queue operations. Task updates remain behind
+the lower-level pre-1.0 service until they gain optimistic concurrency. Evidence,
+acquisition, progress, and cancellation namespaces will be added only after their
+contracts are ready. Clients should not import internal packet, transport,
+persistence, or CLI modules to fill those temporary gaps.
+
+Expected lookup failures are translated to `WorkItemNotFound`, which carries the
+requested memorial identifier without exposing SQL detail or a legacy exception
+type. Presentation adapters decide how to display that typed failure.
+
+Lower-level typed services remain supported during pre-1.0 development:
 
 ```python
 from graver.application import (
@@ -87,6 +114,11 @@ make typecheck
 make doccheck
 uv run pytest
 ```
+
+CI also builds the wheel, installs that artifact in an isolated environment, and
+runs `consumer_spike/workspace_client.py`. The spike uses only documented imports to
+create, open, inspect, query, and queue work in a disposable database. It is a GUI-
+readiness contract test, not a production client.
 
 Mypy is deliberately scoped to the application-facing modules. Google-style
 docstring checks require useful public module, class, function, and method contracts;

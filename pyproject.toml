@@ -74,6 +74,7 @@ files = [
     "src/graver/evidence_packet.py",
     "src/graver/evidence_projection.py",
     "src/graver/research.py",
+    "src/graver/workspace.py",
 ]
 python_version = "3.11"
 follow_imports = "skip"
