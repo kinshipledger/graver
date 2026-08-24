@@ -71,6 +71,7 @@ files = [
     "src/graver/application.py",
     "src/graver/database.py",
     "src/graver/evidence.py",
+    "src/graver/evidence_packet.py",
     "src/graver/research.py",
 ]
 python_version = "3.11"
