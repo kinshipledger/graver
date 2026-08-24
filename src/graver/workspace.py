@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
@@ -13,6 +14,7 @@ from graver.database import (
     inspect_database,
     validate_current_database,
 )
+from graver.errors import ApplicationError, DatabaseBusy, DatabaseOperationError
 from graver.progress import CancellationToken, ProgressObserver
 from graver.research import (
     ResearchEnrichmentRequest,
@@ -28,12 +30,26 @@ from graver.research import (
 )
 
 
-class WorkItemNotFound(LookupError):
+class WorkItemNotFound(ApplicationError, LookupError):
     """Report that no researcher-visible work item exists for a memorial."""
+
+    code = "resource_not_found"
 
     def __init__(self, memorial_id: int):
         self.memorial_id = memorial_id
-        super().__init__(f"Work item {memorial_id} does not exist")
+        super().__init__(
+            f"Work item {memorial_id} does not exist",
+            context={"memorial_id": memorial_id},
+        )
+
+
+def _translate_database_error(
+    error: sqlite3.Error, database: Path, operation: str
+) -> ApplicationError:
+    message = str(error).casefold()
+    if "locked" in message or "busy" in message:
+        return DatabaseBusy(str(database), operation)
+    return DatabaseOperationError(str(database), operation)
 
 
 @dataclass(frozen=True)
@@ -57,7 +73,12 @@ class WorkspaceWork:
         self, query: ResearchTaskQuery = ResearchTaskQuery()
     ) -> tuple[ResearchTaskSummary, ...]:
         """Return one deterministically ordered page of research work."""
-        return self._service.query_tasks(query)
+        try:
+            return self._service.query_tasks(query)
+        except sqlite3.Error as error:
+            raise _translate_database_error(
+                error, Path(self._service.database_name), "list research work"
+            ) from error
 
     def show(self, memorial_id: int) -> ResearchTaskDetail:
         """Return one task and its source context by researcher-facing memorial ID."""
@@ -65,10 +86,19 @@ class WorkspaceWork:
             return self._service.get_task(memorial_id)
         except (NotFound, ResearchTaskNotFound) as error:
             raise WorkItemNotFound(memorial_id) from error
+        except sqlite3.Error as error:
+            raise _translate_database_error(
+                error, Path(self._service.database_name), "show research work"
+            ) from error
 
     def queue(self, command: ResearchQueueRequest) -> ResearchQueueResult:
         """Create research tasks idempotently for acquired memorials."""
-        return self._service.queue_research(command)
+        try:
+            return self._service.queue_research(command)
+        except sqlite3.Error as error:
+            raise _translate_database_error(
+                error, Path(self._service.database_name), "queue research work"
+            ) from error
 
     def update(self, command: ResearchTaskUpdate) -> ResearchTaskRecord:
         """Update one task only if its expected revision is still current."""
@@ -76,6 +106,10 @@ class WorkspaceWork:
             return self._service.apply_task_update(command)
         except ResearchTaskNotFound as error:
             raise WorkItemNotFound(command.memorial_id) from error
+        except sqlite3.Error as error:
+            raise _translate_database_error(
+                error, Path(self._service.database_name), "update research work"
+            ) from error
 
 
 @dataclass(frozen=True)
@@ -102,6 +136,10 @@ class WorkspaceAcquisition:
             )
         except (NotFound, ResearchTaskNotFound) as error:
             raise WorkItemNotFound(command.memorial_id) from error
+        except sqlite3.Error as error:
+            raise _translate_database_error(
+                error, Path(self._service.database_name), "enrich memorial"
+            ) from error
 
 
 @dataclass(frozen=True)

@@ -26,6 +26,7 @@ from graver.database import (
     upgrade_database,
     validate_current_database,
 )
+from graver.errors import ApplicationError, DatabaseBusy, DatabaseOperationError
 from graver.evidence import (
     AssessmentRecord,
     AssessmentUpdate,
@@ -81,6 +82,7 @@ from graver.workspace import (
 )
 
 __all__ = (
+    "ApplicationError",
     "AssessmentRecord",
     "AssessmentUpdate",
     "CancellationRequested",
@@ -92,8 +94,10 @@ __all__ = (
     "ConclusionRecord",
     "ConclusionRequest",
     "DatabaseInitializationError",
+    "DatabaseBusy",
     "DatabaseInspectionError",
     "DatabaseLifecycleError",
+    "DatabaseOperationError",
     "DatabaseUpgradeError",
     "DatabaseUpgradeResult",
     "DiscoveryRequest",

@@ -5,6 +5,7 @@ import inspect
 import graver.application as application
 
 EXPECTED_PUBLIC_NAMES = {
+    "ApplicationError",
     "AssessmentRecord",
     "AssessmentUpdate",
     "CancellationRequested",
@@ -16,8 +17,10 @@ EXPECTED_PUBLIC_NAMES = {
     "ConclusionRecord",
     "ConclusionRequest",
     "DatabaseInitializationError",
+    "DatabaseBusy",
     "DatabaseInspectionError",
     "DatabaseLifecycleError",
+    "DatabaseOperationError",
     "DatabaseUpgradeError",
     "DatabaseUpgradeResult",
     "DiscoveryRequest",
@@ -85,6 +88,22 @@ def test_application_boundary_excludes_adapter_and_storage_types():
         "typer",
     }
     assert forbidden.isdisjoint(application.__all__)
+
+
+def test_application_exceptions_share_the_supported_error_contract():
+    """Every exported exception supports adapter-neutral routing fields."""
+    exception_types = {
+        value
+        for name in application.__all__
+        if inspect.isclass(value := getattr(application, name))
+        and issubclass(value, Exception)
+    }
+
+    assert exception_types
+    assert all(
+        issubclass(exception_type, application.ApplicationError)
+        for exception_type in exception_types
+    )
 
 
 def test_application_star_import_matches_all():

@@ -43,6 +43,30 @@ Expected lookup failures are translated to `WorkItemNotFound`, which carries the
 requested memorial identifier without exposing SQL detail or a legacy exception
 type. Presentation adapters decide how to display that typed failure.
 
+## Error contract
+
+All supported application failures inherit from `ApplicationError`. Adapters may
+rely on three presentation-neutral fields:
+
+- `code`: a stable machine-readable classification for routing;
+- `summary`: a safe, whitespace-normalized explanation for people; and
+- `context`: immutable structured values safe for logs and interface state.
+
+Clients should catch the most specific documented exception when behavior differs,
+or `ApplicationError` at their outer presentation boundary. They must not parse
+exception wording. Current classifications include `invalid_request`,
+`resource_not_found`, `invalid_state`, `stale_data`, `operation_cancelled`,
+`database_busy`, other database lifecycle and operation failures, and acquisition
+failure or block outcomes. New classifications may be added without changing the
+meaning of existing ones.
+
+The workspace translates SQLite busy/locked conditions to `DatabaseBusy`. Other
+unexpected SQLite operation failures become `DatabaseOperationError`. Both report
+the database and attempted operation without exposing raw SQL or SQLite diagnostics;
+the original exception remains available through Python exception chaining for
+developer diagnostics. Database creation, inspection, and upgrade retain their more
+specific lifecycle exceptions.
+
 Every typed task record carries an integer `version`. Supply that value as
 `expected_version` when constructing `ResearchTaskUpdate`; a meaningful successful
 update increments it. If another client changed the task first,
@@ -135,6 +159,21 @@ result = workspace.acquisition.enrich(
 )
 ```
 
+## Threading and transaction ownership
+
+A workspace may be retained by an application and invoked from different worker
+threads, but a single operation runs synchronously in its calling thread. Every
+operation opens, uses, and closes its own SQLite connection in that thread. graver
+never returns a connection to clients or moves one between threads. A GUI should run
+potentially blocking work in a worker thread and marshal results, progress events,
+and typed errors back through its toolkit adapter.
+
+Transactions belong to one service operation. Cancellation is honored only at the
+documented safe boundaries outside a transaction; optimistic versions protect task
+updates from stale views. A `DatabaseBusy` result is retryable only after the client
+or researcher decides how and when to retry—graver does not silently loop behind the
+interface.
+
 ## Required checks
 
 Public application changes must pass:
@@ -148,8 +187,9 @@ uv run pytest
 
 CI also builds the wheel, installs that artifact in an isolated environment, and
 runs `consumer_spike/workspace_client.py`. The spike uses only documented imports to
-create, open, inspect, query, queue, and exercise typed update failures in a
-disposable database. It is a GUI-readiness contract test, not a production client.
+create, open, inspect, query, queue, and exercise typed immutable failure contracts
+in a disposable database. It is a GUI-readiness contract test, not a production
+client.
 
 Mypy is deliberately scoped to the application-facing modules. Google-style
 docstring checks require useful public module, class, function, and method contracts;

@@ -6,6 +6,8 @@ import threading
 from dataclasses import dataclass
 from typing import Optional, Protocol
 
+from graver.errors import ApplicationError
+
 __all__ = (
     "CancellationRequested",
     "CancellationToken",
@@ -14,7 +16,7 @@ __all__ = (
 )
 
 
-class CancellationRequested(Exception):
+class CancellationRequested(ApplicationError):
     """Report cooperative cancellation at a documented safe boundary.
 
     Attributes:
@@ -25,7 +27,12 @@ class CancellationRequested(Exception):
     def __init__(self, operation: str, stage: str):
         self.operation = operation
         self.stage = stage
-        super().__init__(f"{operation} was cancelled during {stage}")
+        super().__init__(
+            f"{operation} was cancelled during {stage}",
+            context={"operation": operation, "stage": stage},
+        )
+
+    code = "operation_cancelled"
 
 
 class CancellationToken:

@@ -482,6 +482,14 @@ exposes one-person enrichment with synchronous neutral progress events and
 cooperative cancellation before retrieval and persistence. Evidence, broader
 acquisition operations, and the final 1.0 method surface remain unfrozen.
 
+Supported failures now share `ApplicationError` with a stable machine-readable
+`code`, safe normalized `summary`, and immutable structured `context`. Existing
+specific domain exception names remain available. The workspace translates locked
+or busy SQLite failures to `DatabaseBusy` and other operation failures to
+`DatabaseOperationError` without exposing raw SQLite messages. Its connection-free
+composition is exercised concurrently from multiple worker threads; every call owns
+and closes its connection in the calling thread.
+
 The dedicated **API hygiene and documentation** milestone is now partially complete:
 explicit imports, `__all__`, typed graver-owned results and exceptions, bounded
 mypy/docstring gates, and offline developer guidance are implemented. Typer, Rich,
@@ -498,7 +506,7 @@ evidenced dead-code and dependency removal, Google-style docstrings and installe
 wheel API examples, bounded CI enforcement, and migration/release notes.
 
 Ruff now enforces Google-convention public docstring coverage, and mypy enforces the
-four application-facing modules through deterministic local, pre-commit, and CI
+listed application-facing modules through deterministic local, pre-commit, and CI
 commands. The `deadcode` package was removed after its AST visitor failed on
 supported Python 3.14; unused-code decisions require corroborating repository,
 tests, coverage, exports, and compatibility evidence instead. Broader documentation

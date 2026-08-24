@@ -449,15 +449,15 @@ import Qt, emit Qt signals, assume an event loop, or return terminal-formatted
 strings. Standard-library logging is appropriate when needed, with presentation
 left to the client.
 
-The planned exception hierarchy must let clients distinguish invalid requests or
+The initial application exception hierarchy now lets clients distinguish invalid requests or
 domain transitions; missing subjects or tasks; missing or invalid databases;
 required upgrades and newer-than-supported schemas; backup or migration failures;
-configuration failures; blocked external access; required authentication; rate
-limits; unavailable external services; timeouts and transport failures; changed or
-unparseable source pages; cancellation; stale-data conflicts; and busy or locked
-databases. Each exception exposes a stable machine classification, structured
-context, and a safe human summary without leaking tracebacks, credentials, cookies,
-or raw sensitive responses.
+blocked acquisition; cancellation; stale-data conflicts; and busy, locked, or other
+workspace database-operation failures. Each supported exception exposes a stable
+machine classification, immutable structured context, and a safe human summary
+without leaking raw SQLite diagnostics. Configuration, authentication, provider
+rate-limit, transport, and changed-source-page refinements remain for their later
+service boundaries.
 
 ### Progress, cancellation, and concurrency
 
@@ -479,12 +479,15 @@ be reported as cancelled. Partial external observations are persisted only under
 explicit provenance rules.
 
 Operations document whether they are read-only or mutating. Mutations use short,
-explicit transactions. No SQLite connection is shared across threads. Task updates
+explicit transactions. The workspace owns no persistent connection, and tests now
+prove that calls from multiple worker threads open independent operation-local
+connections. Task updates
 accept an expected version, timestamp, or equivalent concurrency token so stale GUI
 state cannot silently overwrite newer work; results include enough identity and
-version information to refresh. Busy or locked database failures receive typed
-handling. WAL mode may be evaluated later but is not the public concurrency
-contract. The exact concurrency-token representation remains open.
+version information to refresh. Busy or locked database failures become typed
+`DatabaseBusy` outcomes; other SQLite operation failures become safe
+`DatabaseOperationError` outcomes. WAL mode may be evaluated later but is not the
+public concurrency contract.
 
 ### Service areas and adapter responsibilities
 
@@ -544,9 +547,10 @@ This milestone is partially implemented and must finish before the workspace fac
 is frozen as graver's 1.0 contract. The initial `graver.application` boundary,
 explicit exports, typed request/result services, developer guide, bounded mypy and
 Google-convention docstring checks, workspace composition, optimistic task
-concurrency, and an executable installed-wheel client are current. Expanded wheel
-consumer scenarios, evidenced dead-code cleanup, and broader documentation/link
-validation remain. Keep that work separate from substantial behavioral changes.
+concurrency, a stable application-error contract, thread-isolation coverage, and an
+executable installed-wheel client are current. Expanded wheel consumer scenarios,
+evidenced dead-code cleanup, and broader documentation/link validation remain. Keep
+that work separate from substantial behavioral changes.
 
 The supported boundary uses Google-style docstrings. Every supported public
 module, class, protocol, exception, function, method, typed command, query, and
