@@ -1092,11 +1092,14 @@ Pre-1.0 sequence:
    evidence, assessment, conclusion, acquisition-receipt, and provenance projections
    validated by the offline slice.
 
-   **Artifact ready for review:** the fictional
+   **Artifact revised for focused re-review:** the fictional
    [source-neutral evidence packet prototype](source-neutral-evidence-packet-prototype.md)
-   now exercises the proposed distinctions and S1 review questions. No packet
-   implementation or public source-facing type freeze proceeds until S1 blocking
-   findings are resolved or explicitly accepted.
+   now exercises the proposed distinctions and S1 review questions. The initial S1
+   review blocked on incomplete provenance, comparison inputs, conflict permanence,
+   portability, dependence, and override constraints. Those corrections are now in
+   the artifact but remain unverified. No packet implementation or public source-
+   facing type freeze proceeds until focused re-review passes or remaining blockers
+   are explicitly accepted.
 13. Move remaining researcher-directed acquisition and CLI workflows onto those
    application services, validate the shared boundaries, and add CLI/API parity
    tests while preserving the tutorial's human workflow. Add researcher-readable
