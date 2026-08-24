@@ -234,3 +234,65 @@ def test_projection_refuses_comparison_value_that_rewrites_observation(
 
     with pytest.raises(EvidencePacketError, match="does not match assertion"):
         project_evidence_packet(replace(request, comparison_signals=(broken,)))
+
+
+@pytest.mark.parametrize(
+    "candidate_assertion, message",
+    (
+        (
+            {"record_id": "", "path": "father", "captured_value": "Henry"},
+            "must contain text",
+        ),
+        (
+            {
+                "record_id": "X1",
+                "path": "father",
+                "captured_value": "Henry",
+                "transformation": "",
+            },
+            "transformation is required",
+        ),
+    ),
+)
+def test_projection_rejects_invalid_comparison_reference_fields(
+    tmp_path, candidate_assertion, message
+) -> None:
+    request = recorded_projection(tmp_path)
+    signal = replace(
+        request.comparison_signals[0], candidate_assertion=candidate_assertion
+    )
+
+    with pytest.raises(EvidencePacketError, match=message):
+        project_evidence_packet(replace(request, comparison_signals=(signal,)))
+
+
+def test_projection_requires_both_comparison_inputs(tmp_path) -> None:
+    request = recorded_projection(tmp_path)
+    signal = replace(request.comparison_signals[0], subject_assertion=None)
+
+    with pytest.raises(EvidencePacketError, match="both inspectable inputs"):
+        project_evidence_packet(replace(request, comparison_signals=(signal,)))
+
+
+def test_projection_canonicalizes_structured_captured_values(tmp_path) -> None:
+    request = recorded_projection(tmp_path)
+    candidate = request.observations[1]
+    assertions = {"father": {"name": "Henry Carter", "qualifier": "reported"}}
+    candidate = replace(candidate, assertions=assertions)
+    signal = request.comparison_signals[0]
+    candidate_reference = dict(signal.candidate_assertion or {})
+    candidate_reference["captured_value"] = assertions["father"]
+    candidate_reference["compared_value"] = assertions["father"]
+    signal = replace(signal, candidate_assertion=candidate_reference)
+
+    packet = project_evidence_packet(
+        replace(
+            request,
+            observations=(request.observations[0], candidate),
+            comparison_signals=(signal,),
+        )
+    )
+
+    assert packet.comparisons[0].right.compared_value == (
+        '{"name": "Henry Carter", "qualifier": "reported"}'
+    )
