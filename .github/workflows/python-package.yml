@@ -56,7 +56,7 @@ jobs:
       - run: uv run black --check src/graver tests review consumer_spike
       - run: uv run ruff check src/graver tests review consumer_spike
       - run: uv run mypy
-      - run: uv run ruff check --select D --ignore D105,D107 src/graver/application.py src/graver/database.py src/graver/errors.py src/graver/evidence.py src/graver/progress.py src/graver/research.py src/graver/workspace.py
+      - run: uv run ruff check --select D --ignore D105,D107 src/graver/acquisition.py src/graver/application.py src/graver/database.py src/graver/errors.py src/graver/evidence.py src/graver/progress.py src/graver/research.py src/graver/workspace.py
       - run: uv build
       - name: Verify the built wheel
         shell: bash

@@ -68,6 +68,7 @@ convention = "google"
 
 [tool.mypy]
 files = [
+    "src/graver/acquisition.py",
     "src/graver/application.py",
     "src/graver/database.py",
     "src/graver/evidence.py",

@@ -13,12 +13,14 @@ from graver.application import (
     DatabaseBusy,
     DatabaseInspectionError,
     DatabaseOperationError,
+    MemorialSummarySearchRequest,
     ResearchEnrichmentRequest,
     ResearchQueueRequest,
     ResearchService,
     ResearchTaskQuery,
     ResearchTaskUpdate,
     StaleResearchTask,
+    SummaryAcquisitionService,
     WorkItemNotFound,
     create_database,
     open_workspace,
@@ -158,6 +160,27 @@ def test_each_workspace_area_translates_locked_database_failures(
     assert failure.value.context == {
         "database": str(database),
         "operation": operation,
+    }
+
+
+def test_workspace_summary_search_translates_locked_database_failure(
+    tmp_path, monkeypatch
+) -> None:
+    """Summary acquisition uses the same safe workspace database contract."""
+    database = create_database(str(tmp_path / "workspace.db"))
+    workspace = open_workspace(database)
+
+    def fail_search(_service, *_args, **_kwargs):
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(SummaryAcquisitionService, "search", fail_search)
+
+    with pytest.raises(DatabaseBusy) as failure:
+        workspace.acquisition.search(MemorialSummarySearchRequest())
+
+    assert failure.value.context == {
+        "database": str(database),
+        "operation": "search memorial summaries",
     }
 
 

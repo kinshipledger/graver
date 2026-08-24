@@ -482,6 +482,16 @@ exposes one-person enrichment with synchronous neutral progress events and
 cooperative cancellation before retrieval and persistence. Evidence, broader
 acquisition operations, and the final 1.0 method surface remain unfrozen.
 
+The researcher-directed summary `search` command now delegates to
+`workspace.acquisition.search()` using a typed provider-specific request. The
+service owns explicit database persistence and returns an immutable receipt with
+source, memorial identifiers, new/existing counts, appended-observation count, and
+field-level before/after changes to the current displayed representation. The CLI
+renders the same receipt in researcher language. Search does not queue tasks, infer
+correctness, or claim full-page acquisition. The legacy multi-URL `scrape-file`
+loop remains outside the public application API pending its pre-1.0 access-policy
+and compatibility decision.
+
 Supported failures now share `ApplicationError` with a stable machine-readable
 `code`, safe normalized `summary`, and immutable structured `context`. Existing
 specific domain exception names remain available. The workspace translates locked

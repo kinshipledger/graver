@@ -8,6 +8,12 @@ from os import PathLike
 from pathlib import Path
 from typing import Callable, Optional
 
+from graver.acquisition import (
+    AcquisitionReceipt,
+    MemorialSummaryBatch,
+    MemorialSummarySearchRequest,
+    SummaryAcquisitionService,
+)
 from graver.api import NotFound, ResearchTaskNotFound
 from graver.database import (
     SchemaInspection,
@@ -116,7 +122,33 @@ class WorkspaceWork:
 class WorkspaceAcquisition:
     """Expose researcher-directed single-record acquisition to application clients."""
 
-    _service: ResearchService
+    _research_service: ResearchService
+    _summary_service: SummaryAcquisitionService
+
+    def search(
+        self,
+        command: MemorialSummarySearchRequest,
+        *,
+        progress: Optional[ProgressObserver] = None,
+        cancellation: Optional[CancellationToken] = None,
+        acquire: Optional[
+            Callable[[MemorialSummarySearchRequest], MemorialSummaryBatch]
+        ] = None,
+    ) -> AcquisitionReceipt:
+        """Retrieve summary observations and return a researcher-readable receipt."""
+        try:
+            return self._summary_service.search(
+                command,
+                acquire=acquire,
+                progress=progress,
+                cancellation=cancellation,
+            )
+        except sqlite3.Error as error:
+            raise _translate_database_error(
+                error,
+                Path(self._summary_service.database_name),
+                "search memorial summaries",
+            ) from error
 
     def enrich(
         self,
@@ -128,7 +160,7 @@ class WorkspaceAcquisition:
     ) -> ResearchEnrichmentResult:
         """Retrieve and persist one approved memorial at safe cancellation boundaries."""
         try:
-            return self._service.enrich_memorial(
+            return self._research_service.enrich_memorial(
                 command,
                 acquire=acquire,
                 progress=progress,
@@ -138,7 +170,7 @@ class WorkspaceAcquisition:
             raise WorkItemNotFound(command.memorial_id) from error
         except sqlite3.Error as error:
             raise _translate_database_error(
-                error, Path(self._service.database_name), "enrich memorial"
+                error, Path(self._research_service.database_name), "enrich memorial"
             ) from error
 
 
@@ -166,7 +198,10 @@ class GraverWorkspace:
     @property
     def acquisition(self) -> WorkspaceAcquisition:
         """Return researcher-directed single-record acquisition operations."""
-        return WorkspaceAcquisition(ResearchService(str(self.path)))
+        database_name = str(self.path)
+        return WorkspaceAcquisition(
+            ResearchService(database_name), SummaryAcquisitionService(database_name)
+        )
 
 
 def open_workspace(database: str | PathLike[str]) -> GraverWorkspace:

@@ -14,6 +14,15 @@ Examples:
         tasks = workspace.work.list(ResearchTaskQuery(limit=10))
 """
 
+from graver.acquisition import (
+    AcquisitionFieldChange,
+    AcquisitionReceipt,
+    MemorialSearchFailed,
+    MemorialSummaryBatch,
+    MemorialSummaryInput,
+    MemorialSummarySearchRequest,
+    SummaryAcquisitionService,
+)
 from graver.database import (
     DatabaseInitializationError,
     DatabaseInspectionError,
@@ -82,6 +91,8 @@ from graver.workspace import (
 )
 
 __all__ = (
+    "AcquisitionFieldChange",
+    "AcquisitionReceipt",
     "ApplicationError",
     "AssessmentRecord",
     "AssessmentUpdate",
@@ -112,6 +123,10 @@ __all__ = (
     "EvidenceNotFound",
     "EvidenceService",
     "GraverWorkspace",
+    "MemorialSearchFailed",
+    "MemorialSummaryBatch",
+    "MemorialSummaryInput",
+    "MemorialSummarySearchRequest",
     "ProgressEvent",
     "ProgressObserver",
     "RankedCandidate",
@@ -131,6 +146,7 @@ __all__ = (
     "SourceObservationRecord",
     "StaleAssessment",
     "StaleResearchTask",
+    "SummaryAcquisitionService",
     "WorkItemNotFound",
     "WorkspaceAcquisition",
     "WorkspaceDatabase",

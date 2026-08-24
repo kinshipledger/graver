@@ -13,7 +13,6 @@ import typer
 from tqdm import tqdm
 
 from graver import (
-    Cemetery,
     Driver,
     Memorial,
     MemorialAliasError,
@@ -31,9 +30,13 @@ from graver import (
 )
 from graver import config as graver_config
 from graver import queue_memorials as queue_memorials_in_database
+from graver.application import (
+    ApplicationError,
+    MemorialSummarySearchRequest,
+    open_workspace,
+)
 from graver.constants import (
     APP_NAME,
-    FINDAGRAVE_BASE_URL,
     MEMORIAL_CANONICAL_URL_FORMAT,
 )
 from graver.database import (
@@ -54,7 +57,6 @@ from graver.research import (
     ResearchService,
     ResearchTaskQuery,
 )
-from graver.transport import TransportError
 
 log = logging.getLogger(__name__)
 
@@ -1250,76 +1252,79 @@ def search(
     ),
 ):
     """Find memorial summaries and save them to the research database."""
-    os.environ["DATABASE_NAME"] = db
-    Memorial.create_table(db)
-
-    search_terms: dict = {
-        "max_results": max_results,
-        "firstname": firstname,
-        "middlename": middlename,
-        "lastname": lastname,
-        "fulltext": fulltext,
-        "birthyear": str(birthyear) if birthyear is not None else "",
-        "birthyearfilter": birthyearfilter,
-        "deathyear": str(deathyear) if deathyear is not None else "",
-        "deathyearfilter": deathyearfilter,
-        "location": location,
-        "locationId": location_id,
-        "memorialid": str(memorial_id) if memorial_id is not None else "",
-        "mcid": str(mcid) if mcid is not None else "",
-        "bio": bio,
-        "linkedToName": linkedtoname,
-        "datefilter": datefilter if datefilter is not None else "",
-        "orderby": orderby,
-        "plot": plot,
-        "tags": tags,
-    }
-    optional_terms: dict = {
-        "noCemetery": no_cemetery,
-        "famous": famous,
-        "sponsored": sponsored,
-        "cenotaph": cenotaph,
-        "monument": monument,
-        "isVeteran": veteran,
-        "includeNickName": include_nickname,
-        "includeMaidenName": include_maiden_name,
-        "includeTitles": include_titles,
-        "exactName": exact_name,
-        "fuzzyNames": fuzzy_names,
-        "photofilter": photo_filter,
-        "gpsfilter": gps_filter,
-        "flowers": flowers,
-        "hasPlot": has_plot,
-        "page": page,
-    }
-
-    for key in optional_terms.keys():
-        if optional_terms[key] is not None:
-            search_terms[key] = optional_terms[key]
-
-    log.debug(f"Search terms = {search_terms}")
-
     try:
-        cem = None
-        if cemetery_id is not None:
-            cem = Cemetery(f"{FINDAGRAVE_BASE_URL}/cemetery/{cemetery_id}")
-            cem.save(db)
-
-        results = Memorial.search(cem, **search_terms)
-    except TransportError as ex:
+        Memorial.create_table(db)
+        receipt = open_workspace(db).acquisition.search(
+            MemorialSummarySearchRequest(
+                cemetery_id=cemetery_id,
+                firstname=firstname,
+                middlename=middlename,
+                lastname=lastname,
+                fulltext=fulltext,
+                birth_year=birthyear,
+                birth_year_filter=birthyearfilter,
+                death_year=deathyear,
+                death_year_filter=deathyearfilter,
+                location=location,
+                location_id=location_id,
+                memorial_id=memorial_id,
+                contributor_id=mcid,
+                biography=bio,
+                linked_to_name=linkedtoname,
+                date_filter=datefilter,
+                order_by=orderby,
+                plot=plot,
+                no_cemetery=no_cemetery,
+                famous=famous,
+                sponsored=sponsored,
+                cenotaph=cenotaph,
+                monument=monument,
+                veteran=veteran,
+                tags=tags,
+                include_nickname=include_nickname,
+                include_maiden_name=include_maiden_name,
+                include_titles=include_titles,
+                exact_name=exact_name,
+                fuzzy_names=fuzzy_names,
+                photo_filter=photo_filter,
+                gps_filter=gps_filter,
+                flowers=flowers,
+                has_plot=has_plot,
+                page=page,
+                max_results=max_results,
+            )
+        )
+    except ApplicationError as ex:
         log.error(ex)
         raise typer.Exit(1)
-    log.debug(f"Num results = {len(results)}")
-    if len(results) > 0:
-        for idx, m in enumerate(results):
-            m.save()
-            if log.isEnabledFor(logging.DEBUG):
-                if idx == 0:
-                    log.debug("[" + m.to_json() + ",")
-                elif idx == len(results) - 1:
-                    log.debug(m.to_json() + "]")
-                else:
-                    log.debug(m.to_json() + ",")
+    summary_label = (
+        "memorial summary"
+        if receipt.observations_appended == 1
+        else "memorial summaries"
+    )
+    snapshot_label = (
+        "dated snapshot" if receipt.observations_appended == 1 else "dated snapshots"
+    )
+    typer.echo(
+        f"Observed {receipt.observations_appended} {summary_label}: "
+        f"{receipt.memorials_created} new, {receipt.memorials_existing} existing."
+    )
+    typer.echo(
+        f"Retained {receipt.observations_appended} {snapshot_label} without replacing "
+        "earlier snapshots."
+    )
+    if receipt.changed_memorials:
+        memorial_label = "memorial" if receipt.changed_memorials == 1 else "memorials"
+        field_label = "field" if len(receipt.changes) == 1 else "fields"
+        typer.echo(
+            f"Changed the current display for {receipt.changed_memorials} existing "
+            f"{memorial_label} ({len(receipt.changes)} {field_label}):"
+        )
+        for change in receipt.changes:
+            typer.echo(
+                f"  {change.memorial_id} | {change.field}: "
+                f"{change.previous!r} -> {change.current!r}"
+            )
 
 
 if __name__ == "__main__":  # pragma: no cover
