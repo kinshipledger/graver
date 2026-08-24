@@ -1109,6 +1109,13 @@ Pre-1.0 sequence:
    adds no persistence, serialization, supported public imports, provider, or user
    workflow. Any further packet implementation remains subordinate to the typed
    application-boundary and consumer-validation work in this milestone.
+
+   Existing immutable source observations, candidate snapshots, and comparison
+   signals can now be projected into that internal packet when callers supply the
+   richer attribution and capture metadata that legacy records do not contain. The
+   projector validates exact assertion references and captured-value fidelity rather
+   than inferring or rewriting missing provenance. It remains an internal adapter;
+   persistence and supported public API design are still deferred.
 13. Move remaining researcher-directed acquisition and CLI workflows onto those
    application services, validate the shared boundaries, and add CLI/API parity
    tests while preserving the tutorial's human workflow. Add researcher-readable
