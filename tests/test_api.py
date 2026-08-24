@@ -877,6 +877,28 @@ class TestDatabaseOps(TestApi):
         assert stale.value.actual_version == updated.version
         assert service.get_task(summary.memorial_id).task.owner is None
 
+    def test_subject_service_reports_a_race_at_the_atomic_update(
+        self, database, monkeypatch
+    ):
+        summary = self.summary().save()
+        service = ResearchService(database.name)
+        service.queue_memorials()
+        current = service.get_task(summary.memorial_id).task
+        monkeypatch.setattr(
+            "graver.research._ResearchTaskRepository.update_task",
+            lambda *_args, **_kwargs: False,
+        )
+
+        with pytest.raises(StaleResearchTask) as stale:
+            service.apply_task_update(
+                ResearchTaskUpdate(
+                    summary.memorial_id, current.version, status="researching"
+                )
+            )
+
+        assert stale.value.actual_version == current.version
+        assert service.get_task(summary.memorial_id).task.status == "unprocessed"
+
     def test_subject_service_rolls_back_if_updated_task_disappears(
         self, database, monkeypatch
     ):
