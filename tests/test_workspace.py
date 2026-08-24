@@ -4,9 +4,12 @@ import dataclasses
 
 import pytest
 
-from graver import MemorialSummary
+from graver import Memorial, MemorialSummary
 from graver.application import (
+    CancellationRequested,
+    CancellationToken,
     DatabaseInspectionError,
+    ResearchEnrichmentRequest,
     ResearchQueueRequest,
     ResearchTaskQuery,
     ResearchTaskUpdate,
@@ -37,6 +40,11 @@ def test_workspace_opens_explicit_current_database_without_global_state(
     with pytest.raises(WorkItemNotFound) as missing_update:
         workspace.work.update(ResearchTaskUpdate(1075, 1, status="researching"))
     assert missing_update.value.memorial_id == 1075
+    with pytest.raises(WorkItemNotFound) as missing_enrichment:
+        workspace.acquisition.enrich(
+            ResearchEnrichmentRequest(1075), acquire=lambda _url: None
+        )
+    assert missing_enrichment.value.memorial_id == 1075
 
 
 def test_workspace_is_lightweight_immutable_and_connection_free(tmp_path) -> None:
@@ -87,3 +95,125 @@ def test_workspace_updates_by_revision_and_rejects_stale_clients(
     assert stale.value.expected_version == first_view.version
     assert stale.value.actual_version == updated.version
     assert workspace.work.show(1075).task.version == updated.version
+
+
+def test_workspace_enrichment_reports_progress_and_persists_after_safe_checks(
+    tmp_path, monkeypatch
+) -> None:
+    database = create_database(str(tmp_path / "workspace.db"))
+    monkeypatch.setenv("DATABASE_NAME", str(database))
+    values = Test.load_memorial_from_json("george-washington")
+    MemorialSummary.from_dict(values).save()
+    workspace = open_workspace(database)
+    workspace.work.queue(ResearchQueueRequest())
+    task = workspace.work.show(1075).task
+    workspace.work.update(
+        ResearchTaskUpdate(1075, task.version, status="ready_for_full_scrape")
+    )
+    events = []
+
+    result = workspace.acquisition.enrich(
+        ResearchEnrichmentRequest(1075),
+        progress=events.append,
+        acquire=lambda _url: Memorial.from_dict(values),
+    )
+
+    assert result.status == "full_scrape_complete"
+    assert [(event.stage, event.completed, event.total) for event in events] == [
+        ("validation", 0, 1),
+        ("acquisition", 0, 1),
+        ("persistence", 0, 1),
+        ("completed", 1, 1),
+    ]
+
+
+def test_workspace_enrichment_cancels_before_network_or_persistence(
+    tmp_path, monkeypatch
+) -> None:
+    database = create_database(str(tmp_path / "workspace.db"))
+    monkeypatch.setenv("DATABASE_NAME", str(database))
+    values = Test.load_memorial_from_json("george-washington")
+    MemorialSummary.from_dict(values).save()
+    workspace = open_workspace(database)
+    workspace.work.queue(ResearchQueueRequest())
+    task = workspace.work.show(1075).task
+    ready = workspace.work.update(
+        ResearchTaskUpdate(1075, task.version, status="ready_for_full_scrape")
+    )
+    token = CancellationToken()
+    token.cancel()
+    calls = []
+
+    with pytest.raises(CancellationRequested) as cancelled:
+        workspace.acquisition.enrich(
+            ResearchEnrichmentRequest(1075),
+            cancellation=token,
+            acquire=lambda url: calls.append(url),
+        )
+
+    assert cancelled.value.stage == "validation"
+    assert calls == []
+    assert workspace.work.show(1075).task.version == ready.version
+
+
+def test_workspace_enrichment_cancels_after_retrieval_before_transaction(
+    tmp_path, monkeypatch
+) -> None:
+    database = create_database(str(tmp_path / "workspace.db"))
+    monkeypatch.setenv("DATABASE_NAME", str(database))
+    values = Test.load_memorial_from_json("george-washington")
+    MemorialSummary.from_dict(values).save()
+    workspace = open_workspace(database)
+    workspace.work.queue(ResearchQueueRequest())
+    task = workspace.work.show(1075).task
+    ready = workspace.work.update(
+        ResearchTaskUpdate(1075, task.version, status="ready_for_full_scrape")
+    )
+    token = CancellationToken()
+
+    def acquire(_url):
+        token.cancel()
+        return Memorial.from_dict(values)
+
+    with pytest.raises(CancellationRequested) as cancelled:
+        workspace.acquisition.enrich(
+            ResearchEnrichmentRequest(1075),
+            cancellation=token,
+            acquire=acquire,
+        )
+
+    assert cancelled.value.stage == "persistence"
+    shown = workspace.work.show(1075)
+    assert shown.task.version == ready.version
+    assert all(
+        observation["acquisition_level"] != "full" for observation in shown.observations
+    )
+
+
+def test_workspace_enrichment_propagates_acquirer_cancellation_without_failure_record(
+    tmp_path, monkeypatch
+) -> None:
+    database = create_database(str(tmp_path / "workspace.db"))
+    monkeypatch.setenv("DATABASE_NAME", str(database))
+    values = Test.load_memorial_from_json("george-washington")
+    MemorialSummary.from_dict(values).save()
+    workspace = open_workspace(database)
+    workspace.work.queue(ResearchQueueRequest())
+    task = workspace.work.show(1075).task
+    ready = workspace.work.update(
+        ResearchTaskUpdate(1075, task.version, status="ready_for_full_scrape")
+    )
+
+    def cancel_acquisition(_url):
+        raise CancellationRequested("enrich_memorial", "acquisition")
+
+    with pytest.raises(CancellationRequested):
+        workspace.acquisition.enrich(
+            ResearchEnrichmentRequest(1075), acquire=cancel_acquisition
+        )
+
+    shown = workspace.work.show(1075)
+    assert shown.task.version == ready.version
+    assert all(
+        observation["fetch_outcome"] != "failure" for observation in shown.observations
+    )

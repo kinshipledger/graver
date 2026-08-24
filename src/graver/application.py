@@ -46,6 +46,12 @@ from graver.evidence import (
     SourceObservationRecord,
     StaleAssessment,
 )
+from graver.progress import (
+    CancellationRequested,
+    CancellationToken,
+    ProgressEvent,
+    ProgressObserver,
+)
 from graver.research import (
     EnrichmentAliasBlocked,
     EnrichmentFailed,
@@ -68,6 +74,7 @@ from graver.research import (
 from graver.workspace import (
     GraverWorkspace,
     WorkItemNotFound,
+    WorkspaceAcquisition,
     WorkspaceDatabase,
     WorkspaceWork,
     open_workspace,
@@ -76,6 +83,8 @@ from graver.workspace import (
 __all__ = (
     "AssessmentRecord",
     "AssessmentUpdate",
+    "CancellationRequested",
+    "CancellationToken",
     "CandidateInput",
     "CandidateSnapshotRecord",
     "ComparisonSignalInput",
@@ -99,6 +108,8 @@ __all__ = (
     "EvidenceNotFound",
     "EvidenceService",
     "GraverWorkspace",
+    "ProgressEvent",
+    "ProgressObserver",
     "RankedCandidate",
     "ResearchEnrichmentRequest",
     "ResearchEnrichmentResult",
@@ -117,6 +128,7 @@ __all__ = (
     "StaleAssessment",
     "StaleResearchTask",
     "WorkItemNotFound",
+    "WorkspaceAcquisition",
     "WorkspaceDatabase",
     "WorkspaceWork",
     "create_database",

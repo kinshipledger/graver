@@ -298,17 +298,17 @@ existing acquisition persistence helpers remain internal compatibility boundarie
 The broad root exports described above are not a stable 1.0 application
 API. An explicit pre-1.0 typed boundary now exists at `graver.application`, with
 contract-tested `__all__` exports and no CLI, transport, or SQLite implementation
-types. No workspace facade, neutral progress or cancellation protocol, optimistic
-concurrency control, or GUI integration has been implemented.
+types. The synchronous workspace, optimistic task concurrency, toolkit-neutral
+progress events, and cooperative cancellation token are implemented. No desktop GUI
+or toolkit integration has been implemented.
 
 The approved target is a separate installable desktop component, with PyQt6 as the
 leading but not mandated toolkit candidate, depending only on graver's documented
 public application boundary and later workspace facade. In that target design,
 SQLite connections and schema
 details remain internal, connections are scoped per operation or unit of work and
-never shared across GUI threads, and CLI and GUI remain peer adapters. The facade,
-workspace composition, progress/cancellation protocols, and frozen 1.0 names remain
-planned work rather than being implied by the initial pre-1.0 boundary.
+never shared across GUI threads, and CLI and GUI remain peer adapters. Final frozen
+1.0 names and the complete service surface remain planned work.
 The completed researcher tutorial supplies a useful behavioral acceptance workflow
 for future CLI/application-API/GUI parity tests.
 
@@ -477,9 +477,10 @@ implementations. The first synchronous workspace composition is now implemented 
 exposes typed database inspection plus work list, show, idempotent queue, and
 concurrency-safe update operations, owns no long-lived connection, and performs no
 CLI configuration lookup. Meaningful task updates increment a revision; stale writes
-raise a typed `StaleResearchTask` without changing newer state. Evidence
-and acquisition namespaces, progress/cancellation, and the final 1.0 method surface
-remain unfrozen.
+raise a typed `StaleResearchTask` without changing newer state. The workspace also
+exposes one-person enrichment with synchronous neutral progress events and
+cooperative cancellation before retrieval and persistence. Evidence, broader
+acquisition operations, and the final 1.0 method surface remain unfrozen.
 
 The dedicated **API hygiene and documentation** milestone is now partially complete:
 explicit imports, `__all__`, typed graver-owned results and exceptions, bounded
