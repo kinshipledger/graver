@@ -12,3 +12,10 @@ compatibility, security, deprecation, or known-issue notes before merging it.
 
 graver is undergoing substantial pre-1.0 development. The current repository state
 does not yet represent a supported production release.
+
+### Removed
+
+- Removed the legacy `scrape-url` and unattended `scrape-file` commands. Use
+  `graver search` to retain summary observations, then `graver work queue`,
+  `graver work mark`, and `graver work enrich` for explicit one-person full-record
+  acquisition with task approval and provenance.

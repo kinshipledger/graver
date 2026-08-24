@@ -1,7 +1,6 @@
 import importlib.metadata
 import json
 import logging
-import os
 import random
 from pathlib import Path
 from typing import Dict
@@ -210,189 +209,6 @@ class TestCliCommonOptions(TestCli):
         assert result.exit_code == 0
         assert result.output == ""
         assert caplog.text.endswith(expected_str + "\n")
-
-
-class TestCliScrapeFile(TestCli):
-    @pytest.fixture(scope="module")
-    def silence_tqdm(self):
-        os.environ["TQDM_DISABLE"] = "1"
-        os.environ["TQDM_MININTERVAL"] = "5"
-        yield
-        del os.environ["TQDM_DISABLE"]
-        del os.environ["TQDM_MININTERVAL"]
-
-    def test_bail_if_file_does_not_exist(self, helpers, caplog):
-        url_file = "this_file_should_not_exist"
-        command = f"scrape-file '{url_file}'"
-        result = helpers.graver_cli(command)
-        assert result.exit_code == 1
-        assert result.output == ""
-        assert "No such file or directory" in caplog.text
-
-    def test_mixed_formats(
-        self, helpers, tmp_path, caplog, fake_memorial, api_mock
-    ) -> None:
-        expected: Memorial = fake_memorial()
-        api_mock(expected.findagrave_url)
-
-        urls = [
-            expected.findagrave_url,
-            f"https://secure.findagrave.com/cgi-bin/fg.cgi?page=gr&GRid={expected.memorial_id}",
-            f"{expected.memorial_id}",
-        ]
-
-        d = tmp_path / "test_cli_scrape_file"
-        d.mkdir()
-        url_file = d / "input_urls.txt"
-        url_file.write_text("\n".join(urls))
-
-        db = str(tmp_path / "scrape.db")
-        command = f"scrape-file '{url_file}' --db '{db}'"
-        result = helpers.graver_cli(command)
-        assert result.exit_code == 0
-        assert result.output == ""
-        assert "Successfully scraped 1 of 1" in caplog.text
-
-    @pytest.mark.parametrize(
-        "url",
-        [
-            "https://www.findagrave.com/memorial/should-produce-404",
-        ],
-    )
-    def test_handles_parse_error(self, url, helpers, tmp_path, caplog, monkeypatch):
-        d = tmp_path / "test_cli_scrape_file_handles_http_error"
-        d.mkdir()
-        url_file = d / "single_url.txt"
-        url_file.write_text(f"{url}\n")
-
-        def parse_raises(the_url: str):
-            raise MemorialParseException(
-                f"404 Client Error: Not Found for url: {the_url}"
-            )
-
-        monkeypatch.setattr(Memorial, "parse", parse_raises)
-        command = f"scrape-file '{url_file}'"
-        result = helpers.graver_cli(command)
-        assert result.exit_code == 0
-        assert result.output == ""
-        assert f"404 Client Error: Not Found for url: {url}" in caplog.text
-
-    def test_handles_invalid_url(self, helpers, caplog, tmp_path):
-        d = tmp_path / "test_cli_scrape_file_with_invalid_url"
-        d.mkdir()
-        url_file = d / "invalid_url.txt"
-        url_file.write_text("this-does-not-exist\n")
-
-        command = f"scrape-file '{url_file}'"
-        result = helpers.graver_cli(command)
-        assert result.exit_code == 0
-        assert result.output == ""
-        assert "is not a valid URL" in caplog.text
-        assert "Failed urls were:\nthis-does-not-exist" in caplog.text
-
-    def test_merged_memorial_exception(
-        self, helpers, tmp_path, caplog, fake_memorial, monkeypatch
-    ):
-        m1 = fake_memorial()
-        m2 = fake_memorial()
-        assert m1 != m2
-        old_url = m1.findagrave_url
-        new_url = m2.findagrave_url
-
-        d = tmp_path / "test_cli_scrape_file"
-        d.mkdir()
-        url_file = d / "input_urls.txt"
-        url_file.write_text(old_url + "\n")
-
-        def parse_raises_memorial_merged(findagrave_url: str):
-            if findagrave_url == old_url:
-                message = f"{old_url} has been merged into {new_url}"
-                raise MemorialMergedException(message, old_url, new_url)
-            if findagrave_url == new_url:
-                return m2
-
-        monkeypatch.setattr(Memorial, "parse", parse_raises_memorial_merged)
-
-        db = str(tmp_path / "scrape.db")
-        command = f"scrape-file '{url_file}' --db '{db}'"
-        result = helpers.graver_cli(command)
-        assert result.exit_code == 0
-        assert result.output == ""
-        assert f"{old_url} has been merged into {new_url}" in caplog.text
-        assert "Successfully scraped 1 of 1" in caplog.text
-
-    def test_single_url_file(self, helpers, tmp_path, fake_memorial, api_mock) -> None:
-        expected: Memorial = fake_memorial()
-        url = expected.findagrave_url
-        api_mock(url)
-
-        d = tmp_path / "test_single_url_file"
-        d.mkdir()
-        url_file = d / "single_url.txt"
-        url_file.write_text(f"{url}\n")
-
-        db = str(tmp_path / "scrape.db")
-        command = f"scrape-file '{url_file}' --db '{db}'"
-        result = helpers.graver_cli(command)
-        assert result.exit_code == 0
-        assert result.output == ""
-
-    def test_cache(self):
-        list_1 = TestCli.memorials_by_url
-        list_2 = TestCli.memorials_by_id
-        assert len(list_1) > 0
-        assert len(list_2) > 0
-        assert len(list_1) == len(list_2)
-
-
-class TestCliScrapeUrl(TestCli):
-    @pytest.mark.parametrize(
-        "url",
-        [
-            "https://www.findagrave.com/memorial/should-produce-404",
-        ],
-    )
-    def test_bails_on_http_error(self, url, helpers, caplog, monkeypatch):
-        def parse_raises(the_url: str):
-            raise MemorialParseException(
-                f"404 Client Error: Not Found for url: {the_url}"
-            )
-
-        monkeypatch.setattr(Memorial, "parse", parse_raises)
-
-        command = f"scrape-url {url}"
-        result = helpers.graver_cli(command)
-        assert result.exit_code == 1
-        assert result.output == ""
-        assert f"404 Client Error: Not Found for url: {url}" in caplog.text
-
-    @pytest.mark.parametrize(
-        "non_memorial_url",
-        [
-            "https://www.findagrave.com/cemetery/1411",
-            "this-is-not-a-valid-url",
-        ],
-    )
-    def test_bails_on_non_memorial_url(self, non_memorial_url, helpers, caplog):
-        # This will be rejected before a request() is called.
-        command = f"scrape-url {non_memorial_url}"
-        result = helpers.graver_cli(command)
-        assert result.exit_code == 1
-        assert result.output == ""
-        assert "Invalid or non-memorial URL" in caplog.text
-
-    def test_cli_scrape_url(
-        self, helpers, tmp_path, fake_memorial, api_mock, caplog
-    ) -> None:
-        expected: Memorial = fake_memorial()
-        url = expected.findagrave_url
-        api_mock(url)
-
-        db = str(tmp_path / "scrape.db")
-        command = f"scrape-url '{url}' --db '{db}'"
-        result = helpers.graver_cli(command)
-        assert result.exit_code == 0
-        assert result.output == ""
 
 
 class TestCliQueueMemorials(TestCli):
@@ -728,6 +544,8 @@ class TestCliResearcherSurface(Test):
             "show-alias",
             "record-alias",
             "retract-alias",
+            "scrape-file",
+            "scrape-url",
         ):
             assert legacy not in root.output
         assert "Show the next person needing research" in work.output
@@ -735,6 +553,13 @@ class TestCliResearcherSurface(Test):
         assert "Retrieve the full Find a Grave memorial" in work.output
         for command in ("list", "show", "record", "retract"):
             assert command in aliases.output
+
+    @pytest.mark.parametrize("command", ["scrape-file", "scrape-url"])
+    def test_retired_scrape_commands_are_unavailable(self, helpers, command):
+        result = helpers.graver_cli(command)
+
+        assert result.exit_code == 2
+        assert f"No such command '{command}'" in unstyle(result.output)
 
     @pytest.mark.parametrize(
         "command, expected_descriptions",
@@ -781,14 +606,6 @@ class TestCliResearcherSurface(Test):
                     "Filter by grave coordinates",
                     "specific search-results",
                 ),
-            ),
-            (
-                "scrape-file --help",
-                ("Text file of memorial IDs or URLs",),
-            ),
-            (
-                "scrape-url --help",
-                ("Find a Grave memorial URL to retrieve",),
             ),
         ],
     )

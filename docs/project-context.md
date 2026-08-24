@@ -1131,14 +1131,16 @@ Pre-1.0 sequence:
    projector validates exact assertion references and captured-value fidelity rather
    than inferring or rewriting missing provenance. It remains an internal adapter;
    persistence and supported public API design are still deferred.
-13. **Partially implemented:** Move remaining researcher-directed acquisition and
+13. **Implemented:** Move remaining researcher-directed acquisition and
    CLI workflows onto application services while preserving the tutorial's human
    workflow. Summary search now uses a typed workspace operation and returns a
    researcher-readable receipt that distinguishes new entities, existing entities,
    retained observations, and field-level current-representation changes without
-   exposing persistence rows. The CLI uses that same operation. Finish parity for
-   the remaining retained acquisition paths and decide the legacy `scrape-file`
-   surface under the access policy rather than promoting it into the public API.
+   exposing persistence rows. The CLI uses that same operation. Full-record
+   acquisition uses the typed, explicitly approved, one-person enrichment service.
+   The legacy direct-URL command and unattended file loop were removed rather than
+   promoted into the public API, leaving no acquisition path that bypasses the
+   application service boundary.
 14. Validate researcher-directed acquisition against the current access policy, then
    complete each provider's authorization and policy gate. Any pre-1.0 import support
    must use authorized data, and no unattended Find a Grave enrichment is enabled.
