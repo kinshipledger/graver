@@ -19,6 +19,7 @@ from graver import (
     MemorialSummary,
 )
 from graver._sqlite import connect_database
+from graver.application import AcquisitionReceipt, WorkspaceAcquisition
 from graver.constants import APP_NAME
 from graver.transport import TransportAccessBlocked
 
@@ -998,6 +999,39 @@ class TestCliResearcherSurface(Test):
 
 
 class TestCliSearch(TestCli):
+    def test_search_cli_projects_the_workspace_receipt(
+        self, helpers, tmp_path, monkeypatch
+    ) -> None:
+        """CLI arguments and output adapt the same typed application operation."""
+        database = tmp_path / "parity.db"
+        commands = []
+
+        def search(_workspace, command, **_kwargs):
+            commands.append(command)
+            return AcquisitionReceipt(
+                operation="search_memorial_summaries",
+                source="fixture:parity",
+                memorial_ids=(1075,),
+                observations_appended=1,
+                memorials_created=1,
+                memorials_existing=0,
+                changed_memorials=0,
+                changes=(),
+            )
+
+        monkeypatch.setattr(WorkspaceAcquisition, "search", search)
+
+        result = helpers.graver_cli(
+            f"search --db '{database}' --id 1075 --max-results 1"
+        )
+
+        assert result.exit_code == 0
+        assert len(commands) == 1
+        assert commands[0].memorial_id == 1075
+        assert commands[0].max_results == 1
+        assert "1 new, 0 existing" in result.output
+        assert "1 dated snapshot" in result.output
+
     def test_access_block_is_reported_without_traceback(
         self, helpers, tmp_path, monkeypatch, caplog
     ) -> None:
@@ -1153,19 +1187,12 @@ class TestCliSearch(TestCli):
 
     def test_uses_specified_database(self, helpers, tmp_path, monkeypatch) -> None:
         database = tmp_path / "search.db"
-        created_databases = []
-
-        monkeypatch.setattr(
-            Memorial,
-            "create_table",
-            lambda database_name: created_databases.append(database_name),
-        )
         monkeypatch.setattr(Memorial, "search", lambda *args, **kwargs: [])
 
         result = helpers.graver_cli(f"search --db '{database}'")
 
         assert result.exit_code == 0
-        assert created_databases == [str(database)]
+        assert database.exists()
 
     def test_current_search_fields_are_forwarded(self, helpers, monkeypatch) -> None:
         captured = {}
@@ -1212,17 +1239,26 @@ class TestCliSearch(TestCli):
         monkeypatch.setattr(Memorial, "search", mock_search)
 
         class FakeCemetery:
-            def save(self, database_name):
-                return self
+            def __init__(self):
+                self.cemetery_id = cemetery_id
+                self.findagrave_url = (
+                    f"https://www.findagrave.com/cemetery/{cemetery_id}"
+                )
+                self.name = "Fixture cemetery"
+                self.location = "Fixture location"
+                self.coords = ""
 
-        monkeypatch.setattr("graver.cli.Cemetery", lambda url: FakeCemetery())
+        monkeypatch.setattr(
+            "graver.acquisition.legacy_api.Cemetery", lambda url: FakeCemetery()
+        )
         command = (
             f"search --cemetery-id={cemetery_id} --lastname='{lastname}' "
             f"--deathyear={death_year} --max-results={max_results}"
         )
         result = helpers.graver_cli(command)
         assert result.exit_code == 0
-        assert result.output == ""
+        assert "memorial summaries" in result.output
+        assert "dated snapshots" in result.output
 
     @pytest.mark.parametrize("value", ["yes", "true"])
     def test_gpsfilter_callback(self, value, helpers):

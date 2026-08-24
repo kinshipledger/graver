@@ -9,6 +9,9 @@ from graver.application import (
     ApplicationError,
     CancellationRequested,
     CancellationToken,
+    MemorialSummaryBatch,
+    MemorialSummaryInput,
+    MemorialSummarySearchRequest,
     ResearchEnrichmentRequest,
     ResearchQueueRequest,
     ResearchTaskQuery,
@@ -26,6 +29,38 @@ def main(database: Path) -> None:
     assert workspace.database.inspect().current
     assert workspace.work.list(ResearchTaskQuery(limit=5)) == ()
     assert workspace.work.queue(ResearchQueueRequest()).created == 0
+    summary = MemorialSummaryInput(
+        memorial_id=1075,
+        findagrave_url="https://www.findagrave.com/memorial/1075/george-washington",
+        prefix="",
+        name="George Washington",
+        suffix="",
+        nickname="",
+        maiden_name="",
+        famous=True,
+        veteran=True,
+        birth="22 Feb 1732",
+        death="14 Dec 1799",
+        memorial_type="Burial",
+        cemetery_id=641532,
+        burial_place="Mount Vernon Estate",
+        plot="",
+    )
+    events = []
+    receipt = workspace.acquisition.search(
+        MemorialSummarySearchRequest(memorial_id=1075, max_results=1),
+        acquire=lambda _command: MemorialSummaryBatch((summary,), "fixture:1075"),
+        progress=events.append,
+    )
+    assert receipt.memorial_ids == (1075,)
+    assert receipt.memorials_created == 1
+    assert receipt.observations_appended == 1
+    assert [event.stage for event in events] == [
+        "validation",
+        "acquisition",
+        "persistence",
+        "completed",
+    ]
     try:
         workspace.work.update(ResearchTaskUpdate(1075, 1, status="researching"))
     except WorkItemNotFound as error:

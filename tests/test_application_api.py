@@ -5,6 +5,8 @@ import inspect
 import graver.application as application
 
 EXPECTED_PUBLIC_NAMES = {
+    "AcquisitionFieldChange",
+    "AcquisitionReceipt",
     "ApplicationError",
     "AssessmentRecord",
     "AssessmentUpdate",
@@ -35,6 +37,10 @@ EXPECTED_PUBLIC_NAMES = {
     "EvidenceNotFound",
     "EvidenceService",
     "GraverWorkspace",
+    "MemorialSearchFailed",
+    "MemorialSummaryBatch",
+    "MemorialSummaryInput",
+    "MemorialSummarySearchRequest",
     "ProgressEvent",
     "ProgressObserver",
     "RankedCandidate",
@@ -54,6 +60,7 @@ EXPECTED_PUBLIC_NAMES = {
     "SourceObservationRecord",
     "StaleAssessment",
     "StaleResearchTask",
+    "SummaryAcquisitionService",
     "WorkItemNotFound",
     "WorkspaceDatabase",
     "WorkspaceAcquisition",

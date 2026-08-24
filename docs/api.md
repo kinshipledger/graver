@@ -131,6 +131,28 @@ terminal or toolkit-specific output.
 
 ## Acquisition boundary
 
+`workspace.acquisition.search()` accepts a typed `MemorialSummarySearchRequest` and
+returns an immutable `AcquisitionReceipt`. The receipt distinguishes newly created
+memorial entities from existing memorials receiving another observation, reports
+the number of dated snapshots appended, and gives field-level before/after values
+when a new summary changes the current displayed representation. It does not expose
+SQL rows, declare source statements correct, queue research tasks, or imply that a
+full memorial page was examined.
+
+```python
+from graver.application import MemorialSummarySearchRequest
+
+receipt = workspace.acquisition.search(
+    MemorialSummarySearchRequest(memorial_id=1075, max_results=1)
+)
+print(receipt.observations_appended, receipt.memorials_created)
+```
+
+Tests and authorized adapters may inject a callable returning a
+`MemorialSummaryBatch` of `MemorialSummaryInput` values. Persistence remains owned
+by graver and occurs only after acquisition and cancellation checks succeed. A
+batch containing duplicate memorial IDs is rejected before mutation.
+
 `workspace.acquisition.enrich()` performs one explicitly approved memorial operation.
 Its optional acquisition callable supports offline consumer tests without requiring
 a live provider. Network-capable clients remain responsible for the project
@@ -187,9 +209,9 @@ uv run pytest
 
 CI also builds the wheel, installs that artifact in an isolated environment, and
 runs `consumer_spike/workspace_client.py`. The spike uses only documented imports to
-create, open, inspect, query, queue, and exercise typed immutable failure contracts
-in a disposable database. It is a GUI-readiness contract test, not a production
-client.
+create, open, inspect, query, queue, inject one summary acquisition, inspect its
+receipt and progress, and exercise typed immutable failure contracts in a disposable
+database. It is a GUI-readiness contract test, not a production client.
 
 Mypy is deliberately scoped to the application-facing modules. Google-style
 docstring checks require useful public module, class, function, and method contracts;

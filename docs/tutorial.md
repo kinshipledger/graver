@@ -86,17 +86,20 @@ result:
 graver search --id 1075 --max-results 1
 ```
 
-Success means the search completed and any returned summary was saved in the
-selected tutorial database. The current search command does not print a result
-table. Find a Grave is a changing live service, so the memorial is not promised
-to appear first—or to be returned at all. You will identify it after queueing by
+Success prints an acquisition receipt: summaries observed, new and existing
+memorial counts, and confirmation that dated snapshots were retained without
+replacing earlier snapshots. If a new observation changed the current displayed
+representation of an existing memorial, the receipt lists each changed field with
+its earlier and new value. Find a Grave is a changing live service, so the memorial
+is not promised to appear first—or to be returned at all. You will identify it after queueing by
 looking for literal memorial ID `1075`. If this example stops being reliable,
 substitute a memorial ID you already know, or use a narrow cemetery query shown
 by `graver search --help`; keep `--max-results` small.
 
 Search results are summary records. They may contain a name, dates, source URL,
 and cemetery context, but they are not evidence that graver observed the full
-memorial page.
+memorial page. A receipt describes what graver stored; it does not certify that the
+website's statements are correct.
 
 ## 4. Queue and inspect a person
 
