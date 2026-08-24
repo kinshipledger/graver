@@ -9,6 +9,11 @@ using the implemented command-line workflow.
 The [access policy](access-policy.md) defines current project governance for
 responsible acquisition behavior and contributions.
 
+The [provider acquisition and import decision](provider-import-decision.md) applies
+that policy to the `1.0.0rc1` scope: bounded researcher-directed operations remain,
+while unattended Find a Grave acquisition, a public job engine, and speculative
+import APIs are deferred pending a concrete authorized workflow.
+
 The [developer API guide](api.md) documents the supported pre-1.0 typed application
 boundary for CLI, future GUI, and other client adapters.
 

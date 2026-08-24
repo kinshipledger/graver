@@ -1,6 +1,6 @@
 # Access and acquisition policy
 
-Reviewed: 2026-08-21
+Reviewed: 2026-08-24
 
 This document governs acquisition behavior in project-maintained graver code and
 accepted contributions. It is a conservative project policy, not legal advice. It
@@ -86,3 +86,8 @@ Import-first acquisition from authorized sources should precede unattended live
 retrieval. Provider-neutral queues, scheduling, resumability, and GUI/CLI progress
 are planned architecture only; graver currently has no background-job engine,
 scheduler, import service, or unattended full-record acquisition mode.
+
+The dated [provider acquisition and import decision](provider-import-decision.md)
+records the current gate outcome. For `1.0.0rc1`, unattended Find a Grave
+acquisition is not authorized, and neither a public job engine nor a speculative
+import API is a release requirement.
