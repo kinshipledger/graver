@@ -21,6 +21,7 @@ from graver.api import (
     _migrate_graves_table,
 )
 from graver.config import DEFAULT_DATABASE
+from graver.errors import ApplicationError
 
 __all__ = (
     "DatabaseInitializationError",
@@ -170,24 +171,35 @@ LEGACY_REQUIRED_COLUMNS = {"memorial_id", "findagrave_url", "name", "birth", "de
 LEGACY_FULL_MARKERS = {"original_name", "birth_place", "death_place", "has_bio"}
 
 
-class DatabaseLifecycleError(ValueError):
+class DatabaseLifecycleError(ApplicationError, ValueError):
     """Base error for safe database lifecycle operations."""
 
 
 class DatabaseInitializationError(DatabaseLifecycleError):
     """Raised when a new research database cannot be created safely."""
 
+    code = "database_initialization_failed"
+
 
 class DatabaseInspectionError(DatabaseLifecycleError):
     """Raised when a database cannot be classified safely."""
+
+    code = "database_inspection_failed"
 
 
 class DatabaseUpgradeError(DatabaseLifecycleError):
     """Raised when an explicit database upgrade cannot complete safely."""
 
+    code = "database_upgrade_failed"
+
     def __init__(self, message: str, backup_path: Optional[Path] = None):
-        super().__init__(message)
         self.backup_path = backup_path
+        super().__init__(
+            message,
+            context={
+                "backup_path": str(backup_path) if backup_path is not None else None
+            },
+        )
 
 
 @dataclass(frozen=True)

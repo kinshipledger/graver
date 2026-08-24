@@ -23,6 +23,7 @@ from graver.api import (
 )
 from graver.constants import MEMORIAL_CANONICAL_URL_FORMAT
 from graver.database import validate_current_database
+from graver.errors import ApplicationError
 from graver.progress import (
     CancellationRequested,
     CancellationToken,
@@ -51,12 +52,16 @@ __all__ = (
 )
 
 
-class ResearchInputError(ValueError):
+class ResearchInputError(ApplicationError, ValueError):
     """Report an invalid application-service request without presentation details."""
 
+    code = "invalid_request"
 
-class StaleResearchTask(Exception):
+
+class StaleResearchTask(ApplicationError):
     """Report an update based on an obsolete research-task revision."""
+
+    code = "stale_data"
 
     def __init__(self, memorial_id: int, expected_version: int, actual_version: int):
         self.memorial_id = memorial_id
@@ -64,45 +69,79 @@ class StaleResearchTask(Exception):
         self.actual_version = actual_version
         super().__init__(
             f"Research task {memorial_id} changed from version {expected_version} "
-            f"to {actual_version}; reload it before updating"
+            f"to {actual_version}; reload it before updating",
+            context={
+                "memorial_id": memorial_id,
+                "expected_version": expected_version,
+                "actual_version": actual_version,
+            },
         )
 
 
-class EnrichmentNotApproved(Exception):
+class EnrichmentNotApproved(ApplicationError):
     """Report that a task has not been approved for full acquisition."""
 
+    code = "invalid_state"
 
-class EnrichmentAliasBlocked(Exception):
+
+class EnrichmentAliasBlocked(ApplicationError):
     """Report that known redirect evidence blocks acquisition of a memorial."""
+
+    code = "acquisition_blocked"
 
     def __init__(self, memorial_id: int, canonical_id: int, path: tuple[int, ...]):
         self.memorial_id = memorial_id
         self.canonical_id = canonical_id
         self.path = path
-        super().__init__(f"Memorial {memorial_id} redirects to {canonical_id}")
+        super().__init__(
+            f"Memorial {memorial_id} redirects to {canonical_id}",
+            context={
+                "memorial_id": memorial_id,
+                "canonical_id": canonical_id,
+                "path": path,
+            },
+        )
 
 
-class EnrichmentRedirected(Exception):
+class EnrichmentRedirected(ApplicationError):
     """Report newly observed redirect evidence recorded during acquisition."""
+
+    code = "acquisition_redirected"
 
     def __init__(self, memorial_id: int, target_memorial_id: int):
         self.memorial_id = memorial_id
         self.target_memorial_id = target_memorial_id
-        super().__init__(f"Memorial {memorial_id} redirects to {target_memorial_id}")
+        super().__init__(
+            f"Memorial {memorial_id} redirects to {target_memorial_id}",
+            context={
+                "memorial_id": memorial_id,
+                "target_memorial_id": target_memorial_id,
+            },
+        )
 
 
-class EnrichmentFailed(Exception):
+class EnrichmentFailed(ApplicationError):
     """Report a recorded acquisition failure using safe researcher-facing context."""
+
+    code = "acquisition_failed"
 
     def __init__(self, memorial_id: int, cause: Exception):
         self.memorial_id = memorial_id
         self.error_type = type(cause).__name__
         self.message = " ".join(str(cause).split())
-        super().__init__(self.message)
+        super().__init__(
+            self.message,
+            context={
+                "memorial_id": memorial_id,
+                "error_type": self.error_type,
+            },
+        )
 
 
 class EnrichmentRedirectInvalid(EnrichmentFailed):
     """Report malformed or mismatched redirect evidence from acquisition."""
+
+    code = "acquisition_redirect_invalid"
 
 
 @dataclass(frozen=True)

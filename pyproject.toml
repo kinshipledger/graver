@@ -73,6 +73,7 @@ files = [
     "src/graver/evidence.py",
     "src/graver/evidence_packet.py",
     "src/graver/evidence_projection.py",
+    "src/graver/errors.py",
     "src/graver/progress.py",
     "src/graver/research.py",
     "src/graver/workspace.py",

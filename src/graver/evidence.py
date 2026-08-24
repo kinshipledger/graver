@@ -11,6 +11,7 @@ from typing import Any, Mapping, Optional, Sequence
 
 from graver.api import _connect, _utc_now_iso
 from graver.database import validate_current_database
+from graver.errors import ApplicationError
 
 __all__ = (
     "AssessmentRecord",
@@ -59,27 +60,39 @@ SIGNAL_CLASSIFICATIONS = (
 CONCLUSION_DISPOSITIONS = ("accepted", "rejected", "unresolved", "withdrawn")
 
 
-class EvidenceError(Exception):
+class EvidenceError(ApplicationError):
     """Base error for offline evidence-workflow failures."""
+
+    code = "evidence_error"
 
 
 class EvidenceInputError(EvidenceError, ValueError):
     """Report an invalid evidence request without presentation details."""
 
+    code = "invalid_request"
+
 
 class EvidenceNotFound(EvidenceError):
     """Report that a requested subject, candidate, or assessment does not exist."""
 
+    code = "resource_not_found"
+
 
 class StaleAssessment(EvidenceError):
     """Prevent one researcher view from overwriting a newer assessment version."""
+
+    code = "stale_data"
 
     def __init__(self, expected_version: int, actual_version: int):
         self.expected_version = expected_version
         self.actual_version = actual_version
         super().__init__(
             f"Assessment version {expected_version} is stale; current version is "
-            f"{actual_version}"
+            f"{actual_version}",
+            context={
+                "expected_version": expected_version,
+                "actual_version": actual_version,
+            },
         )
 
 

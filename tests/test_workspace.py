@@ -1,6 +1,8 @@
 """Contract tests for the synchronous typed workspace composition."""
 
+import concurrent.futures
 import dataclasses
+import sqlite3
 
 import pytest
 
@@ -8,9 +10,12 @@ from graver import Memorial, MemorialSummary
 from graver.application import (
     CancellationRequested,
     CancellationToken,
+    DatabaseBusy,
     DatabaseInspectionError,
+    DatabaseOperationError,
     ResearchEnrichmentRequest,
     ResearchQueueRequest,
+    ResearchService,
     ResearchTaskQuery,
     ResearchTaskUpdate,
     StaleResearchTask,
@@ -57,6 +62,103 @@ def test_workspace_is_lightweight_immutable_and_connection_free(tmp_path) -> Non
     assert not hasattr(workspace.work, "connection")
     with pytest.raises(dataclasses.FrozenInstanceError):
         workspace.path = tmp_path / "other.db"
+
+
+def test_workspace_operations_open_thread_local_database_connections(tmp_path) -> None:
+    """One workspace may be called from workers without sharing SQLite handles."""
+    database = create_database(str(tmp_path / "workspace.db"))
+    workspace = open_workspace(database)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        pages = tuple(
+            executor.map(
+                lambda _: workspace.work.list(ResearchTaskQuery(limit=5)), range(12)
+            )
+        )
+
+    assert pages == ((),) * 12
+
+
+@pytest.mark.parametrize(
+    ("sqlite_message", "expected_type", "expected_code"),
+    [
+        ("database is locked", DatabaseBusy, "database_busy"),
+        (
+            "database disk image is malformed",
+            DatabaseOperationError,
+            "database_operation_failed",
+        ),
+    ],
+)
+def test_workspace_translates_sqlite_failures_without_leaking_storage_details(
+    tmp_path, monkeypatch, sqlite_message, expected_type, expected_code
+) -> None:
+    """Application clients receive stable safe errors instead of SQLite text."""
+    database = create_database(str(tmp_path / "workspace.db"))
+    workspace = open_workspace(database)
+
+    def fail_query(_service, _query):
+        raise sqlite3.OperationalError(sqlite_message)
+
+    monkeypatch.setattr(ResearchService, "query_tasks", fail_query)
+
+    with pytest.raises(expected_type) as failure:
+        workspace.work.list()
+
+    assert failure.value.code == expected_code
+    assert failure.value.context == {
+        "database": str(database),
+        "operation": "list research work",
+    }
+    assert sqlite_message not in failure.value.summary
+    assert sqlite_message not in str(failure.value)
+    assert isinstance(failure.value.__cause__, sqlite3.OperationalError)
+
+
+@pytest.mark.parametrize(
+    ("service_method", "invoke", "operation"),
+    [
+        ("get_task", lambda workspace: workspace.work.show(1075), "show research work"),
+        (
+            "queue_research",
+            lambda workspace: workspace.work.queue(ResearchQueueRequest()),
+            "queue research work",
+        ),
+        (
+            "apply_task_update",
+            lambda workspace: workspace.work.update(
+                ResearchTaskUpdate(1075, 1, status="researching")
+            ),
+            "update research work",
+        ),
+        (
+            "enrich_memorial",
+            lambda workspace: workspace.acquisition.enrich(
+                ResearchEnrichmentRequest(1075)
+            ),
+            "enrich memorial",
+        ),
+    ],
+)
+def test_each_workspace_area_translates_locked_database_failures(
+    tmp_path, monkeypatch, service_method, invoke, operation
+) -> None:
+    """Every workspace service area exposes the same safe busy contract."""
+    database = create_database(str(tmp_path / "workspace.db"))
+    workspace = open_workspace(database)
+
+    def fail_operation(_service, *_args, **_kwargs):
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(ResearchService, service_method, fail_operation)
+
+    with pytest.raises(DatabaseBusy) as failure:
+        invoke(workspace)
+
+    assert failure.value.context == {
+        "database": str(database),
+        "operation": operation,
+    }
 
 
 def test_workspace_refuses_missing_or_legacy_database_without_creation(
