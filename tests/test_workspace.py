@@ -6,13 +6,14 @@ import sqlite3
 
 import pytest
 
-from graver import Memorial, MemorialSummary
+from graver import Memorial, MemorialMergedException, MemorialSummary
 from graver.application import (
     CancellationRequested,
     CancellationToken,
     DatabaseBusy,
     DatabaseInspectionError,
     DatabaseOperationError,
+    EnrichmentRedirectInvalid,
     MemorialSummarySearchRequest,
     ResearchEnrichmentRequest,
     ResearchQueueRequest,
@@ -250,6 +251,37 @@ def test_workspace_enrichment_reports_progress_and_persists_after_safe_checks(
         ("persistence", 0, 1),
         ("completed", 1, 1),
     ]
+
+
+def test_workspace_enrichment_rejects_mismatched_redirect_source(
+    tmp_path, monkeypatch
+) -> None:
+    """A redirect that does not describe the requested memorial fails safely."""
+    database = create_database(str(tmp_path / "workspace.db"))
+    monkeypatch.setenv("DATABASE_NAME", str(database))
+    values = Test.load_memorial_from_json("george-washington")
+    MemorialSummary.from_dict(values).save()
+    workspace = open_workspace(database)
+    workspace.work.queue(ResearchQueueRequest())
+    task = workspace.work.show(1075).task
+    workspace.work.update(
+        ResearchTaskUpdate(1075, task.version, status="ready_for_full_scrape")
+    )
+    redirect = MemorialMergedException(
+        "mismatched redirect",
+        "https://www.findagrave.com/memorial/999/source",
+        "https://www.findagrave.com/memorial/1000/target",
+    )
+
+    with pytest.raises(EnrichmentRedirectInvalid):
+        workspace.acquisition.enrich(
+            ResearchEnrichmentRequest(1075),
+            acquire=lambda _url: (_ for _ in ()).throw(redirect),
+        )
+
+    shown = workspace.work.show(1075)
+    assert shown.task.status == "ready_for_full_scrape"
+    assert shown.observations[-1]["fetch_outcome"] == "failure"
 
 
 def test_workspace_enrichment_cancels_before_network_or_persistence(

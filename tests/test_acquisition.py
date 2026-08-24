@@ -1,6 +1,7 @@
 """Contract tests for typed memorial-summary acquisition receipts."""
 
 import dataclasses
+import sqlite3
 
 import pytest
 
@@ -11,6 +12,7 @@ from graver.application import (
     AcquisitionFieldChange,
     CancellationRequested,
     CancellationToken,
+    DatabaseBusy,
     MemorialSearchFailed,
     MemorialSummaryBatch,
     MemorialSummaryInput,
@@ -165,6 +167,28 @@ def test_summary_search_rolls_back_the_complete_batch_on_persistence_failure(
             ]
             == 0
         )
+
+
+def test_summary_search_preserves_sqlite_failures_for_workspace_translation(
+    tmp_path, monkeypatch
+) -> None:
+    """Database failures remain distinct for the workspace error boundary."""
+    database = create_database(str(tmp_path / "research.db"))
+    workspace = open_workspace(database)
+
+    def fail_persistence(_self, _retrieved):
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(
+        acquisition.SummaryAcquisitionService, "_persist", fail_persistence
+    )
+
+    with pytest.raises(DatabaseBusy) as failure:
+        workspace.acquisition.search(
+            MemorialSummarySearchRequest(memorial_id=1075),
+            acquire=lambda _command: MemorialSummaryBatch((_george_summary(),)),
+        )
+    assert failure.value.code == "database_busy"
 
 
 def test_summary_search_wraps_adapter_failures_without_transport_types(
