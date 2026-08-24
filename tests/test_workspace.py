@@ -115,6 +115,52 @@ def test_workspace_translates_sqlite_failures_without_leaking_storage_details(
     assert isinstance(failure.value.__cause__, sqlite3.OperationalError)
 
 
+@pytest.mark.parametrize(
+    ("service_method", "invoke", "operation"),
+    [
+        ("get_task", lambda workspace: workspace.work.show(1075), "show research work"),
+        (
+            "queue_research",
+            lambda workspace: workspace.work.queue(ResearchQueueRequest()),
+            "queue research work",
+        ),
+        (
+            "apply_task_update",
+            lambda workspace: workspace.work.update(
+                ResearchTaskUpdate(1075, 1, status="researching")
+            ),
+            "update research work",
+        ),
+        (
+            "enrich_memorial",
+            lambda workspace: workspace.acquisition.enrich(
+                ResearchEnrichmentRequest(1075)
+            ),
+            "enrich memorial",
+        ),
+    ],
+)
+def test_each_workspace_area_translates_locked_database_failures(
+    tmp_path, monkeypatch, service_method, invoke, operation
+) -> None:
+    """Every workspace service area exposes the same safe busy contract."""
+    database = create_database(str(tmp_path / "workspace.db"))
+    workspace = open_workspace(database)
+
+    def fail_operation(_service, *_args, **_kwargs):
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(ResearchService, service_method, fail_operation)
+
+    with pytest.raises(DatabaseBusy) as failure:
+        invoke(workspace)
+
+    assert failure.value.context == {
+        "database": str(database),
+        "operation": operation,
+    }
+
+
 def test_workspace_refuses_missing_or_legacy_database_without_creation(
     tmp_path,
 ) -> None:
