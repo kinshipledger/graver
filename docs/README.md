@@ -26,6 +26,8 @@ The [source-neutral evidence packet review prototype](source-neutral-evidence-pa
 is the fictional, offline artifact for focused source-contract review S1. It tests
 shared provenance, relationship, comparison-trace, and audit-portability
 distinctions without defining a public format or implemented adapter.
+The [initial S1 professional review](professional-researcher-s1-review-2026-08-23.md)
+blocked the contract and records the corrections now awaiting focused re-review.
 
 The [GEDCOM integration architecture](gedcom-integration.md) records a deliberately
 optional, periodically re-evaluated direction for immutable import, comparison,

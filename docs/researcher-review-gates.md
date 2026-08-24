@@ -50,11 +50,17 @@ guardrails are in the
 
 ### S1 — Source-neutral evidence packet contract review
 
-**Current status:** Ready for review. The fictional
+**Current status:** Blocked in the initial review; revised artifact ready for focused
+re-review. The fictional
 [source-neutral evidence packet prototype](source-neutral-evidence-packet-prototype.md)
 uses synthetic marriage/death, census, probate, and memorial representations to
 test shared distinctions, a deterministic comparison trace, and a minimum audit
 projection. It adds no provider, parser, public format, schema, or runtime behavior.
+
+The [initial S1 report](professional-researcher-s1-review-2026-08-23.md) records
+seven blocking, three important, and one follow-up finding tracked in
+[#56](https://github.com/mcqueary/graver/issues/56). The revised artifact now awaits
+focused verification; S1 has not passed.
 
 S1 blocks implementation or public API freeze of the proposed source-neutral packet
 concepts. It does not block unrelated API hygiene, testing modernization, or the
