@@ -599,8 +599,12 @@ attributable comparison inputs, material-conflict permanence, self-contained aud
 references, genealogical-reproducibility requirements, descriptive open
 vocabularies, and ordering-only override constraints. A bounded internal, in-memory
 typed packet and validator now exercise those distinctions against the fictional S1
-items. The types are not exported from `graver.application`, and no packet tables,
-serializer, public format, replay engine, provider adapter, or user workflow exists.
+items. An internal projector can now combine existing immutable source-observation,
+candidate-snapshot, and comparison-signal domain records with explicit S1 metadata;
+it fails when metadata is incomplete, references do not resolve, or a comparison's
+claimed captured value differs from its observation. The types are not exported from
+`graver.application`, and no packet tables, serializer, public format, replay engine,
+provider adapter, or user workflow exists.
 
 For pre-1.0 compatibility, acquisition and write paths still initialize a missing or
 empty database with the current schema. They no longer migrate recognized legacy
