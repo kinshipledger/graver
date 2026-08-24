@@ -1,7 +1,6 @@
 import importlib.metadata
 import json
 import logging
-import random
 from pathlib import Path
 from typing import Dict
 
@@ -1047,7 +1046,7 @@ class TestCliSearch(TestCli):
             return faker.result_set(
                 faker,
                 "foobar",
-                random.randint(0, max_results),
+                2,
                 cemetery_id=cemetery_id,
                 lastname=lastname,
                 death_year=death_year,
