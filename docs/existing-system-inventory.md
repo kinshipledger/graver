@@ -33,8 +33,6 @@ notice is not planned.
 
 ### Commands
 
-- `scrape-file <input-file> [--db DATABASE]` accepts memorial IDs or memorial URLs, de-duplicates IDs, retrieves full memorial pages, and saves them to SQLite.
-- `scrape-url <url> [--db DATABASE]` retrieves and saves one full memorial.
 - `search` queries Find a Grave's memorial search, including a cemetery ID option, name/date/location filters, and pagination. Search results are represented as `MemorialSummary` objects and persisted to the selected SQLite database before being emitted to logs.
 - `init [DATABASE]` exclusively creates a new complete current-schema database,
   validates it, and saves its absolute path as the default. It defaults to
@@ -46,6 +44,9 @@ notice is not planned.
   transaction, and validates schema, integrity, and foreign keys. Current databases
   are a no-op; backup collisions, unknown schemas, and newer versions fail safely.
 - `work queue`, `work list`, `work next`, `work show`, and `work mark` provide a person-centered, network-free research workflow. `work enrich` retrieves exactly one explicitly approved memorial.
+- The pre-1.0 `scrape-url` and `scrape-file` commands have been removed. Summary
+  search followed by explicit queueing, approval, and one-person `work enrich` is
+  the supported full-record acquisition path. No unattended file loop remains.
 - `admin aliases list`, `show`, `record`, and `retract` expose specialist Find a Grave redirect maintenance and immutable history without moving tasks or grave data.
 - The earlier top-level task and alias commands remain functional as hidden compatibility aliases. They preserve existing arguments, output, and exit behavior but do not compete with ordinary workflows in root help.
 - The console entry point is `graver = graver.cli:app`. Direct execution through
@@ -482,15 +483,16 @@ exposes one-person enrichment with synchronous neutral progress events and
 cooperative cancellation before retrieval and persistence. Evidence, broader
 acquisition operations, and the final 1.0 method surface remain unfrozen.
 
-The researcher-directed summary `search` command now delegates to
+The researcher-directed summary `search` command delegates to
 `workspace.acquisition.search()` using a typed provider-specific request. The
 service owns explicit database persistence and returns an immutable receipt with
 source, memorial identifiers, new/existing counts, appended-observation count, and
 field-level before/after changes to the current displayed representation. The CLI
 renders the same receipt in researcher language. Search does not queue tasks, infer
-correctness, or claim full-page acquisition. The legacy multi-URL `scrape-file`
-loop remains outside the public application API pending its pre-1.0 access-policy
-and compatibility decision.
+correctness, or claim full-page acquisition. Full-record retrieval is limited to
+the typed, explicitly approved one-person enrichment service. The legacy direct-URL
+and unattended file-loop commands were removed rather than promoted into the public
+application API.
 
 Supported failures now share `ApplicationError` with a stable machine-readable
 `code`, safe normalized `summary`, and immutable structured `context`. Existing

@@ -1,23 +1,16 @@
 import importlib.metadata
 import json
 import logging
-import os
-import re
 import sys
 from logging.handlers import RotatingFileHandler
-from time import sleep
-from typing import List, Optional, Tuple
-from urllib.parse import urlparse
+from typing import Optional
 
 import typer
-from tqdm import tqdm
 
 from graver import (
     Driver,
     Memorial,
     MemorialAliasError,
-    MemorialMergedException,
-    MemorialParseException,
     NotFound,
     ResearchTaskNotFound,
     get_memorial_alias,
@@ -37,7 +30,6 @@ from graver.application import (
 )
 from graver.constants import (
     APP_NAME,
-    MEMORIAL_CANONICAL_URL_FORMAT,
 )
 from graver.database import (
     DatabaseInitializationError,
@@ -254,151 +246,6 @@ def use(
     except graver_config.GraverConfigurationError as ex:
         typer.echo(str(ex), err=True)
         raise typer.Exit(1)
-
-
-# TODO: Add support for output CSV
-# def get_urls_from_gedcom(gedfile: str):
-# TODO add gedcom input support
-# # read from gedcom
-# with open('tree.ged', encoding='utf8') as ged:
-#     for line in ged.readlines():
-#         num_memorials+=1
-#         if '_LINK ' in line and 'findagrave.com' in line:
-#             for unit in line.split('&'):
-#                 if 'GRid=' in unit:
-#                     if unit[5:-1] not in graveids:
-#                         graveids.append(unit[5:-1])
-#                         #print(graveids[numids])
-#                         numids+=1
-# return
-
-
-def print_failed_urls(urls: list):
-    if len(urls) > 0:
-        text = "\n".join(urls)
-        log.info(f"Failed urls were:\n{text}")
-
-
-def format_url(line: str):
-    """
-    Creates a properly formed FindAGrave URL from a memorial id (e.g. 1784) or an
-    old-style FindAGrave URL (e.g.
-    "https://secure.findagrave.com/cgi-bin/fg.cgi?page=gr&GRid=1784")
-
-    @param line: the input string
-    @return: a URL in the form "https://www.findagrave.com/memorial/<id>"
-    """
-    mid: int = -1
-    if re.search("^[0-9]+$", line) is not None:  # id only
-        mid = int(line)
-        line = MEMORIAL_CANONICAL_URL_FORMAT.format(line)
-    elif (match := re.search("GRid=([0-9]+)$", line)) is not None:  # id only
-        mid = int(match.group(1))
-        line = MEMORIAL_CANONICAL_URL_FORMAT.format(match.group(1))
-    elif (match := re.search(r"/memorial/([0-9]+)(?:/.*)?$", line)) is not None:
-        mid = int(match.group(1))
-    return mid, line
-
-
-def url_validator(uri):
-    result = urlparse(uri)
-    is_memorial = ("/memorial/" in uri) or ("GRid=" in uri)
-    return is_memorial and all(
-        [result.scheme in ["file", "http", "https"], result.path]
-    )
-
-
-def collect_and_validate_urls(input_filename) -> Tuple[List[str], List[str]]:
-    good = []
-    bad = []
-    ids = []
-    with open(input_filename) as file:
-        while line := file.readline().strip():
-            memorial_id, line = format_url(line)
-            if not url_validator(line):
-                log.warning(f"{line} is not a valid URL")
-                bad.append(line)
-                continue
-            else:
-                if memorial_id not in ids:
-                    ids.append(memorial_id)
-                    good.append(line)
-    log.info(ids)
-    return good, bad
-
-
-def parse_and_save_memorial(url) -> Memorial:
-    try:
-        m = Memorial.parse(url).save()
-    except MemorialMergedException as ex:
-        log.warning(ex)
-        m = Memorial.parse(ex.new_url).save()
-    return m
-
-
-@app.command()
-def scrape_file(
-    input_filename: str = typer.Argument(
-        ..., help="Text file of memorial IDs or URLs, one per line."
-    ),
-    db: str = database_option("Database where results will be stored."),
-):
-    """Retrieve full memorials listed in a text file."""
-    log.debug(f"Input file: {input_filename}")
-    log.debug(f"Database file: {db}")
-
-    urls: List[str]
-    failed_urls: List[str]
-
-    # Collect and validate URLs
-    try:
-        urls, failed_urls = collect_and_validate_urls(input_filename)
-        log.info(f"Downloading {len(urls)} memorials")
-        log.debug(f"URLS = {urls}")
-    except OSError as e:
-        log.error(e)
-        raise typer.Exit(1)
-
-    # Process URLs
-    request_interval_ms = 2000
-    scraped = 0
-    disable = os.getenv("TQDM_DISABLE")
-    os.environ["DATABASE_NAME"] = db
-    Memorial.create_table(db)
-    # Pass in driver to ensure we reuse the same session
-    # driver: Driver = Driver()
-    for url in (pbar := tqdm(urls, disable=bool(disable))):
-        pbar.set_postfix_str(url)
-        try:
-            parse_and_save_memorial(url)
-            scraped += 1
-            pbar.set_postfix_str("")
-            sleep(request_interval_ms / 1000)
-        except MemorialParseException as ex:
-            log.error(ex)
-            failed_urls.append(url)
-
-    log.info(f"Successfully scraped {scraped} of {len(urls)}")
-    print_failed_urls(failed_urls)
-
-
-@app.command()
-def scrape_url(
-    url: str = typer.Argument(..., help="Find a Grave memorial URL to retrieve."),
-    db: str = database_option("Database where results will be stored."),
-):
-    """Retrieve one full Find a Grave memorial."""
-    if not url_validator(url):
-        log.error(f"Invalid or non-memorial URL: [{url}]")
-        raise typer.Exit(1)
-    os.environ["DATABASE_NAME"] = db
-    Memorial.create_table(db)
-    try:
-        m: Memorial = parse_and_save_memorial(url)
-    except MemorialParseException as ex:
-        log.error(ex)
-        raise typer.Exit(1)
-    log.info(m.to_json())
 
 
 # Compatibility policy: these original top-level task and alias commands remain

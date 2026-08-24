@@ -106,6 +106,7 @@ def test_requests_transport_preserves_cookies_and_redirect_history(requests_mock
     [
         (requests.ConnectTimeout("slow"), TransportTimeout),
         (requests.ConnectionError("offline"), TransportConnectionError),
+        (requests.RequestException("request failed"), TransportError),
     ],
 )
 def test_requests_transport_maps_third_party_failures(exception, expected):
@@ -163,3 +164,7 @@ def test_http_failure_uses_graver_owned_error():
         response.raise_for_status()
 
     assert raised.type.__module__ == "graver.transport"
+
+
+def test_successful_response_does_not_raise():
+    _response().raise_for_status()
