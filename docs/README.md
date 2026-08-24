@@ -27,7 +27,9 @@ is the fictional, offline artifact for focused source-contract review S1. It tes
 shared provenance, relationship, comparison-trace, and audit-portability
 distinctions without defining a public format or implemented adapter.
 The [initial S1 professional review](professional-researcher-s1-review-2026-08-23.md)
-blocked the contract and records the corrections now awaiting focused re-review.
+blocked the contract. The
+[focused S1 re-review](professional-researcher-s1-rereview-2026-08-23.md) verified
+every correction and passed the bounded internal contract.
 
 The [GEDCOM integration architecture](gedcom-integration.md) records a deliberately
 optional, periodically re-evaluated direction for immutable import, comparison,

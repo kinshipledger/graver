@@ -593,13 +593,13 @@ entire replay context, and no portable audit-bundle specification or independent
 validator is implemented. No configurable rule-pack system or rules marketplace is
 implemented.
 
-The fictional source-neutral evidence packet has completed its initial professional
-contract review but is not implemented. S1 is blocked pending focused verification
-of revised item-level provenance, assertion suppliers and dependence, attributable
-comparison inputs, material-conflict permanence, self-contained audit references,
-genealogical-reproducibility requirements, descriptive open vocabularies, and
-ordering-only override constraints. No generic packet tables, public packet types,
-serializer, validator, replay engine, or source adapter exists.
+The fictional source-neutral evidence packet passed focused S1 professional review
+after correction of item-level provenance, assertion suppliers and dependence,
+attributable comparison inputs, material-conflict permanence, self-contained audit
+references, genealogical-reproducibility requirements, descriptive open
+vocabularies, and ordering-only override constraints. The pass approves a bounded
+internal prototype only. No generic packet tables, public packet types, serializer,
+validator, replay engine, or source adapter exists.
 
 For pre-1.0 compatibility, acquisition and write paths still initialize a missing or
 empty database with the current schema. They no longer migrate recognized legacy
