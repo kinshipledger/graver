@@ -639,14 +639,15 @@ person acquisition and provenance review; status, notes, and conflict handling;
 FamilySearch candidate discovery and evidence assessment; reviewed identity
 conclusions; WikiTree reconciliation and work packets; and family-level workflows.
 
-## Provider-governed background acquisition
+## Deferred provider-governed background acquisition
 
 The canonical [access and acquisition policy](access-policy.md) governs current
 project-maintained acquisition behavior and accepted contributions. The architecture
-below is planned work and must remain subordinate to that policy.
+below preserves possible post-1.0 design constraints and must remain subordinate to
+that policy. It is not a `1.0.0rc1` implementation commitment or public contract.
 
 This section records an architectural policy finding, not legal advice. On
-2026-08-21, planning reviewed the
+2026-08-24, planning reviewed the
 [Ancestry Terms and Conditions](https://www.ancestry.com/c/legal/termsandconditions),
 identified there as effective 2026-05-12, and the
 [Ancestry Community Rules](https://www.ancestry.com/c/legal/community-rules).
@@ -663,7 +664,7 @@ safeguards only. They do not override terms of service, robots policies, access
 controls, or provider instructions. A user's acknowledgement of provider terms does
 not authorize graver to implement access the provider prohibits.
 
-graver will plan three complementary acquisition modes:
+graver distinguishes three possible acquisition modes:
 
 1. Interactive person-at-a-time or small supervised acquisition.
 2. Bulk import from authorized files, exports, or datasets.
@@ -745,29 +746,32 @@ responses.
 The broader transport remains internal and injectable; Requests types do not define
 the planned public application API.
 
-### Import-first bulk capability
+### Deferred import-first bulk capability
 
-The first scalable path should be a typed import service for official exports,
-licensed datasets, and authorized researcher-supplied files without live scraping.
-It will retain explicit source, licensing or
-authorization, and provenance metadata; validate inputs; provide a dry-run summary;
-report duplicates and conflicts; import transactionally; and support idempotent
-resume where practical. Summary-versus-full classification must follow known source
-metadata only. Imports must never fabricate observations, acquisition timestamps,
-or detail classifications.
+If a concrete authorized bulk workflow is demonstrated after rc1, the preferred
+first scalable path is a typed import service for official exports, licensed
+datasets, or authorized researcher-supplied files without live scraping. Such a
+service must retain explicit source, authorization, and provenance metadata;
+validate inputs; provide a dry-run summary; report duplicates and conflicts; import
+transactionally; and support idempotent resume where practical.
+Summary-versus-full classification must follow known source metadata only. Imports
+must never fabricate observations, acquisition timestamps, or detail
+classifications.
 
 Import results must be suitable for both CLI and GUI adapters. Adapters may later
-support CSV, JSON, SQLite, or approved provider exports, but the first implementation
-will select the smallest useful authorized format after inspecting real use cases
+support CSV, JSON, SQLite, or approved provider exports, but a future implementation
+must select the smallest useful authorized format after inspecting real use cases
 rather than promising every format. Public visibility of data does not itself grant
 redistribution rights; licensing and authorization responsibility must remain clear
 to the researcher.
 
-### Provider-neutral durable jobs
+### Deferred provider-neutral durable jobs
 
-The planned background-work subsystem is independent of Find a Grave and of CLI or
-GUI presentation. Candidate entities are a job, job item, attempt, provider-policy
-snapshot, schedule metadata, progress checkpoint, and pause/cancellation state.
+No job subsystem is required for rc1. If an authorized workflow later demonstrates
+the need, it should remain independent of Find a Grave and of CLI or GUI
+presentation. Candidate entities may include a job, job item, attempt,
+provider-policy snapshot, schedule metadata, progress checkpoint, and
+pause/cancellation state.
 Jobs must contain declarative operation specifications, never runnable Python code
 or arbitrary shell commands.
 
@@ -808,7 +812,7 @@ human review. Genuinely transient timeouts and `5xx` responses may use bounded
 exponential backoff with a fixed attempt limit. Every attempt is recorded, and
 repeated failure must never result in faster retries.
 
-### Scheduling, API, and client integration
+### Deferred scheduling, API, and client integration
 
 Scheduling is an adapter over the durable job application service, initially using
 this bounded invocation model:
@@ -1141,12 +1145,17 @@ Pre-1.0 sequence:
    The legacy direct-URL command and unattended file loop were removed rather than
    promoted into the public API, leaving no acquisition path that bypasses the
    application service boundary.
-14. Validate researcher-directed acquisition against the current access policy, then
-   complete each provider's authorization and policy gate. Any pre-1.0 import support
-   must use authorized data, and no unattended Find a Grave enrichment is enabled.
-15. Define import-first boundaries and provider-neutral background-job services
-   before any public job API is frozen. Provider-specific unattended adapters remain
-   unavailable unless their authorization gate is satisfied.
+14. **Implemented:** Validate researcher-directed acquisition against the current
+   access policy and complete the Find a Grave authorization gate. The dated
+   [provider acquisition and import decision](provider-import-decision.md) retains
+   explicit bounded summary search and approved one-person enrichment, but finds no
+   authorization basis for unattended Find a Grave acquisition.
+15. **Deferred beyond rc1:** Do not freeze a public import or background-job API
+   without a concrete authorized workflow. Future researcher-supplied files,
+   official exports, documented APIs, or licensed datasets must pass the source and
+   authorization gates and preserve provenance. A job engine, scheduler, general
+   import command, GEDCOM adapter, and unattended provider adapter are not
+   `1.0.0rc1` requirements.
 16. Complete remaining runtime/test dependency separation; retain `Driver` and
    implementation mechanics as internal details.
 17. Add command-specific versioned JSON envelopes as adapter projections of the same
@@ -1161,11 +1170,9 @@ Pre-1.0 sequence:
 21. Finish the public API guide, database and 0.1 migration instructions,
    compatibility and release notes, and the later authorized branch/tag plan.
 22. Build the separate consumer spike against the installed wheel, validating the
-   documented facade without private imports or direct SQLite access. It may
-   exercise mocked jobs but performs no live bulk acquisition.
-23. Resolve spike findings and complete any required provider-neutral job-service
-   contracts without enabling an unauthorized provider adapter. Prepare
-   `1.0.0rc1` without weakening migration,
+   documented facade without private imports, direct SQLite access, or live bulk
+   acquisition.
+23. Resolve spike findings and prepare `1.0.0rc1` without weakening migration,
    provenance, concurrency, or offline-test guarantees.
 24. Validate the release candidate, re-evaluate whether GEDCOM has demonstrated
     enough value for later implementation, and release graver `1.0.0` after the core

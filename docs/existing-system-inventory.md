@@ -59,6 +59,14 @@ requires the current task approval. Search-summary acquisition does not authoriz
 enable mass full-page enrichment. Provider permission for unattended Find a Grave
 acquisition has not been established.
 
+The 2026-08-24
+[provider acquisition and import decision](provider-import-decision.md) closes the
+pre-1.0 policy gate: bounded researcher-directed acquisition remains conditional on
+provider policy, while unattended Find a Grave acquisition is not authorized. A
+public background-job engine, scheduler, general import API, and provider adapter
+are deferred beyond `1.0.0rc1` until a concrete authorized workflow justifies their
+contracts.
+
 ### Retrieval and parsing
 
 - An internal synchronous transport backed by `requests.Session` supplies a
@@ -571,15 +579,16 @@ the exact selected source observation for unresolved conclusions and visibly
 restores all three negative-search fields. The final narrow re-review verified both
 behaviors and introduced no new blocker.
 
-After the typed application boundary and researcher-directed acquisition have been
-validated, provider authorization gates and import-first/provider-neutral job
-abstractions are planned before any public background-job API is frozen. Authorized
-structured-data import may provide a scalable path without scraping. Any live
-background runner remains provider-gated, single-request by default, budgeted,
-resumable, fail-closed on access challenges, and shared by CLI and GUI through the
-application service. A scheduler will invoke bounded work and exit rather than
-requiring a permanent daemon at first. These are future architectural constraints,
-not implemented acquisition behavior.
+The typed application boundary and researcher-directed acquisition have been
+validated, and the provider gate now defers public import, job, and scheduler APIs
+beyond rc1. Authorized structured-data import may later provide a scalable path
+without scraping, but only after a concrete workflow passes its source and
+authorization gates. Any future live background runner remains provider-gated,
+single-request by default, budgeted, resumable, fail-closed on access challenges,
+and shared by CLI and GUI through the application service. A future scheduler would
+invoke bounded work and exit rather than requiring a permanent daemon at first.
+These are deferred architectural constraints, not implemented acquisition behavior
+or pre-1.0 compatibility promises.
 
 graver currently has no GEDCOM parser, import snapshot, family-relationship model,
 GEDCOM comparison service, subject-mapping workflow, or export capability. Current
