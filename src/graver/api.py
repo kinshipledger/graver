@@ -628,6 +628,7 @@ def _create_subject_schema(connection: sqlite3.Connection) -> None:
                 updated_at TEXT NOT NULL,
                 last_activity_at TEXT NOT NULL,
                 review_note TEXT,
+                version INTEGER NOT NULL DEFAULT 1 CHECK (version >= 1),
                 FOREIGN KEY (subject_id) REFERENCES research_subjects(subject_id)
             )""")
     connection.execute("""CREATE TABLE IF NOT EXISTS research_task_events
@@ -1263,7 +1264,8 @@ def save_completed_task_scrape(
         connection.execute(
             """UPDATE research_tasks
                SET status = 'full_scrape_complete', updated_at = ?,
-                   last_activity_at = ? WHERE subject_id = ?""",
+                   last_activity_at = ?, version = version + 1
+               WHERE subject_id = ?""",
             (timestamp, timestamp, task["subject_id"]),
         )
         after = connection.execute(
@@ -1348,7 +1350,8 @@ def record_failed_task_scrape(
             (memorial_id, cemetery_id, timestamp, _package_version(), payload),
         )
         connection.execute(
-            """UPDATE research_tasks SET updated_at = ?, last_activity_at = ?
+            """UPDATE research_tasks SET updated_at = ?, last_activity_at = ?,
+                      version = version + 1
                WHERE subject_id = ?""",
             (timestamp, timestamp, row["subject_id"]),
         )
@@ -1447,7 +1450,8 @@ def record_merged_task_scrape(
             ),
         )
         connection.execute(
-            "UPDATE research_tasks SET updated_at=?, last_activity_at=? WHERE subject_id=?",
+            """UPDATE research_tasks SET updated_at=?, last_activity_at=?,
+                      version=version+1 WHERE subject_id=?""",
             (timestamp, timestamp, row["subject_id"]),
         )
         after = connection.execute(

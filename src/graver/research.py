@@ -36,6 +36,7 @@ __all__ = (
     "ResearchQueueRequest",
     "ResearchQueueResult",
     "ResearchService",
+    "StaleResearchTask",
     "ResearchTaskDetail",
     "ResearchTaskQuery",
     "ResearchTaskRecord",
@@ -46,6 +47,19 @@ __all__ = (
 
 class ResearchInputError(ValueError):
     """Report an invalid application-service request without presentation details."""
+
+
+class StaleResearchTask(Exception):
+    """Report an update based on an obsolete research-task revision."""
+
+    def __init__(self, memorial_id: int, expected_version: int, actual_version: int):
+        self.memorial_id = memorial_id
+        self.expected_version = expected_version
+        self.actual_version = actual_version
+        super().__init__(
+            f"Research task {memorial_id} changed from version {expected_version} "
+            f"to {actual_version}; reload it before updating"
+        )
 
 
 class EnrichmentNotApproved(Exception):
@@ -105,12 +119,15 @@ class ResearchTaskUpdate:
     """Describe an explicit partial update to one research task."""
 
     memorial_id: int
+    expected_version: int
     status: Optional[str] = None
     priority: Optional[int] = None
     owner: Optional[str] = None
     review_note: Optional[str] = None
 
     def __post_init__(self) -> None:
+        if self.expected_version < 1:
+            raise ResearchInputError("Expected task version must be at least 1")
         if self.status is not None and self.status not in RESEARCH_TASK_STATUSES:
             raise ResearchInputError(f"Invalid task status: {self.status}")
         if not self.changes:
@@ -256,6 +273,7 @@ class ResearchTaskRecord:
     updated_at: str
     last_activity_at: str
     review_note: Optional[str]
+    version: int
 
     @classmethod
     def from_row(cls, row: sqlite3.Row, memorial_id: int) -> "ResearchTaskRecord":
@@ -270,6 +288,7 @@ class ResearchTaskRecord:
             updated_at=row["updated_at"],
             last_activity_at=row["last_activity_at"],
             review_note=row["review_note"],
+            version=row["version"],
         )
 
     def to_compatibility_dict(self) -> dict[str, Any]:
@@ -414,13 +433,22 @@ class _ResearchTaskRepository:
 
     @staticmethod
     def update_task(
-        connection: sqlite3.Connection, subject_id: str, changes: dict
-    ) -> None:
+        connection: sqlite3.Connection,
+        subject_id: str,
+        expected_version: int,
+        changes: dict,
+    ) -> bool:
         assignments = ", ".join(f"{key} = :{key}" for key in changes)
-        connection.execute(
-            f"UPDATE research_tasks SET {assignments} WHERE subject_id = :subject_id",
-            {**changes, "subject_id": subject_id},
+        cursor = connection.execute(
+            f"""UPDATE research_tasks SET {assignments}, version = version + 1
+                WHERE subject_id = :subject_id AND version = :expected_version""",
+            {
+                **changes,
+                "subject_id": subject_id,
+                "expected_version": expected_version,
+            },
         )
+        return bool(cursor.rowcount)
 
     @staticmethod
     def memorial_ids(
@@ -566,9 +594,11 @@ class ResearchService:
         review_note: Optional[str] = None,
     ) -> dict:
         """Return the transitional dictionary projection for existing callers."""
+        current = self.get_task(memorial_id).task
         return self.apply_task_update(
             ResearchTaskUpdate(
                 memorial_id,
+                current.version,
                 status=status,
                 priority=priority,
                 owner=owner,
@@ -589,6 +619,12 @@ class ResearchService:
                 raise ResearchTaskNotFound(
                     f"Research task {command.memorial_id} does not exist"
                 )
+            if current["version"] != command.expected_version:
+                raise StaleResearchTask(
+                    command.memorial_id,
+                    command.expected_version,
+                    current["version"],
+                )
             changed = {
                 key: value for key, value in requested.items() if current[key] != value
             }
@@ -598,9 +634,24 @@ class ResearchService:
                 changed["updated_at"] = timestamp
                 if "status" in changed or "review_note" in changed:
                     changed["last_activity_at"] = timestamp
-                _ResearchTaskRepository.update_task(
-                    connection, current["subject_id"], changed
+                updated = _ResearchTaskRepository.update_task(
+                    connection,
+                    current["subject_id"],
+                    command.expected_version,
+                    changed,
                 )
+                if not updated:
+                    latest = _ResearchTaskRepository.task_for_subject(
+                        connection, current["subject_id"]
+                    )
+                    actual_version = (
+                        latest["version"] if latest is not None else current["version"]
+                    )
+                    raise StaleResearchTask(
+                        command.memorial_id,
+                        command.expected_version,
+                        actual_version,
+                    )
                 result = _ResearchTaskRepository.task_for_subject(
                     connection, current["subject_id"]
                 )

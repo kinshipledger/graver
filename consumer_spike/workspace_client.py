@@ -8,6 +8,8 @@ from pathlib import Path
 from graver.application import (
     ResearchQueueRequest,
     ResearchTaskQuery,
+    ResearchTaskUpdate,
+    WorkItemNotFound,
     create_database,
     open_workspace,
 )
@@ -20,6 +22,12 @@ def main(database: Path) -> None:
     assert workspace.database.inspect().current
     assert workspace.work.list(ResearchTaskQuery(limit=5)) == ()
     assert workspace.work.queue(ResearchQueueRequest()).created == 0
+    try:
+        workspace.work.update(ResearchTaskUpdate(1075, 1, status="researching"))
+    except WorkItemNotFound as error:
+        assert error.memorial_id == 1075
+    else:
+        raise AssertionError("Missing installed-wheel work item was not reported")
     assert not hasattr(workspace, "connection")
 
 

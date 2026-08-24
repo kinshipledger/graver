@@ -474,9 +474,10 @@ docstring coverage, a developer API guide, and installed-wheel import verificati
 protect that boundary. Persistence rows and SQL remain private to repository/service
 implementations. The first synchronous workspace composition is now implemented at
 `graver.application.open_workspace`: it accepts an explicit current database,
-exposes typed database inspection plus work list, show, and idempotent queue
-operations, owns no long-lived connection, and performs no CLI configuration lookup.
-Task updates remain outside the façade until optimistic concurrency exists. Evidence
+exposes typed database inspection plus work list, show, idempotent queue, and
+concurrency-safe update operations, owns no long-lived connection, and performs no
+CLI configuration lookup. Meaningful task updates increment a revision; stale writes
+raise a typed `StaleResearchTask` without changing newer state. Evidence
 and acquisition namespaces, progress/cancellation, and the final 1.0 method surface
 remain unfrozen.
 
@@ -500,11 +501,13 @@ four application-facing modules through deterministic local, pre-commit, and CI
 commands. The `deadcode` package was removed after its AST visitor failed on
 supported Python 3.14; unused-code decisions require corroborating repository,
 tests, coverage, exports, and compatibility evidence instead. Broader documentation
-build/link validation remains to be selected. Final acceptance still requires
-optimistic concurrency and later installed-wheel examples for concurrency-safe task
-updates and injected acquisition, evidenced removals, release notes, and green
+build/link validation remains to be selected. Optimistic task concurrency is now
+implemented. Final acceptance still requires later installed-wheel examples for
+populated task updates and injected acquisition, evidenced removals, release notes, and green
 reproducible checks. The initial installed-wheel consumer now verifies workspace
-creation, opening, inspection, empty work queries, and idempotent queueing. The
+creation, opening, inspection, empty work queries, idempotent queueing, and the typed
+missing-item update boundary. A populated installed-wheel concurrency scenario
+remains a later extension. The
 researcher tutorial remains separate from this developer API reference.
 
 Before the release candidate, the planned facade must define typed requests,

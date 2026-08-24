@@ -8,11 +8,11 @@ The repository is on the single long-lived `main` branch with only
 copyright provenance remains preserved, while the README makes clear that graver is
 independently maintained and has no ongoing upstream affiliation.
 
-The implemented foundation includes schema version 4, subject-owned research tasks,
+The implemented foundation includes schema version 5, subject-owned research tasks,
 explicit backed-up database upgrades, person-at-a-time acquisition, fail-closed
 Requests transport, the researcher tutorial, trunk-based release automation, and a
-dedicated branch-coverage CI job. The latest complete local run passed 376 tests;
-the current coverage run measured 91.97% branch coverage against a
+dedicated branch-coverage CI job. The latest complete local run passed 401 tests;
+the current coverage run measured 92.71% branch coverage against a
 90% floor. Coveralls reporting, the seven
 honest README badges, Python 3.11–3.14 CI, Black, Ruff, locked uv environments, wheel
 verification, and Conventional Commit pull-request-title enforcement are current.
@@ -402,8 +402,9 @@ workspace.acquisition.enrich(...)
 
 The implemented pre-1.0 slice supports `open_workspace()`,
 `workspace.database.inspect()`, and typed `workspace.work.list()`, `show()`,
-and `queue()` operations. Task updates remain outside the façade until optimistic
-concurrency exists. Acquisition and evidence namespaces above remain illustrative
+`queue()`, and optimistic-concurrency `update()` operations. Updates require the
+displayed task revision and reject stale clients without overwriting newer work.
+Acquisition and evidence namespaces above remain illustrative
 rather than implemented. A workspace is opened from an explicit database path
 and does not resolve CLI configuration or global defaults. The CLI resolves
 `--db`, `GRAVER_DB`, and saved preferences before opening it. A GUI owns its selected
@@ -537,11 +538,10 @@ verification; the canonical inventory records only behavior actually implemented
 This milestone is partially implemented and must finish before the workspace facade
 is frozen as graver's 1.0 contract. The initial `graver.application` boundary,
 explicit exports, typed request/result services, developer guide, bounded mypy and
-Google-convention docstring checks, and installed-wheel import verification are
-current. Workspace composition, optimistic concurrency, executable installed-wheel
-client examples, evidenced dead-code cleanup, and broader documentation/link
-validation remain. Keep that work separate from schema migrations and substantial
-behavioral changes.
+Google-convention docstring checks, workspace composition, optimistic task
+concurrency, and an executable installed-wheel client are current. Expanded wheel
+consumer scenarios, evidenced dead-code cleanup, and broader documentation/link
+validation remain. Keep that work separate from substantial behavioral changes.
 
 The supported boundary uses Google-style docstrings. Every supported public
 module, class, protocol, exception, function, method, typed command, query, and
@@ -1065,9 +1065,9 @@ Pre-1.0 sequence:
 9. Finish the partially implemented API hygiene and documentation milestone. The
    explicit pre-1.0 application exports, bounded mypy and Google-style docstring
    gates, developer guide, and wheel import check are complete. Remaining work is
-   evidenced dead-code cleanup, the synchronous workspace composition, optimistic
-   concurrency, broader documentation/link validation, and executable installed-
-   wheel client examples before the 1.0 surface is frozen.
+   evidenced dead-code cleanup, broader documentation/link validation, and expanded
+   executable installed-wheel client examples before the 1.0 surface is frozen.
+   Synchronous workspace composition and optimistic task concurrency are complete.
 10. Maintain the completed dependency-security and software-supply-chain baseline:
    keep runtime and development dependencies separated, review weekly grouped
    Dependabot proposals for Python and GitHub Actions, verify the locked dependency
