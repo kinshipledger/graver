@@ -19,7 +19,7 @@ repos:
         types: [python]
       - id: application-docstrings
         name: Application docstrings
-        entry: uv run --locked --group dev ruff check --select D --ignore D105,D107 src/graver/application.py src/graver/database.py src/graver/evidence.py src/graver/research.py
+        entry: uv run --locked --group dev ruff check --select D --ignore D105,D107 src/graver/application.py src/graver/database.py src/graver/evidence.py src/graver/research.py src/graver/workspace.py
         language: system
         pass_filenames: false
         types: [python]

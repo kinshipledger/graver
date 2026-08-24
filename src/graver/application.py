@@ -2,17 +2,16 @@
 
 This module is the supported pre-1.0 import boundary for application code. It
 contains no CLI, terminal-rendering, Qt, SQLite connection, or third-party HTTP
-types. The future workspace façade will compose these same request, result, error,
-and service objects rather than replacing their domain meaning.
+types. The initial synchronous workspace façade composes these same request, result,
+error, and service objects rather than replacing their domain meaning.
 
 Examples:
-    Create a database and query its research queue without global configuration::
+    Open a database and query its research queue without global configuration::
 
-        from graver.application import ResearchService, ResearchTaskQuery, create_database
+        from graver.application import ResearchTaskQuery, open_workspace
 
-        database = create_database("research.db")
-        service = ResearchService(str(database))
-        tasks = service.query_tasks(ResearchTaskQuery(limit=10))
+        workspace = open_workspace("research.db")
+        tasks = workspace.work.list(ResearchTaskQuery(limit=10))
 """
 
 from graver.database import (
@@ -20,6 +19,8 @@ from graver.database import (
     DatabaseInspectionError,
     DatabaseLifecycleError,
     DatabaseUpgradeError,
+    DatabaseUpgradeResult,
+    SchemaInspection,
     create_database,
     inspect_database,
     upgrade_database,
@@ -63,6 +64,13 @@ from graver.research import (
     ResearchTaskSummary,
     ResearchTaskUpdate,
 )
+from graver.workspace import (
+    GraverWorkspace,
+    WorkItemNotFound,
+    WorkspaceDatabase,
+    WorkspaceWork,
+    open_workspace,
+)
 
 __all__ = (
     "AssessmentRecord",
@@ -77,6 +85,7 @@ __all__ = (
     "DatabaseInspectionError",
     "DatabaseLifecycleError",
     "DatabaseUpgradeError",
+    "DatabaseUpgradeResult",
     "DiscoveryRequest",
     "DiscoveryResult",
     "EnrichmentAliasBlocked",
@@ -88,6 +97,7 @@ __all__ = (
     "EvidenceInputError",
     "EvidenceNotFound",
     "EvidenceService",
+    "GraverWorkspace",
     "RankedCandidate",
     "ResearchEnrichmentRequest",
     "ResearchEnrichmentResult",
@@ -100,11 +110,16 @@ __all__ = (
     "ResearchTaskRecord",
     "ResearchTaskSummary",
     "ResearchTaskUpdate",
+    "SchemaInspection",
     "SourceObservationInput",
     "SourceObservationRecord",
     "StaleAssessment",
+    "WorkItemNotFound",
+    "WorkspaceDatabase",
+    "WorkspaceWork",
     "create_database",
     "inspect_database",
+    "open_workspace",
     "upgrade_database",
     "validate_current_database",
 )

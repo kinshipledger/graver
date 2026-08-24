@@ -384,10 +384,12 @@ arrive. Another desktop toolkit or non-desktop client must remain possible.
 ### Workspace facade
 
 The leading graver 1.0 application-API shape is a synchronous, typed workspace
-facade, subject to validation by a small consumer spike:
+facade. Its first work-queue slice is now validated by a small consumer spike:
 
 ```python
-workspace = graver.open_workspace(database_path)
+from graver.application import open_workspace
+
+workspace = open_workspace(database_path)
 
 workspace.database.inspect()
 workspace.work.list(...)
@@ -398,8 +400,11 @@ workspace.acquisition.search(...)
 workspace.acquisition.enrich(...)
 ```
 
-These names illustrate ownership and discoverability; they do not freeze the exact
-public class or method names. A workspace is opened from an explicit database path
+The implemented pre-1.0 slice supports `open_workspace()`,
+`workspace.database.inspect()`, and typed `workspace.work.list()`, `show()`,
+and `queue()` operations. Task updates remain outside the façade until optimistic
+concurrency exists. Acquisition and evidence namespaces above remain illustrative
+rather than implemented. A workspace is opened from an explicit database path
 and does not resolve CLI configuration or global defaults. The CLI resolves
 `--db`, `GRAVER_DB`, and saved preferences before opening it. A GUI owns its selected
 workspace path and passes it explicitly.
@@ -609,14 +614,13 @@ transport injection; CLI use of application services; Python and JSON projection
 of the same results; wheel installation and public API use; and compatibility of the
 documented facade after 1.0.
 
-Before `1.0.0rc1`, a separate top-level consumer spike will install graver from its
-built wheel and import only documented APIs. It is not the production GUI and adds
-no Qt dependency to graver. It will open and validate a temporary database, list
-work, display one subject and memorial, update one task with optimistic concurrency,
-exercise typed errors, receive mocked-acquisition progress, and safely cancel a
-mocked long operation without direct SQLite or private imports. It may use PyQt6 if
-that remains preferred. Its findings may refine the facade before the release
-candidate.
+The top-level `consumer_spike` now installs graver from its built wheel and imports
+only documented APIs. It is not the production GUI and adds no Qt dependency. The
+initial slice creates and opens an isolated workspace, inspects it, queries empty
+work, and queues idempotently without importing persistence or adapter internals.
+Before `1.0.0rc1`, extend it to cover concurrency-safe task updates, injected fake
+acquisition, neutral progress and cancellation, and boundary-type assertions. Its
+findings may continue to refine the facade before the release candidate.
 
 After graver 1.0, the production GUI should grow incrementally through workspace
 selection, initialization and upgrade guidance; work queue and subject detail; one-
