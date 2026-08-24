@@ -53,7 +53,6 @@ from graver.research import (
     ResearchQueueRequest,
     ResearchService,
     ResearchTaskQuery,
-    ResearchTaskUpdate,
 )
 from graver.transport import TransportError
 
@@ -874,12 +873,8 @@ def work_mark(
     """Record a research decision or assignment for one person."""
     before = _load_task_or_exit(db, memorial_id)["task"]
     try:
-        task = (
-            ResearchService(db)
-            .apply_task_update(
-                ResearchTaskUpdate(memorial_id, status, priority, owner, note)
-            )
-            .to_compatibility_dict()
+        task = ResearchService(db).update_task(
+            memorial_id, status, priority, owner, note
         )
     except ValueError as ex:
         typer.echo(str(ex), err=True)

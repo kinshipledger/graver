@@ -52,6 +52,7 @@ from graver.research import (
     ResearchTaskRecord,
     ResearchTaskSummary,
     ResearchTaskUpdate,
+    StaleResearchTask,
 )
 from graver.transport import TransportRateLimited
 from tests.test import Test
@@ -842,7 +843,7 @@ class TestDatabaseOps(TestApi):
         tasks = service.query_tasks(ResearchTaskQuery(limit=1))
         detail = service.get_task(summary.memorial_id)
         updated = service.apply_task_update(
-            ResearchTaskUpdate(summary.memorial_id, status="researching")
+            ResearchTaskUpdate(summary.memorial_id, 1, status="researching")
         )
 
         assert isinstance(tasks, tuple)
@@ -855,6 +856,26 @@ class TestDatabaseOps(TestApi):
         assert updated.status == "researching"
         assert updated.subject_id == detail.task.subject_id
         assert "subject_id" not in detail.to_compatibility_dict()["task"]
+
+    def test_subject_service_rejects_stale_and_invalid_task_versions(self, database):
+        summary = self.summary().save()
+        service = ResearchService(database.name)
+        service.queue_memorials()
+        first = service.get_task(summary.memorial_id).task
+        updated = service.apply_task_update(
+            ResearchTaskUpdate(summary.memorial_id, first.version, status="researching")
+        )
+
+        with pytest.raises(StaleResearchTask) as stale:
+            service.apply_task_update(
+                ResearchTaskUpdate(
+                    summary.memorial_id, first.version, owner="stale editor"
+                )
+            )
+
+        assert stale.value.expected_version == first.version
+        assert stale.value.actual_version == updated.version
+        assert service.get_task(summary.memorial_id).task.owner is None
 
     def test_subject_service_rolls_back_if_updated_task_disappears(
         self, database, monkeypatch
@@ -869,7 +890,7 @@ class TestDatabaseOps(TestApi):
 
         with pytest.raises(ResearchTaskNotFound, match="disappeared during update"):
             service.apply_task_update(
-                ResearchTaskUpdate(summary.memorial_id, status="researching")
+                ResearchTaskUpdate(summary.memorial_id, 1, status="researching")
             )
 
         assert service.get_task(summary.memorial_id).task.status == "unprocessed"
@@ -904,7 +925,7 @@ class TestDatabaseOps(TestApi):
         service = ResearchService(database.name)
         service.queue_research(ResearchQueueRequest())
         service.apply_task_update(
-            ResearchTaskUpdate(summary.memorial_id, status="ready_for_full_scrape")
+            ResearchTaskUpdate(summary.memorial_id, 1, status="ready_for_full_scrape")
         )
 
         result = service.enrich_memorial(
@@ -928,7 +949,7 @@ class TestDatabaseOps(TestApi):
         service = ResearchService(database.name)
         service.queue_research(ResearchQueueRequest())
         service.apply_task_update(
-            ResearchTaskUpdate(summary.memorial_id, status="ready_for_full_scrape")
+            ResearchTaskUpdate(summary.memorial_id, 1, status="ready_for_full_scrape")
         )
 
         with pytest.raises(EnrichmentFailed, match="mock failure"):
@@ -963,12 +984,16 @@ class TestDatabaseOps(TestApi):
             (lambda: ResearchTaskQuery(status="invalid"), "Invalid task status"),
             (lambda: ResearchTaskQuery(limit=0), "Limit must be at least 1"),
             (
-                lambda: ResearchTaskUpdate(1075),
+                lambda: ResearchTaskUpdate(1075, 1),
                 "At least one task change is required",
             ),
             (
-                lambda: ResearchTaskUpdate(1075, status="invalid"),
+                lambda: ResearchTaskUpdate(1075, 1, status="invalid"),
                 "Invalid task status",
+            ),
+            (
+                lambda: ResearchTaskUpdate(1075, 0, status="researching"),
+                "Expected task version must be at least 1",
             ),
         ],
     )
@@ -1039,6 +1064,9 @@ class TestDatabaseOps(TestApi):
         )
 
         with connect_database(database.name) as connection:
+            persisted_version = connection.execute(
+                "SELECT version FROM research_tasks"
+            ).fetchone()[0]
             task_events = connection.execute(
                 """SELECT event_type, before_json, after_json
                    FROM research_task_events ORDER BY event_id"""
@@ -1049,9 +1077,12 @@ class TestDatabaseOps(TestApi):
         assert changed["review_note"] == "keep"
         assert changed["updated_at"] == changed["last_activity_at"] == "new-time"
         assert noop == changed
+        assert persisted_version == 2
         assert [event[0] for event in task_events] == ["task_created", "task_updated"]
         assert json.loads(task_events[-1][1])["status"] == "unprocessed"
         assert json.loads(task_events[-1][2])["status"] == "researching"
+        assert json.loads(task_events[-1][1])["version"] == 1
+        assert json.loads(task_events[-1][2])["version"] == 2
         with pytest.raises(ValueError, match="Invalid task status"):
             update_research_task(
                 database.name, summary.memorial_id, status="not-a-status"

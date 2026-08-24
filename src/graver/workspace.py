@@ -18,7 +18,9 @@ from graver.research import (
     ResearchService,
     ResearchTaskDetail,
     ResearchTaskQuery,
+    ResearchTaskRecord,
     ResearchTaskSummary,
+    ResearchTaskUpdate,
 )
 
 
@@ -63,6 +65,13 @@ class WorkspaceWork:
     def queue(self, command: ResearchQueueRequest) -> ResearchQueueResult:
         """Create research tasks idempotently for acquired memorials."""
         return self._service.queue_research(command)
+
+    def update(self, command: ResearchTaskUpdate) -> ResearchTaskRecord:
+        """Update one task only if its expected revision is still current."""
+        try:
+            return self._service.apply_task_update(command)
+        except ResearchTaskNotFound as error:
+            raise WorkItemNotFound(command.memorial_id) from error
 
 
 @dataclass(frozen=True)

@@ -572,7 +572,9 @@ def test_upgrade_version_1_creates_mechanical_subjects_and_preserves_tasks(tmp_p
         assert len({row["subject_id"] for row in associations}) == 2
         assert all(uuid.UUID(row["subject_id"]).version == 4 for row in subjects)
         assert task["subject_id"] == associations[0]["subject_id"]
-        assert tuple(task[key] for key in task.keys() if key != "subject_id") == (
+        assert tuple(
+            task[key] for key in task.keys() if key not in {"subject_id", "version"}
+        ) == (
             "researching",
             7,
             "reviewer",
@@ -581,6 +583,7 @@ def test_upgrade_version_1_creates_mechanical_subjects_and_preserves_tasks(tmp_p
             "active",
             "preserve exactly",
         )
+        assert task["version"] == 1
         assert json.loads(migrated_event["after_json"])["memorial_id"] == 11
         assert (
             connection.execute(
@@ -778,6 +781,27 @@ def test_version_three_upgrade_adds_empty_source_observations(tmp_path):
 
     assert result.source.version == 3
     assert result.version == graver_database.CURRENT_SCHEMA_VERSION
+
+
+def test_version_four_upgrade_adds_task_revisions_without_changing_task_state(
+    tmp_path,
+):
+    path = graver_database.create_database(str(tmp_path / "version-four.db"))
+    with connect_database(path) as connection:
+        connection.execute("ALTER TABLE research_tasks DROP COLUMN version")
+        connection.execute("UPDATE graver_schema SET version = 4")
+
+    assert graver_database.inspect_database(str(path)).state == "outdated"
+    result = graver_database.upgrade_database(str(path))
+
+    assert result.version == graver_database.CURRENT_SCHEMA_VERSION
+    with connect_database(path) as connection:
+        columns = {
+            row[1]: row
+            for row in connection.execute("PRAGMA table_info(research_tasks)")
+        }
+    assert columns["version"][3] == 1
+    assert columns["version"][4] == "1"
     with connect_database(path) as connection:
         assert connection.execute(
             "SELECT COUNT(*) FROM research_source_observations"

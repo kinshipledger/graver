@@ -63,6 +63,7 @@ from graver.research import (
     ResearchTaskRecord,
     ResearchTaskSummary,
     ResearchTaskUpdate,
+    StaleResearchTask,
 )
 from graver.workspace import (
     GraverWorkspace,
@@ -114,6 +115,7 @@ __all__ = (
     "SourceObservationInput",
     "SourceObservationRecord",
     "StaleAssessment",
+    "StaleResearchTask",
     "WorkItemNotFound",
     "WorkspaceDatabase",
     "WorkspaceWork",

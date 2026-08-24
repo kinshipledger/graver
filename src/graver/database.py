@@ -33,7 +33,7 @@ __all__ = (
     "validate_current_database",
 )
 
-CURRENT_SCHEMA_VERSION = 4
+CURRENT_SCHEMA_VERSION = 5
 SCHEMA_TABLE = "graver_schema"
 VERSION_1_TABLES = {
     "cemeteries",
@@ -292,6 +292,7 @@ def _structurally_current(connection: sqlite3.Connection) -> bool:
         and CURRENT_GRAVE_COLUMNS <= _columns(connection, "graves")
         and "subject_id" in _columns(connection, "research_tasks")
         and "memorial_id" not in _columns(connection, "research_tasks")
+        and "version" in _columns(connection, "research_tasks")
         and CURRENT_INDEXES <= indexes
         and CURRENT_TRIGGERS <= triggers
         and _subject_invariants_hold(connection)
@@ -323,6 +324,22 @@ def _structurally_version_3(connection: sqlite3.Connection) -> bool:
         and "memorial_id" not in _columns(connection, "research_tasks")
         and VERSION_3_INDEXES <= indexes
         and VERSION_3_TRIGGERS <= triggers
+        and _subject_invariants_hold(connection)
+        and _evidence_invariants_hold(connection)
+    )
+
+
+def _structurally_version_4(connection: sqlite3.Connection) -> bool:
+    """Recognize the evidence-complete schema before task revisions existed."""
+    indexes, triggers = _schema_objects(connection)
+    return (
+        CURRENT_TABLES <= _tables(connection)
+        and CURRENT_GRAVE_COLUMNS <= _columns(connection, "graves")
+        and "subject_id" in _columns(connection, "research_tasks")
+        and "memorial_id" not in _columns(connection, "research_tasks")
+        and "version" not in _columns(connection, "research_tasks")
+        and CURRENT_INDEXES <= indexes
+        and CURRENT_TRIGGERS <= triggers
         and _subject_invariants_hold(connection)
         and _evidence_invariants_hold(connection)
     )
@@ -419,6 +436,8 @@ def _inspect_connection(path: Path, connection: sqlite3.Connection) -> SchemaIns
             return SchemaInspection(path, "outdated", version)
         if version == 3 and _structurally_version_3(connection):
             return SchemaInspection(path, "outdated", version)
+        if version == 4 and _structurally_version_4(connection):
+            return SchemaInspection(path, "outdated", version)
         if version != CURRENT_SCHEMA_VERSION or not _structurally_current(connection):
             return SchemaInspection(path, "unknown", version)
         return SchemaInspection(path, "current", version)
@@ -426,6 +445,8 @@ def _inspect_connection(path: Path, connection: sqlite3.Connection) -> SchemaIns
         return SchemaInspection(path, "non_graver")
     grave_columns = _columns(connection, "graves")
     if _structurally_current(connection):
+        return SchemaInspection(path, "current_unversioned", 5)
+    if _structurally_version_4(connection):
         return SchemaInspection(path, "current_unversioned", 4)
     if _structurally_version_3(connection):
         return SchemaInspection(path, "current_unversioned", 3)
@@ -703,11 +724,22 @@ def _migration_3_to_4(connection: sqlite3.Connection) -> None:
     connection.execute(f"UPDATE {SCHEMA_TABLE} SET version = 4 WHERE singleton = 1")
 
 
+def _migration_4_to_5(connection: sqlite3.Connection) -> None:
+    """Add an optimistic-concurrency revision to each current research task."""
+    if "version" not in _columns(connection, "research_tasks"):
+        connection.execute(
+            "ALTER TABLE research_tasks ADD COLUMN "
+            "version INTEGER NOT NULL DEFAULT 1 CHECK (version >= 1)"
+        )
+    connection.execute(f"UPDATE {SCHEMA_TABLE} SET version = 5 WHERE singleton = 1")
+
+
 MIGRATIONS = {
     0: _migration_0_to_1,
     1: _migration_1_to_2,
     2: _migration_2_to_3,
     3: _migration_3_to_4,
+    4: _migration_4_to_5,
 }
 
 
@@ -784,7 +816,7 @@ def upgrade_database(database: str) -> DatabaseUpgradeResult:
             connection.execute("BEGIN IMMEDIATE")
             try:
                 version = source.version or 0
-                if source.state == "current_unversioned" and version in {2, 3, 4}:
+                if source.state == "current_unversioned" and version in {2, 3, 4, 5}:
                     _record_schema_version(connection, version)
                 while version < CURRENT_SCHEMA_VERSION:
                     migration = MIGRATIONS.get(version)

@@ -33,16 +33,23 @@ CLI defaults, creates a missing file, or upgrades an older schema. The workspace
 immutable and holds no SQLite connection; each operation owns a short-lived internal
 unit of work.
 
-The first façade slice intentionally contains only database inspection and typed
-work-queue list, show, and idempotent queue operations. Task updates remain behind
-the lower-level pre-1.0 service until they gain optimistic concurrency. Evidence,
-acquisition, progress, and cancellation namespaces will be added only after their
-contracts are ready. Clients should not import internal packet, transport,
-persistence, or CLI modules to fill those temporary gaps.
+The façade currently contains database inspection and typed work-queue list, show,
+idempotent queue, and concurrency-safe update operations. Evidence, acquisition,
+progress, and cancellation namespaces will be added only after their contracts are
+ready. Clients should not import internal packet, transport, persistence, or CLI
+modules to fill those temporary gaps.
 
 Expected lookup failures are translated to `WorkItemNotFound`, which carries the
 requested memorial identifier without exposing SQL detail or a legacy exception
 type. Presentation adapters decide how to display that typed failure.
+
+Every typed task record carries an integer `version`. Supply that value as
+`expected_version` when constructing `ResearchTaskUpdate`; a meaningful successful
+update increments it. If another client changed the task first,
+`workspace.work.update()` raises `StaleResearchTask` with the expected and actual
+versions. Reload the task, show the researcher the intervening state, and let them
+decide whether to reapply their edit. A stale request is rejected even when its
+requested values happen to match the newer state.
 
 Lower-level typed services remain supported during pre-1.0 development:
 
@@ -73,7 +80,8 @@ if tasks:
     updated = service.apply_task_update(
         ResearchTaskUpdate(
             memorial_id=tasks[0].memorial_id,
-            status="in_review",
+            expected_version=service.get_task(tasks[0].memorial_id).task.version,
+            status="researching",
             review_note="Beginning evidence review.",
         )
     )
@@ -117,8 +125,8 @@ uv run pytest
 
 CI also builds the wheel, installs that artifact in an isolated environment, and
 runs `consumer_spike/workspace_client.py`. The spike uses only documented imports to
-create, open, inspect, query, and queue work in a disposable database. It is a GUI-
-readiness contract test, not a production client.
+create, open, inspect, query, queue, and exercise typed update failures in a
+disposable database. It is a GUI-readiness contract test, not a production client.
 
 Mypy is deliberately scoped to the application-facing modules. Google-style
 docstring checks require useful public module, class, function, and method contracts;

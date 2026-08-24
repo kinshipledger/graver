@@ -46,6 +46,7 @@ EXPECTED_PUBLIC_NAMES = {
     "SourceObservationInput",
     "SourceObservationRecord",
     "StaleAssessment",
+    "StaleResearchTask",
     "WorkItemNotFound",
     "WorkspaceDatabase",
     "WorkspaceWork",
