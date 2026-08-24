@@ -1100,6 +1100,15 @@ Pre-1.0 sequence:
    every correction and found no new blocker. The pass permits a bounded internal
    implementation prototype; it does not freeze a public format, schema, provider
    adapter, source taxonomy, or identity automation.
+
+   **Bounded internal slice implemented:** immutable in-memory packet components now
+   validate complete item identity, capture-faithful citations, readable content or
+   explicit omission impact, assertion attribution and dependence, resolvable
+   comparison inputs, material-conflict records, ordering-only overrides, and
+   genealogical-reproducibility context against the fictional S1 items. The slice
+   adds no persistence, serialization, supported public imports, provider, or user
+   workflow. Any further packet implementation remains subordinate to the typed
+   application-boundary and consumer-validation work in this milestone.
 13. Move remaining researcher-directed acquisition and CLI workflows onto those
    application services, validate the shared boundaries, and add CLI/API parity
    tests while preserving the tutorial's human workflow. Add researcher-readable

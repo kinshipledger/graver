@@ -597,9 +597,10 @@ The fictional source-neutral evidence packet passed focused S1 professional revi
 after correction of item-level provenance, assertion suppliers and dependence,
 attributable comparison inputs, material-conflict permanence, self-contained audit
 references, genealogical-reproducibility requirements, descriptive open
-vocabularies, and ordering-only override constraints. The pass approves a bounded
-internal prototype only. No generic packet tables, public packet types, serializer,
-validator, replay engine, or source adapter exists.
+vocabularies, and ordering-only override constraints. A bounded internal, in-memory
+typed packet and validator now exercise those distinctions against the fictional S1
+items. The types are not exported from `graver.application`, and no packet tables,
+serializer, public format, replay engine, provider adapter, or user workflow exists.
 
 For pre-1.0 compatibility, acquisition and write paths still initialize a missing or
 empty database with the current schema. They no longer migrate recognized legacy
