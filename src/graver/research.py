@@ -23,6 +23,12 @@ from graver.api import (
 )
 from graver.constants import MEMORIAL_CANONICAL_URL_FORMAT
 from graver.database import validate_current_database
+from graver.progress import (
+    CancellationRequested,
+    CancellationToken,
+    ProgressEvent,
+    ProgressObserver,
+)
 
 __all__ = (
     "EnrichmentAliasBlocked",
@@ -716,8 +722,15 @@ class ResearchService:
         self,
         command: ResearchEnrichmentRequest,
         acquire: Optional[Callable[[str], object]] = None,
+        progress: Optional[ProgressObserver] = None,
+        cancellation: Optional[CancellationToken] = None,
     ) -> ResearchEnrichmentResult:
-        """Acquire and persist exactly one approved memorial with fail-closed safety."""
+        """Acquire and persist one approved memorial with cooperative cancellation."""
+        operation = "enrich_memorial"
+        token = cancellation or CancellationToken()
+        token.raise_if_cancelled(operation, "validation")
+        if progress is not None:
+            progress(ProgressEvent(operation, "validation", 0, 1))
         current = self.get_task(command.memorial_id)
         if current.task.status != "ready_for_full_scrape":
             raise EnrichmentNotApproved(
@@ -734,9 +747,14 @@ class ResearchService:
         attempted_url = current.grave["findagrave_url"] or (
             MEMORIAL_CANONICAL_URL_FORMAT.format(command.memorial_id)
         )
+        token.raise_if_cancelled(operation, "acquisition")
+        if progress is not None:
+            progress(ProgressEvent(operation, "acquisition", 0, 1))
         acquire_memorial = acquire or legacy_api.Memorial.parse
         try:
             memorial = acquire_memorial(attempted_url)
+        except CancellationRequested:
+            raise
         except legacy_api.MemorialMergedException as merged:
             source_id = _memorial_id_from_url(merged.old_url)
             target_id = _memorial_id_from_url(merged.new_url)
@@ -756,9 +774,15 @@ class ResearchService:
         except Exception as ex:
             self.record_enrichment_failure(command.memorial_id, attempted_url, ex)
             raise EnrichmentFailed(command.memorial_id, ex) from ex
-        return ResearchEnrichmentResult.from_mapping(
+        token.raise_if_cancelled(operation, "persistence")
+        if progress is not None:
+            progress(ProgressEvent(operation, "persistence", 0, 1))
+        result = ResearchEnrichmentResult.from_mapping(
             self.complete_enrichment(command.memorial_id, memorial)
         )
+        if progress is not None:
+            progress(ProgressEvent(operation, "completed", 1, 1))
+        return result
 
     def complete_enrichment(self, memorial_id: int, memorial: object) -> dict:
         """Persist one successful approved memorial acquisition atomically."""

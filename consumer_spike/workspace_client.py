@@ -6,6 +6,9 @@ import sys
 from pathlib import Path
 
 from graver.application import (
+    CancellationRequested,
+    CancellationToken,
+    ResearchEnrichmentRequest,
     ResearchQueueRequest,
     ResearchTaskQuery,
     ResearchTaskUpdate,
@@ -28,6 +31,16 @@ def main(database: Path) -> None:
         assert error.memorial_id == 1075
     else:
         raise AssertionError("Missing installed-wheel work item was not reported")
+    token = CancellationToken()
+    token.cancel()
+    try:
+        workspace.acquisition.enrich(
+            ResearchEnrichmentRequest(1075), cancellation=token
+        )
+    except CancellationRequested as error:
+        assert error.stage == "validation"
+    else:
+        raise AssertionError("Cancelled acquisition did not stop before retrieval")
     assert not hasattr(workspace, "connection")
 
 

@@ -11,8 +11,8 @@ independently maintained and has no ongoing upstream affiliation.
 The implemented foundation includes schema version 5, subject-owned research tasks,
 explicit backed-up database upgrades, person-at-a-time acquisition, fail-closed
 Requests transport, the researcher tutorial, trunk-based release automation, and a
-dedicated branch-coverage CI job. The latest complete local run passed 401 tests;
-the current coverage run measured 92.71% branch coverage against a
+dedicated branch-coverage CI job. The latest complete local run passed 410 tests;
+the current coverage run measured 92.87% branch coverage against a
 90% floor. Coveralls reporting, the seven
 honest README badges, Python 3.11–3.14 CI, Black, Ruff, locked uv environments, wheel
 verification, and Conventional Commit pull-request-title enforcement are current.
@@ -467,6 +467,11 @@ optional total, and safe message or context. A callback runs in the calling work
 thread; a GUI adapter translates it into Qt signals, while the CLI adapts the same
 events into terminal progress.
 
+The first implementation now provides immutable `ProgressEvent` values, a synchronous
+`ProgressObserver` protocol, and a thread-safe `CancellationToken` through
+`graver.application`. `workspace.acquisition.enrich()` applies them to one approved
+memorial without adding asyncio, Qt, a background worker, or unattended acquisition.
+
 Cancellation uses a neutral token or protocol and is checked before requests,
 between pages or items, and before a transaction begins. It must not interrupt a
 transaction where invariants could be violated, and a committed operation must not
@@ -618,9 +623,11 @@ The top-level `consumer_spike` now installs graver from its built wheel and impo
 only documented APIs. It is not the production GUI and adds no Qt dependency. The
 initial slice creates and opens an isolated workspace, inspects it, queries empty
 work, and queues idempotently without importing persistence or adapter internals.
-Before `1.0.0rc1`, extend it to cover concurrency-safe task updates, injected fake
-acquisition, neutral progress and cancellation, and boundary-type assertions. Its
-findings may continue to refine the facade before the release candidate.
+The consumer now covers the public concurrency-update boundary and verifies that a
+pre-cancelled installed-wheel acquisition stops at validation without provider
+access. Before `1.0.0rc1`, extend it with a populated injected acquisition and fuller
+boundary-type assertions. Its findings may continue to refine the facade before the
+release candidate.
 
 After graver 1.0, the production GUI should grow incrementally through workspace
 selection, initialization and upgrade guidance; work queue and subject detail; one-

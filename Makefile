@@ -33,7 +33,7 @@ typecheck: ## Type-check the supported application boundary
 	uv run --group dev mypy
 
 doccheck: ## Check public application docstring coverage and style
-	uv run --group dev ruff check --select D --ignore D105,D107 src/graver/application.py src/graver/database.py src/graver/evidence.py src/graver/research.py src/graver/workspace.py
+	uv run --group dev ruff check --select D --ignore D105,D107 src/graver/application.py src/graver/database.py src/graver/evidence.py src/graver/progress.py src/graver/research.py src/graver/workspace.py
 
 format: ## Apply safe lint fixes and Black formatting
 	uv run --group dev ruff check --fix src/graver tests review consumer_spike

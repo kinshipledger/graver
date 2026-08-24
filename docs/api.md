@@ -33,11 +33,11 @@ CLI defaults, creates a missing file, or upgrades an older schema. The workspace
 immutable and holds no SQLite connection; each operation owns a short-lived internal
 unit of work.
 
-The façade currently contains database inspection and typed work-queue list, show,
-idempotent queue, and concurrency-safe update operations. Evidence, acquisition,
-progress, and cancellation namespaces will be added only after their contracts are
-ready. Clients should not import internal packet, transport, persistence, or CLI
-modules to fill those temporary gaps.
+The façade currently contains database inspection; typed work-queue list, show,
+idempotent queue, and concurrency-safe update operations; and researcher-directed
+single-record enrichment. Evidence and broader acquisition namespaces will be added
+only after their contracts are ready. Clients should not import internal packet,
+transport, persistence, or CLI modules to fill those temporary gaps.
 
 Expected lookup failures are translated to `WorkItemNotFound`, which carries the
 requested memorial identifier without exposing SQL detail or a legacy exception
@@ -107,10 +107,33 @@ terminal or toolkit-specific output.
 
 ## Acquisition boundary
 
-`ResearchService.enrich_memorial()` performs one explicitly approved memorial
-operation. Its optional acquisition callable exists for injected adapters and offline
-tests. Network-capable clients remain responsible for the project
-[access policy](access-policy.md), progress presentation, and cancellation UX.
+`workspace.acquisition.enrich()` performs one explicitly approved memorial operation.
+Its optional acquisition callable supports offline consumer tests without requiring
+a live provider. Network-capable clients remain responsible for the project
+[access policy](access-policy.md).
+
+Long operations accept an optional `ProgressObserver`. It receives immutable
+`ProgressEvent` values synchronously in the operation's calling thread; a GUI should
+invoke the operation in its worker thread and translate those callbacks into toolkit
+signals. Stages are extensible strings, while operation names and count semantics are
+part of the documented contract. Observers must return normally and must not perform
+domain mutations.
+
+`CancellationToken` is thread-safe and requires no event loop. For enrichment,
+cancellation is checked before validation, before retrieval, and after retrieval but
+before persistence begins. Once the persistence transaction starts, it is allowed to
+complete; a committed operation is never subsequently reported as cancelled.
+
+```python
+from graver.application import CancellationToken, ResearchEnrichmentRequest
+
+token = CancellationToken()
+result = workspace.acquisition.enrich(
+    ResearchEnrichmentRequest(memorial_id=1075),
+    progress=lambda event: print(event.stage, event.completed, event.total),
+    cancellation=token,
+)
+```
 
 ## Required checks
 

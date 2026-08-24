@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
+from typing import Callable, Optional
 
 from graver.api import NotFound, ResearchTaskNotFound
 from graver.database import (
@@ -12,7 +13,10 @@ from graver.database import (
     inspect_database,
     validate_current_database,
 )
+from graver.progress import CancellationToken, ProgressObserver
 from graver.research import (
+    ResearchEnrichmentRequest,
+    ResearchEnrichmentResult,
     ResearchQueueRequest,
     ResearchQueueResult,
     ResearchService,
@@ -75,6 +79,32 @@ class WorkspaceWork:
 
 
 @dataclass(frozen=True)
+class WorkspaceAcquisition:
+    """Expose researcher-directed single-record acquisition to application clients."""
+
+    _service: ResearchService
+
+    def enrich(
+        self,
+        command: ResearchEnrichmentRequest,
+        *,
+        progress: Optional[ProgressObserver] = None,
+        cancellation: Optional[CancellationToken] = None,
+        acquire: Optional[Callable[[str], object]] = None,
+    ) -> ResearchEnrichmentResult:
+        """Retrieve and persist one approved memorial at safe cancellation boundaries."""
+        try:
+            return self._service.enrich_memorial(
+                command,
+                acquire=acquire,
+                progress=progress,
+                cancellation=cancellation,
+            )
+        except (NotFound, ResearchTaskNotFound) as error:
+            raise WorkItemNotFound(command.memorial_id) from error
+
+
+@dataclass(frozen=True)
 class GraverWorkspace:
     """Compose synchronous graver services around one validated database path.
 
@@ -94,6 +124,11 @@ class GraverWorkspace:
     def work(self) -> WorkspaceWork:
         """Return typed research work-queue operations for this workspace."""
         return WorkspaceWork(ResearchService(str(self.path)))
+
+    @property
+    def acquisition(self) -> WorkspaceAcquisition:
+        """Return researcher-directed single-record acquisition operations."""
+        return WorkspaceAcquisition(ResearchService(str(self.path)))
 
 
 def open_workspace(database: str | PathLike[str]) -> GraverWorkspace:
