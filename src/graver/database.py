@@ -500,7 +500,7 @@ def validate_current_database(database: str) -> Path:
     path = inspection.path
     if inspection.state == "newer":
         raise DatabaseInspectionError(
-            f"Database schema version {inspection.version} is newer than this Graver "
+            f"Database schema version {inspection.version} is newer than this graver "
             f"supports ({CURRENT_SCHEMA_VERSION}): {path}"
         )
     if inspection.state in {
@@ -515,7 +515,7 @@ def validate_current_database(database: str) -> Path:
         )
     if not inspection.current:
         raise DatabaseInspectionError(
-            f"SQLite file is not a recognized current Graver database "
+            f"SQLite file is not a recognized current graver database "
             f"({inspection.source_label}): {path}"
         )
     try:

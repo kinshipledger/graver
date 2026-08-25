@@ -18,7 +18,7 @@ from bs4 import BeautifulSoup, Tag
 from tqdm import tqdm
 
 from ._sqlite import connect_database
-from .constants import FINDAGRAVE_BASE_URL, FINDAGRAVE_ROWS_PER_PAGE
+from .constants import DISTRIBUTION_NAME, FINDAGRAVE_BASE_URL, FINDAGRAVE_ROWS_PER_PAGE
 from .transport import (
     DEFAULT_TIMEOUT,
     HttpTransport,
@@ -165,7 +165,7 @@ def _raise_for_access_control(response: TransportResponse, url: str) -> None:
     if response.status_code == 403 or _looks_like_access_challenge(response):
         raise TransportAccessBlocked(
             f"Find a Grave denied or challenged access to {url}; "
-            "Graver will not attempt to bypass the provider's controls."
+            "graver will not attempt to bypass the provider's controls."
         )
 
 
@@ -375,7 +375,7 @@ def _connect(database_name: str) -> sqlite3.Connection:
 
 def _package_version() -> str:
     try:
-        return importlib.metadata.version("graver")
+        return importlib.metadata.version(DISTRIBUTION_NAME)
     except importlib.metadata.PackageNotFoundError:  # pragma: no cover
         return "unknown"
 

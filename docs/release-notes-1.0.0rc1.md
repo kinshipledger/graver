@@ -27,6 +27,10 @@ FamilySearch discovery, production identity matching, WikiTree publishing, GEDCO
 interchange, background jobs, and the desktop interface are not included in this
 release candidate.
 
+Install the release candidate from the `graver-genealogy` distribution. The PyPI
+project named only `graver` is unrelated; the installed command and Python import
+for this project nevertheless remain `graver`.
+
 ## Breaking changes from the development-era 0.1 interface
 
 - Hidden top-level task and alias commands were removed in favor of `graver work …`

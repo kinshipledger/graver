@@ -4,9 +4,17 @@ Inspection dates: 2026-08-11; refreshed 2026-08-22
 
 ## What is present
 
-`src/graver/` is an independently versioned Python package named `graver`, currently
-at normalized package version `0.1.0`. It is a Find a Grave scraper/library with a
-Typer command-line interface, SQLite persistence, and fixture-backed tests.
+`src/graver/` is an independently versioned Python distribution named
+`graver-genealogy`, currently at normalized package version `0.1.0`. The product,
+repository, console command, and import package remain `graver`. The distinct
+distribution name is required because the PyPI project `graver` was published by
+an unrelated prompt-versioning project in May 2026. Build metadata, version lookup,
+Release Please, CI, and installation documentation explicitly use
+`graver-genealogy`; ordinary users still run `graver` and application clients still
+import `graver.application`.
+
+It is a Find a Grave scraper/library with a Typer command-line interface, SQLite
+persistence, and fixture-backed tests.
 
 The current architecture includes `MemorialSummary`, immutable
 acquisitions, the durable queue, explicit person-at-a-time task handling,

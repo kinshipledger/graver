@@ -853,6 +853,6 @@ def test_database_upgrade_help_is_specialist_and_meaningful(helpers):
     assert admin.exit_code == database.exit_code == upgrade.exit_code == 0
     assert "database" in admin.output
     assert "upgrade" in database.output
-    assert "Existing Graver database to back up and upgrade" in " ".join(
+    assert "Existing graver database to back up and upgrade" in " ".join(
         upgrade.output.split()
     )

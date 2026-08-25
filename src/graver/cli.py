@@ -26,6 +26,7 @@ from graver.application import (
 from graver.cli_json import result_envelope
 from graver.constants import (
     APP_NAME,
+    DISTRIBUTION_NAME,
 )
 from graver.database import (
     DatabaseInitializationError,
@@ -93,10 +94,9 @@ DEFAULT_LOG_LEVEL = "INFO"
 def version_callback(value: bool):
     """Return version of graver application"""
     if value:
-        metadata = importlib.metadata.metadata(APP_NAME)
-        name_str = metadata["Name"]
+        metadata = importlib.metadata.metadata(DISTRIBUTION_NAME)
         version_str = metadata["Version"]
-        _human_echo(f"{name_str} v{version_str}")
+        _human_echo(f"{APP_NAME} v{version_str}")
         raise typer.Exit()
 
 
@@ -147,7 +147,7 @@ admin_app.add_typer(database_app, name="database")
 @database_app.command("upgrade")
 def admin_database_upgrade(
     database: str = typer.Argument(
-        ..., help="Existing Graver database to back up and upgrade."
+        ..., help="Existing graver database to back up and upgrade."
     ),
 ):
     """Back up and upgrade an older research database to the current schema."""
@@ -219,7 +219,7 @@ def init(
 @app.command()
 def use(
     database: Optional[str] = typer.Argument(
-        None, help="Existing Graver database to use by default."
+        None, help="Existing graver database to use by default."
     ),
     show: bool = typer.Option(
         False, "--show", help="Show the currently selected default database."
@@ -228,7 +228,7 @@ def use(
         False, "--clear", help="Forget the selected default without deleting it."
     ),
 ):
-    """Select the database Graver should use by default."""
+    """Select the database graver should use by default."""
     action_count = int(database is not None) + int(show) + int(clear)
     if action_count != 1:
         raise typer.BadParameter(

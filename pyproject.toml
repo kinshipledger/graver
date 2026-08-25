@@ -3,9 +3,9 @@ requires = ["uv_build>=0.12.5,<0.13.0"]
 build-backend = "uv_build"
 
 [project]
-name = "graver"
+name = "graver-genealogy"
 version = "0.1.0"
-description = ""
+description = "Build provenance-aware genealogical research from cemetery memorials"
 authors = [{ name = "Larry McQueary", email = "contact@mcqueary.org" }]
 requires-python = ">=3.11"
 readme = "README.md"
@@ -26,8 +26,18 @@ dependencies = [
     "requests>=2.33,<3",
 ]
 
+[project.urls]
+Homepage = "https://github.com/mcqueary/graver"
+Documentation = "https://github.com/mcqueary/graver/tree/main/docs"
+Issues = "https://github.com/mcqueary/graver/issues"
+Repository = "https://github.com/mcqueary/graver"
+Changelog = "https://github.com/mcqueary/graver/blob/main/CHANGELOG.md"
+
 [project.scripts]
 graver = "graver.cli:app"
+
+[tool.uv.build-backend]
+module-name = "graver"
 
 [dependency-groups]
 test = [

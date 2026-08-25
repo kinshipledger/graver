@@ -39,6 +39,8 @@ The [draft 1.0.0rc1 release notes](release-notes-1.0.0rc1.md) summarize the inte
 researcher and developer changes, compatibility breaks, deferred scope, and known
 limitations. The [maintainer release process](releasing.md) defines the review gates
 and manually triggered Release Please workflow.
+The [1.0.0rc1 readiness audit](rc1-readiness-audit.md) records the frozen public
+surfaces and remaining publication gates.
 
 The [performance and responsiveness guide](performance.md) defines the generated
 offline baseline, non-blocking weekly/manual measurement workflow, interpretation
