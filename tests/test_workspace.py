@@ -6,7 +6,7 @@ import sqlite3
 
 import pytest
 
-from graver import Memorial, MemorialMergedException, MemorialSummary
+from graver.api import Memorial, MemorialMergedException, MemorialSummary
 from graver.application import (
     CancellationRequested,
     CancellationToken,

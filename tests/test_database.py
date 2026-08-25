@@ -8,11 +8,11 @@ from pathlib import Path
 import pytest
 from click import unstyle
 
-from graver import Memorial
 from graver import api as graver_api
 from graver import config as graver_config
 from graver import database as graver_database
 from graver._sqlite import connect_database
+from graver.api import Memorial
 
 CURRENT_TABLES = {
     "cemeteries",

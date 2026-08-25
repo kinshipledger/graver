@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from graver import Memorial
 from graver import config as graver_config
 from graver._sqlite import connect_database
+from graver.api import Memorial
 
 
 def database_digest(path: Path) -> str:

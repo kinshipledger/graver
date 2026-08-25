@@ -7,7 +7,8 @@ from typing import Optional
 
 import typer
 
-from graver import (
+from graver import config as graver_config
+from graver.api import (
     Driver,
     Memorial,
     MemorialAliasError,
@@ -18,7 +19,6 @@ from graver import (
     record_memorial_alias,
     retract_memorial_alias,
 )
-from graver import config as graver_config
 from graver.application import (
     ApplicationError,
     MemorialSummarySearchRequest,

@@ -14,8 +14,15 @@ explicit database path; CLI default-database resolution remains a CLI responsibi
 The names in `graver.application.__all__` are intentional and contract-tested, but
 the project is still pre-1.0. Changes will be documented in release notes, and the
 1.0 compatibility contract will be frozen only after the workspace façade and GUI
-consumer spike validate this design. The broad imports retained at package root are
-legacy compatibility conveniences, not the future façade.
+consumer spike validate this design. The package root deliberately re-exports no
+application symbols; clients must choose the documented `graver.application`
+boundary explicitly.
+
+Pre-1.0 code that imported parser or persistence objects directly from `graver`
+must migrate to the typed application API. For example, replace
+`from graver import queue_memorials` with `open_workspace(...).work.queue(...)`.
+Parser, SQL, transport, and compatibility functions remain internal even when a
+module-level implementation still exists.
 
 Application code should prefer the synchronous workspace façade from
 `graver.application`:

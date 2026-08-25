@@ -13,7 +13,8 @@ from urllib3 import exceptions
 
 import graver.api
 import graver.database
-from graver import (
+from graver._sqlite import connect_database
+from graver.api import (
     Cemetery,
     Driver,
     Memorial,
@@ -36,7 +37,6 @@ from graver import (
     show_research_task,
     update_research_task,
 )
-from graver._sqlite import connect_database
 from graver.research import (
     EnrichmentAliasBlocked,
     EnrichmentFailed,
