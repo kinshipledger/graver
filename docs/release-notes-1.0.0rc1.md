@@ -82,6 +82,18 @@ to handle a provider challenge automatically. That is intentional. Operational
 delays and retry limits do not create authorization; the project access policy still
 governs every provider integration.
 
+The RC also introduces a published threat model and privacy/data-handling guide.
+The CLI no longer creates a persistent `graver.log` merely by being imported or
+run; explicit diagnostics go to standard error. Malformed provider links are typed
+parse failures rather than assertions. Locked dependencies are audited with
+`pip-audit`, and CodeQL analyzes Python changes and `main` on a weekly schedule.
+
+Research databases are local, unencrypted SQLite files. Newly created databases
+and upgrade backups use owner-only permissions where supported, but graver does not
+silently change existing file permissions or claim secure deletion. Researchers
+should use device access controls and full-disk encryption and review sensitive or
+living-person information before sharing any database, export, or diagnostic text.
+
 ## Deprecations
 
 There are no active deprecations in this release candidate. Obsolete hidden commands,

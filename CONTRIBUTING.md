@@ -32,6 +32,7 @@ Install the locked environment and run the offline checks:
 uv sync --locked --group test --group dev
 uv run pre-commit install
 make lint
+make security
 make typecheck
 make doccheck
 make performance
@@ -42,7 +43,11 @@ uv lock --check
 
 `make lint` runs the required Black formatting check and Ruff lint/import-order
 check over production, test, review, consumer-spike, and benchmark Python. `make
-typecheck` runs mypy over the
+security` checks locked dependencies for published vulnerabilities and runs Ruff's
+production security rules. Its documented S608 exclusion covers manually reviewed
+SQL assembled only from fixed internal identifiers; values must remain parameter-
+bound. CodeQL independently analyzes pull requests and `main`. `make typecheck`
+runs mypy over the
 supported application boundary in `graver.application`, `graver.database`,
 `graver.evidence`, and `graver.research`. `make doccheck` enforces Google-style
 public docstring coverage over that same boundary, excluding redundant magic-method

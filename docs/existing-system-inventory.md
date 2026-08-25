@@ -116,6 +116,21 @@ service alert counts remain dated observations rather than release criteria;
 `1.0.0rc1` requires no unresolved known vulnerability without an explicit,
 documented risk decision.
 
+The pre-RC security review now has a public
+[threat model](security-threat-model.md) and
+[privacy/data-handling guide](privacy-and-data-handling.md). The CLI no longer
+creates a persistent log at import or normal startup; requested diagnostics go to
+standard error. Provider HTML link failures use typed parse errors rather than
+optimization-sensitive assertions. `make security` performs a locked dependency
+audit with `pip-audit` and Ruff production security checks; manually reviewed S608
+findings are limited to fixed internal SQL identifiers with parameter-bound values.
+The pinned CodeQL workflow analyzes pull requests, `main`, and a weekly schedule.
+GitHub secret scanning and push protection are enabled; the enablement check on
+2026-08-25 reported no secret alerts. CodeQL had not yet completed its first run at
+the time of this inventory update, so no clean-analysis claim is made here.
+No hosted service, account system, telemetry, remote synchronization, database
+encryption, or secure-erasure facility exists.
+
 The approved audit result, **remove**, is now implemented. `cloudscraper25` is no
 longer a runtime dependency or production/test import. Requests is an explicit
 runtime dependency behind a small graver-owned transport protocol and response
