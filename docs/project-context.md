@@ -978,22 +978,23 @@ Test infrastructure must also follow these rules:
 
 ### Live Find a Grave contract probe
 
-Add a separate, explicitly invoked `live_contract` maintenance probe to answer a
-different question from recorded tests: whether the current Find a Grave site still
-satisfies graver's minimum parsing contract. It is not part of ordinary local tests,
-pull-request validation, cassette recording, or the researcher-facing CLI. The
-designated full-memorial canary is the stable public George Washington memorial:
+The separate, explicitly invoked `make canary` maintenance probe answers a different
+question from recorded tests: whether the current Find a Grave site still satisfies
+graver's minimum full-memorial parsing contract. It is not part of ordinary local
+tests, pull-request validation, cassette recording, release automation, or the
+researcher-facing CLI. The designated canary is the stable public George Washington
+memorial:
 
 `https://www.findagrave.com/memorial/1075/george-washington`
 
-Each run should make only two or three requests: retrieve that memorial, perform one
-tightly constrained search expected to yield a summary, and optionally retrieve one
-stable cemetery page if cemetery parsing remains operationally important. Use short
-timeouts, minimal retries, no database writes, no fixture updates, and no
-authenticated session. Assert semantic invariants rather than exact mutable content:
-the response is not an access challenge or generic error; the memorial ID, name, and
-cemetery or burial linkage are recognizable; parsing does not silently produce an
-empty object; and a search result exposes its ID, URL, name, and burial context.
+Each run permits exactly one top-level request attempt for that memorial, disables
+retries, uses short timeouts, performs no database writes or fixture updates, and
+uses no authenticated session. It asserts semantic invariants rather than exact
+mutable content: the response is not an access challenge or generic error; the
+memorial ID, name, and cemetery or burial linkage are recognizable; and parsing
+does not silently produce an empty object. Summary-search and cemetery-page probes
+remain deferred unless a concrete diagnostic need justifies their additional live
+access.
 
 Classify outcomes as `compatible`, `schema_changed`, `access_blocked`,
 `site_unavailable`, `canary_changed`, or `probe_error`. A failure artifact may retain
@@ -1002,13 +1003,12 @@ missing invariant, response hash, and a small sanitized structural excerpt. It m
 never expose cookies, credentials, Cloudflare identifiers, unnecessary personal
 data, or automatically commit a response or refresh a fixture.
 
-Begin with manual execution before releases and parser changes, then run it
-periodically from a normal developer environment. Trial a weekly scheduled job only
-after confirming that its runner produces a reliable signal rather than Cloudflare
-false positives. Before any scheduled live access, review the current Find a Grave
-terms, robots directives, and published automation guidance; unclear policy requires
-maintainer review rather than assuming permission. A live failure is diagnostic and
-must not automatically block an unrelated release until its category is understood.
+Run it manually before releases and after material parser or transport changes from
+a normal developer environment. It is not scheduled. Before any scheduled live
+access, review the current Find a Grave terms, robots directives, and published
+automation guidance; unclear policy requires maintainer review rather than assuming
+permission. A live failure is diagnostic and must not automatically block an
+unrelated release until its category is understood. See [live-canary.md](live-canary.md).
 
 ## Target persistent entities
 

@@ -12,6 +12,9 @@ compatibility, security, deprecation, or known-issue notes before merging it.
 
 ### Added
 
+- Added an explicitly invoked, one-request live Find a Grave compatibility canary
+  with sanitized human and JSON reports; it remains outside ordinary tests, CI,
+  release automation, and researcher-facing commands.
 - Added a deterministic offline performance harness, weekly/manual baseline
   workflow, retained machine-readable reports, and provisional GUI responsiveness
   budgets without adding a pull-request timing gate.
