@@ -20,12 +20,16 @@ checklist, not a declaration that the release candidate has shipped.
 
 ## Remaining release gates
 
-1. Prepare and review the temporary Release Please prerelease configuration; verify
-   by dry run that it proposes `1.0.0rc1` and a GitHub prerelease.
-2. Run the full locked validation and `make release-check` on the final release pull
+1. Merge the reviewed prerelease configuration and manually run Release Please to
+   open—not publish—the release pull request. Pinned-runtime dry runs on 25 August
+   2026 proposed `v1.0.0-rc.1`, which normalizes to Python `1.0.0rc1`.
+2. Verify that the generated release pull request contains the same version, marks
+   the future GitHub Release as a prerelease, and changes only intended release
+   metadata and notes.
+3. Run the full locked validation and `make release-check` on the final release pull
    request.
-3. Review the generated changelog and release notes as user-facing documents.
-4. Merge the release pull request, deliberately trigger publication, and verify the
+4. Review the generated changelog and release notes as user-facing documents.
+5. Merge the release pull request, deliberately trigger publication, and verify the
    GitHub and PyPI artifacts after publication.
 
 The production GUI, its R3 UX review, provider-governed background jobs, FamilySearch,
