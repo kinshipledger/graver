@@ -20,9 +20,10 @@ checklist, not a declaration that the release candidate has shipped.
 
 ## Remaining release gates
 
-1. Merge the reviewed prerelease configuration and manually run Release Please to
-   open—not publish—the release pull request. Pinned-runtime dry runs on 25 August
-   2026 proposed `v1.0.0-rc.1`, which normalizes to Python `1.0.0rc1`.
+1. Correct the generated release pull request to `v1.0.0-rc.1`. Pinned-runtime dry
+   runs proposed that version, but the first live proposal ignored a `Release-As`
+   footer nested by squash merging and proposed unnumbered `v1.0.0-rc`. The reviewed
+   temporary `release-as` configuration must control the corrected proposal.
 2. Verify that the generated release pull request contains the same version, marks
    the future GitHub Release as a prerelease, and changes only intended release
    metadata and notes.

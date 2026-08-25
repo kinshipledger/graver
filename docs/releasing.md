@@ -54,9 +54,10 @@ authorized temporary copies.
 5. Dry-run the exact Release Please configuration and confirm that its Python update
    produces the intended first candidate version, `1.0.0rc1` in normalized PEP 440
    form. Stop if it proposes an ordinary release, a `0.x` release, or a different
-   candidate number. For the first candidate only, use a reviewed
-   `Release-As: 1.0.0-rc.1` commit footer rather than leaving a forced version in
-   permanent configuration.
+   candidate number. For the first candidate only, use the reviewed temporary
+   `release-as` value `1.0.0-rc.1`; remove it in a follow-up after the candidate is
+   published. A commit footer is not sufficient because squash merging can preserve
+   its text without preserving its release-control semantics.
 6. Merge that configuration only after the dry run is correct, then trigger the
    **Release Please** workflow manually.
 7. Review the generated release pull request. Confirm the package version has no
