@@ -49,17 +49,18 @@ class TestCli(Test):
             Memorial, "parse", lambda *_args, **_kwargs: pytest.fail("network call")
         )
         recorded = helpers.graver_cli(
-            f"record-alias {source.memorial_id} 999999 --db '{database.name}' "
+            f"admin aliases record {source.memorial_id} 999999 --db '{database.name}' "
             "--type merged --reason reviewed"
         )
         listed = helpers.graver_cli(
-            f"list-aliases --db '{database.name}' --status active --json"
+            f"admin aliases list --db '{database.name}' --status active --json"
         )
         shown = helpers.graver_cli(
-            f"show-alias {source.memorial_id} --db '{database.name}' --json"
+            f"admin aliases show {source.memorial_id} --db '{database.name}' --json"
         )
         retracted = helpers.graver_cli(
-            f"retract-alias {source.memorial_id} --db '{database.name}' --reason wrong"
+            f"admin aliases retract {source.memorial_id} --db '{database.name}' "
+            "--reason wrong"
         )
         assert (
             recorded.exit_code
@@ -95,10 +96,10 @@ class TestCli(Test):
             Memorial, "parse", lambda *_args, **_kwargs: pytest.fail("network call")
         )
         result = helpers.graver_cli(
-            f"scrape-task {source.memorial_id} --db '{database.name}'"
+            f"work enrich {source.memorial_id} --db '{database.name}'"
         )
         assert result.exit_code == 1
-        assert "active alias" in result.output
+        assert "redirects this memorial" in result.output
 
     def test_scrape_task_records_new_merge_without_touching_local_target(
         self, database, helpers, monkeypatch
@@ -125,7 +126,7 @@ class TestCli(Test):
 
         monkeypatch.setattr(Memorial, "parse", merged_once)
         result = helpers.graver_cli(
-            f"scrape-task {source.memorial_id} --db '{database.name}'"
+            f"work enrich {source.memorial_id} --db '{database.name}'"
         )
         target_after = graver.api.show_research_task(database.name, target.memorial_id)
         source_after = graver.api.show_research_task(database.name, source.memorial_id)
@@ -231,16 +232,19 @@ class TestCliQueueMemorials(TestCli):
                 )
 
         def fail_network(*args, **kwargs):
-            raise AssertionError("queue-memorials must not use the network")
+            raise AssertionError("work queue must not use the network")
 
         monkeypatch.setattr("graver.api.Driver.get", fail_network)
 
         result = helpers.graver_cli(
-            f"queue-memorials --db '{database}' --cemetery-id 10 --priority 4"
+            f"work queue --db '{database}' --cemetery-id 10 --priority 4"
         )
 
         assert result.exit_code == 0
-        assert "Created 2 research tasks; 0 already present." in result.output
+        assert (
+            "Added 2 people to the research queue; 0 people were already present."
+            in result.output
+        )
         with connect_database(database) as connection:
             tasks = connection.execute("""SELECT sm.memorial_id, t.status, t.priority
                    FROM research_tasks t
@@ -249,10 +253,13 @@ class TestCliQueueMemorials(TestCli):
         assert tasks == [(1, "unprocessed", 4), (2, "unprocessed", 4)]
 
         repeated = helpers.graver_cli(
-            f"queue-memorials --db '{database}' --cemetery-id 10 --priority 1"
+            f"work queue --db '{database}' --cemetery-id 10 --priority 1"
         )
         assert repeated.exit_code == 0
-        assert "Created 0 research tasks; 2 already present." in repeated.output
+        assert (
+            "Added 0 people to the research queue; 2 people were already present."
+            in repeated.output
+        )
 
 
 class TestCliResearchTasks(Test):
@@ -280,15 +287,15 @@ class TestCliResearchTasks(Test):
 
         monkeypatch.setattr("graver.api.Driver.get", fail_network)
         listed = helpers.graver_cli(
-            f"list-tasks --db '{database.name}' --status unprocessed "
+            f"work list --db '{database.name}' --status unprocessed "
             f"--cemetery-id {summary.cemetery_id} --json"
         )
         shown = helpers.graver_cli(
-            f"show-task {summary.memorial_id} --db '{database.name}' --json"
+            f"work show {summary.memorial_id} --db '{database.name}' --json"
         )
         updated = helpers.graver_cli(
-            f"update-task {summary.memorial_id} --db '{database.name}' "
-            "--status researching --owner researcher"
+            f"work mark {summary.memorial_id} --db '{database.name}' "
+            "--status researching --owner researcher --json"
         )
 
         assert listed.exit_code == shown.exit_code == updated.exit_code == 0
@@ -307,11 +314,11 @@ class TestCliResearchTasks(Test):
         assert json.loads(updated.output)["data"]["status"] == "researching"
 
     def test_missing_memorial_and_missing_task_exit_nonzero(self, helpers, database):
-        missing_memorial = helpers.graver_cli(f"show-task 999 --db '{database.name}'")
+        missing_memorial = helpers.graver_cli(f"work show 999 --db '{database.name}'")
         with connect_database(database.name) as connection:
             connection.execute("INSERT INTO graves (memorial_id) VALUES (999)")
             graver.api._ensure_subject_for_memorial(connection, 999, "fixture")
-        missing_task = helpers.graver_cli(f"show-task 999 --db '{database.name}'")
+        missing_task = helpers.graver_cli(f"work show 999 --db '{database.name}'")
 
         assert missing_memorial.exit_code != 0
         assert "Memorial 999 does not exist" in missing_memorial.output
@@ -337,7 +344,7 @@ class TestCliResearchTasks(Test):
         )
 
         result = helpers.graver_cli(
-            f"scrape-task {summary.memorial_id} --db '{database.name}'"
+            f"work enrich {summary.memorial_id} --db '{database.name}'"
         )
 
         assert result.exit_code != 0
@@ -368,7 +375,7 @@ class TestCliResearchTasks(Test):
         monkeypatch.setattr(Memorial, "parse", parse)
 
         result = helpers.graver_cli(
-            f"scrape-task {selected.memorial_id} --db '{database.name}'"
+            f"work enrich {selected.memorial_id} --db '{database.name}'"
         )
 
         assert result.exit_code == 0
@@ -403,7 +410,7 @@ class TestCliResearchTasks(Test):
         monkeypatch.setattr(Memorial, "parse", fail_parse)
 
         result = helpers.graver_cli(
-            f"scrape-task {summary.memorial_id} --db '{database.name}'"
+            f"work enrich {summary.memorial_id} --db '{database.name}'"
         )
 
         assert result.exit_code != 0
@@ -567,8 +574,23 @@ class TestCliResearcherSurface(Test):
         for command in ("list", "show", "record", "retract"):
             assert command in aliases.output
 
-    @pytest.mark.parametrize("command", ["scrape-file", "scrape-url"])
-    def test_retired_scrape_commands_are_unavailable(self, helpers, command):
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "list-tasks",
+            "show-task",
+            "update-task",
+            "scrape-task",
+            "queue-memorials",
+            "list-aliases",
+            "show-alias",
+            "record-alias",
+            "retract-alias",
+            "scrape-file",
+            "scrape-url",
+        ],
+    )
+    def test_retired_commands_are_unavailable(self, helpers, command):
         result = helpers.graver_cli(command)
 
         assert result.exit_code == 2
@@ -807,9 +829,7 @@ class TestCliResearcherSurface(Test):
         assert enriched_json["command"] == "work.enrich"
         assert enriched_json["data"]["status"] == "full_scrape_complete"
 
-    def test_admin_aliases_and_hidden_legacy_commands_both_work(
-        self, helpers, database
-    ):
+    def test_admin_aliases_commands_are_machine_readable(self, helpers, database):
         source = self.summary().save()
         graver.api.queue_memorials(database.name)
 
@@ -821,17 +841,13 @@ class TestCliResearcherSurface(Test):
         shown = helpers.graver_cli(
             f"admin aliases show {source.memorial_id} --db '{database.name}' --json"
         )
-        legacy_task = helpers.graver_cli(
-            f"show-task {source.memorial_id} --db '{database.name}' --json"
-        )
         retracted = helpers.graver_cli(
             f"admin aliases retract {source.memorial_id} --db '{database.name}' "
             "--reason correction"
         )
 
         assert all(
-            result.exit_code == 0
-            for result in (recorded, listed, shown, legacy_task, retracted)
+            result.exit_code == 0 for result in (recorded, listed, shown, retracted)
         )
         listed_json = json.loads(listed.output)
         shown_json = json.loads(shown.output)
@@ -840,10 +856,6 @@ class TestCliResearcherSurface(Test):
         assert shown_json["command"] == "admin.aliases.show"
         assert shown_json["data"]["canonical_memorial_id"] == 999999
         assert json.loads(recorded.output)["command"] == "admin.aliases.record"
-        assert (
-            json.loads(legacy_task.output)["data"]["task"]["memorial_id"]
-            == source.memorial_id
-        )
         retracted_json = json.loads(retracted.output)
         assert retracted_json["command"] == "admin.aliases.retract"
         assert retracted_json["data"]["history"][-1]["event_type"] == "retracted"
@@ -873,7 +885,7 @@ class TestCliSearch(TestCli):
         monkeypatch.setattr(WorkspaceAcquisition, "search", search)
 
         result = helpers.graver_cli(
-            f"search --db '{database}' --id 1075 --max-results 1"
+            f"search --db '{database}' --memorial-id 1075 --max-results 1"
         )
 
         assert result.exit_code == 0
@@ -936,7 +948,7 @@ class TestCliSearch(TestCli):
 
         initialized = helpers.graver_cli("init tutorial.db")
         selected = helpers.graver_cli("use --show")
-        searched = helpers.graver_cli("search --id 1075 --max-results 1")
+        searched = helpers.graver_cli("search --memorial-id 1075 --max-results 1")
         queued = helpers.graver_cli("work queue")
         listed = helpers.graver_cli("work list --limit 10")
         next_person = helpers.graver_cli("work next")
@@ -1054,9 +1066,9 @@ class TestCliSearch(TestCli):
 
         monkeypatch.setattr(Memorial, "search", mock_search)
         result = helpers.graver_cli(
-            "search --id=123 --fulltext='John Smith' --bio=married "
-            "--tags='american revolutionary war' --birthyearfilter=unknown "
-            "--deathyearfilter=25 --datefilter=-90 --orderby=dc"
+            "search --memorial-id=123 --full-text='John Smith' --biography=married "
+            "--tags='american revolutionary war' --birth-year-filter=unknown "
+            "--death-year-filter=25 --date-filter=-90 --order-by=dc"
         )
 
         assert result.exit_code == 0
@@ -1068,6 +1080,59 @@ class TestCliSearch(TestCli):
         assert captured["deathyearfilter"] == "25"
         assert captured["datefilter"] == -90
         assert captured["orderby"] == "dc"
+
+    @pytest.mark.parametrize(
+        "option, field, expected",
+        [
+            ("--famous", "famous", True),
+            ("--not-famous", "famous", False),
+            ("--sponsored", "sponsored", True),
+            ("--not-sponsored", "sponsored", False),
+            ("--cenotaph", "cenotaph", True),
+            ("--not-cenotaph", "cenotaph", False),
+            ("--monument", "monument", True),
+            ("--not-monument", "monument", False),
+            ("--veteran", "isVeteran", True),
+            ("--not-veteran", "isVeteran", False),
+            ("--flowers", "flowers", True),
+            ("--no-flowers", "flowers", False),
+            ("--has-plot", "hasPlot", True),
+            ("--no-plot", "hasPlot", False),
+        ],
+    )
+    def test_tristate_search_flags_are_forwarded(
+        self, helpers, monkeypatch, option, field, expected
+    ):
+        captured = {}
+
+        def mock_search(*args, **kwargs):
+            captured.update(kwargs)
+            return []
+
+        monkeypatch.setattr(Memorial, "search", mock_search)
+
+        result = helpers.graver_cli(f"search {option}")
+
+        assert result.exit_code == 0
+        assert captured[field] is expected
+
+    @pytest.mark.parametrize(
+        "option",
+        [
+            "--id=1075",
+            "--cid=1",
+            "--max=1",
+            "--firstname=Eleanor",
+            "--locationId=1",
+            "--isVeteran=true",
+            "--exactName",
+        ],
+    )
+    def test_removed_search_option_spellings_are_rejected(self, helpers, option):
+        result = helpers.graver_cli(f"search {option}")
+
+        assert result.exit_code == 2
+        assert "No such option" in unstyle(result.output)
 
     @pytest.mark.parametrize(
         "cemetery_id, lastname, death_year", [(641417, "Jackson", 1828)]
@@ -1103,8 +1168,8 @@ class TestCliSearch(TestCli):
             "graver.acquisition.legacy_api.Cemetery", lambda url: FakeCemetery()
         )
         command = (
-            f"search --cemetery-id={cemetery_id} --lastname='{lastname}' "
-            f"--deathyear={death_year} --max-results={max_results}"
+            f"search --cemetery-id={cemetery_id} --last-name='{lastname}' "
+            f"--death-year={death_year} --max-results={max_results}"
         )
         result = helpers.graver_cli(command)
         assert result.exit_code == 0
@@ -1113,114 +1178,52 @@ class TestCliSearch(TestCli):
 
     @pytest.mark.parametrize("value", ["yes", "true"])
     def test_gpsfilter_callback(self, value, helpers):
-        command = f"search --gpsfilter={value}"
+        command = f"search --gps-filter={value}"
         result = helpers.graver_cli(command)
         assert result.exit_code == 2
         assert "Invalid value" in result.output
 
     @pytest.mark.parametrize("value", ["yes", "true"])
     def test_photofilter_callback(self, value, helpers):
-        command = f"search --photofilter={value}"
+        command = f"search --photo-filter={value}"
         result = helpers.graver_cli(command)
         assert result.exit_code == 2
         assert "Invalid value" in result.output
 
     @pytest.mark.parametrize("value", ["yes", "true"])
     def test_yearfilter_callback(self, value, helpers, caplog):
-        command = f"search --birthyear=1856 --birthyearfilter={value}"
+        command = f"search --birth-year=1856 --birth-year-filter={value}"
         result = helpers.graver_cli(command)
         assert result.exit_code == 2
         assert "Invalid value" in result.output
 
     @pytest.mark.parametrize("value", [0, 14, -30])
     def test_datefilter_callback(self, value, helpers):
-        result = helpers.graver_cli(f"search --datefilter={value}")
+        result = helpers.graver_cli(f"search --date-filter={value}")
         assert result.exit_code == 2
         assert "Invalid value" in result.output
 
     def test_orderby_callback(self, helpers):
-        result = helpers.graver_cli("search --orderby=invalid")
+        result = helpers.graver_cli("search --order-by=invalid")
         assert result.exit_code == 2
         assert "Invalid value" in result.output
 
     @pytest.mark.parametrize(
         "param",
         [
-            "exactName",
-            "fuzzyNames",
+            "exact-name",
+            "fuzzy-names",
         ],
     )
     def test_name_filter_callback(self, param, helpers, monkeypatch):
         monkeypatch.setattr(Memorial, "search", lambda *args, **kwargs: [])
         # Success case
-        command = f"search --firstname=foo --{param} --max=5"
+        command = f"search --first-name=foo --{param} --max-results=5"
         result = helpers.graver_cli(command)
         assert result.exit_code == 0
 
         # Failure case
-        command = f"search --{param} --max=5"
+        command = f"search --{param} --max-results=5"
         result = helpers.graver_cli(command)
         assert result.exit_code == 2
         assert "Invalid value" in result.output
-
-    # @pytest.mark.parametrize(
-    #     "parm",
-    #     [
-    #         "famous=true",
-    #         "famous=false",
-    #         "sponsored=true",
-    #         "sponsored=false",
-    #         "noCemetery",
-    #         "cenotaph=true",
-    #         "cenotaph=false",
-    #         "monument=true",
-    #         "monument=false",
-    #         "isVeteran=true",
-    #         "isVeteran=false",
-    #         "photofilter=photos",
-    #         "photofilter=nophotos",
-    #         "gpsfilter=gps",
-    #         "gpsfilter=nogps",
-    #         "flowers=true",
-    #         "flowers=false",
-    #         "hasPlot=true",
-    #         "hasPlot=false",
-    #     ],
-    # )
-    # def test_parameters(self, parm, helpers, caplog):
-    #     max_results = 5
-    #     command = f"search --{parm} --max-results={max_results}"
-    #     # with vcr.use_cassette(
-    #     #     os.path.join(Test.CASSETTES, f"test_cli_search_with_parm-{parm}.yaml")
-    #     # ):
-    #     result = helpers.graver_cli(command)
-    #     assert result.exit_code == 0
-    #     assert result.output == ""
-    #     assert caplog.text.count("\n") == max_results
-
-    # @pytest.mark.parametrize(
-    #     "parm",
-    #     [
-    #         "includeNickName",
-    #         "includeMaidenName",
-    #         "includeTitles",
-    #         "exactName",
-    #         "fuzzyNames",
-    #     ],
-    # )
-    # def test_name_filters(self, parm, helpers, caplog):
-    #     # with vcr.use_cassette(
-    #     #     os.path.join(
-    #     #         Test.CASSETTES,
-    #     #         f"test_cli_search_with_name_filters" f"-{parm}.yaml",
-    #     #     )
-    #     # ):
-    #     max_results = 5
-    #     command = (
-    #         f"search --firstname=John --lastname=Smith --{parm} --max-results"
-    #         f"={max_results}"
-    #     )
-    #     result = helpers.graver_cli(command)
-    #     assert result.exit_code == 0
-    #     assert result.output == ""
-    #     assert caplog.text.count("\n") == max_results

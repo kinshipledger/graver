@@ -48,7 +48,9 @@ notice is not planned.
   search followed by explicit queueing, approval, and one-person `work enrich` is
   the supported full-record acquisition path. No unattended file loop remains.
 - `admin aliases list`, `show`, `record`, and `retract` expose specialist Find a Grave redirect maintenance and immutable history without moving tasks or grave data.
-- The earlier top-level task and alias commands remain functional as hidden compatibility aliases. They preserve existing arguments, output, and exit behavior but do not compete with ordinary workflows in root help.
+- The earlier top-level task and alias compatibility commands are removed. Their
+  supported replacements are the researcher-facing `work` hierarchy and specialist
+  `admin aliases` hierarchy.
 - The console entry point is `graver = graver.cli:app`. `graver.__main__` invokes
   the same application for supported `python -m graver` execution. Direct
   execution of the implementation module `graver.cli` is not a public contract.
@@ -295,8 +297,9 @@ the documented schema-version-1 envelope: `schema_version`, a stable dotted
 keeps subject UUIDs and private SQL structures out of the CLI, and permits additive
 optional fields within version 1. Runtime JSON errors are not yet a documented
 contract; syntax and operational failures retain nonzero exits and human-readable
-standard-error diagnostics. Hidden compatibility commands use the envelope while
-they remain implemented, but are not part of the supported 1.0 command contract.
+standard-error diagnostics. The 1.0 decision uses exit status 1 for operational
+failure and 2 for invalid usage rather than introducing a partial JSON error schema.
+The removed hidden compatibility commands are not part of the supported contract.
 
 No desktop GUI currently exists. Current CLI and Python boundaries still expose a
 mixture of persistence-shaped dictionaries, root-level functions, SQLite-oriented
@@ -379,8 +382,8 @@ Keep the existing scraper and its `graves` table as the **Find a Grave acquisiti
 
 The task-oriented CLI, explicit database lifecycle, schema-v2 subject ownership,
 additive schema-v4 offline evidence structures, and versioned successful-result JSON
-envelopes are complete, but broad exports, compatibility aliases,
-dependency boundaries, and accidental internal APIs must not be frozen as the 1.0
+envelopes and CLI cleanup are complete, but broad exports, dependency boundaries,
+and accidental internal APIs must not be frozen as the 1.0
 contract. Before beginning FamilySearch work, follow the ordered pre-1.0 roadmap in
 `docs/project-context.md`. The subject-oriented application service now provides
 typed task queries, updates, summaries, records, details, queue requests/results,
@@ -422,17 +425,17 @@ ordinary CLI reads, and API reads remain non-mutating; outdated schemas receive
 actionable guidance for `graver admin database upgrade DATABASE`. That explicit
 specialist workflow creates a verified backup, performs ordered transactional
 migration, and validates the result without automatically restoring over user data.
-Normalized acquisition options and hidden-command removal are not implemented yet.
-Versioned successful-result JSON and `python -m graver` are implemented.
+Normalized acquisition options, hidden-command removal, versioned successful-result
+JSON, and `python -m graver` are implemented.
 
 Typer remains the current CLI adapter framework and is retained provisionally
 through 1.0 preparation for its nested-command, typed-conversion, generated-help,
 completion, and testing value. It is not part of the planned public application API.
-Seven legacy value-taking Boolean search options currently emit Typer deprecation
-warnings, and Rich-rendered help has required presentation-boundary normalization in
-tests. Acquisition-option cleanup must remove those warnings and apply the approved
-pre-RC exit criteria; recurring unsupported behavior or disproportionate framework
-maintenance would trigger migration to direct Click before 1.0.
+The former value-taking Boolean search options now use explicit paired flags and no
+longer emit Typer deprecation warnings. Rich-rendered help remains protected by
+semantic presentation-boundary tests. The cleaned adapter currently satisfies the
+approved Typer retention criteria; recurring unsupported behavior or disproportionate
+framework maintenance would still trigger migration to direct Click before 1.0.
 
 The implemented current schema is version 3. The schema-v2 foundation uses
 canonical lowercase UUIDv4 `TEXT` subject IDs and adds
@@ -473,10 +476,10 @@ meanings.
 Ordinary CLI output keeps subject UUIDs internal and preserves memorial IDs as
 researcher lookup keys. The lowest associated memorial ID is only a deterministic
 temporary display fallback where no reviewed preferred memorial exists; it is not
-canonical identity. Existing pre-1.0 JSON will be compatibility-projected until the
-separate versioned-envelope milestone. Merge, split, manual association or
-reassociation, preferred memorial selection, live external-provider adapters,
-versioned envelopes, and hidden-command removal remain explicitly deferred.
+canonical identity. Existing pre-1.0 result fields remain compatibility-projected
+inside the implemented versioned envelope. Merge, split, manual association or
+reassociation, preferred memorial selection, and live external-provider adapters
+remain explicitly deferred.
 
 The initial public application-service boundary is implemented at
 `graver.application`. It explicitly exports typed database lifecycle, research, and
@@ -519,8 +522,8 @@ mypy/docstring gates, and offline developer guidance are implemented. Typer, Ric
 SQLite connections and rows, SQL helpers, parsers, Requests objects, `Driver`, and
 transport implementation types remain outside the boundary as intended.
 
-That milestone will review broad root and wildcard exports, hidden commands,
-commented-out or empty test scaffolding, obsolete compatibility helpers, and unused
+That milestone will review broad root and wildcard exports, obsolete compatibility
+helpers, and unused
 dependencies. Removal requires corroborating repository, test, coverage or static-
 analysis, import/export, and compatibility evidence rather than one linter warning;
 research-data migration paths remain protected. Compatibility-sensitive removals

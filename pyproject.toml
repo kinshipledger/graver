@@ -90,6 +90,7 @@ testpaths = ["tests"]
 filterwarnings = [
     "error::ResourceWarning",
     "error::pytest.PytestUnraisableExceptionWarning",
+    "error::DeprecationWarning:typer.*",
     "ignore::DeprecationWarning:betamax.*",
 ]
 

@@ -149,7 +149,7 @@ Use a narrow search to save summary records without retrieving every individual
 memorial page. For example:
 
 ```shell
-uv run graver search --id 1075 --max-results 1
+uv run graver search --memorial-id 1075 --max-results 1
 ```
 
 The command returns a concise acquisition receipt distinguishing new memorials,
@@ -228,6 +228,7 @@ For contributors and maintainers:
 - [Contribution guide](CONTRIBUTING.md)
 - [Developer API guide](docs/api.md)
 - [Command-line JSON contract](docs/cli-json.md)
+- [Pre-1.0 command-line migration](docs/cli-migration.md)
 - [Security policy](SECURITY.md)
 - [Project context and roadmap](docs/project-context.md)
 - [Verified implementation inventory](docs/existing-system-inventory.md)

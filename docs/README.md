@@ -20,6 +20,9 @@ boundary for CLI, future GUI, and other client adapters.
 The [command-line JSON contract](cli-json.md) defines the versioned envelope and
 command identifiers used by supported machine-readable CLI results.
 
+The [pre-1.0 command-line migration](cli-migration.md) maps removed compatibility
+commands and provider-shaped search spellings to the supported CLI.
+
 The [source-neutral adapter strategy](source-adapter-strategy.md) defines graver's
 scope boundary, adapter roles, admission gates, prioritization scorecard, and
 professional-review cadence. It is a guardrail against both source-specific core

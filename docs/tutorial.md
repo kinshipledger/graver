@@ -84,7 +84,7 @@ ID `1075`, the public George Washington memorial, and caps processing at one
 result:
 
 ```shell
-graver search --id 1075 --max-results 1
+graver search --memorial-id 1075 --max-results 1
 ```
 
 Success prints an acquisition receipt: summaries observed, new and existing

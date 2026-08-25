@@ -191,10 +191,10 @@ typed conversion, generated help, shell completion, and test support. The CLI mu
 nevertheless become a thin adapter over typed application services so that Typer,
 Rich, or a later replacement cannot constrain the GUI or other consumers.
 
-Before `1.0.0rc1`, normalize the acquisition options, remove hidden compatibility
-commands, migrate supported declarations away from deprecated Typer behavior, and
-test help semantically without depending on terminal layout. Re-evaluate Typer after
-that cleanup. Replace it with direct Click before 1.0 if the cleaned adapter still
+The acquisition options are normalized, hidden compatibility commands are removed,
+supported declarations no longer use deprecated Typer behavior, and help is tested
+semantically without depending on terminal layout. Re-evaluate Typer after this
+cleanup. Replace it with direct Click before 1.0 if the cleaned adapter still
 requires unsupported option behavior, produces recurring cross-platform rendering
 failures, or imposes disproportionate upgrade work. Do not undertake a framework
 rewrite merely to reduce dependencies; `argparse` is not preferred while graver
@@ -222,17 +222,18 @@ versioned machine-readable output, and Python 3.11 through 3.14.
 The installed `graver` command and `python -m graver` are both supported through the
 console entry point and `graver.__main__`. Direct execution of the implementation
 module `graver.cli` is not a compatibility contract. Acquisition
-search will retain useful researcher capabilities, but its public options will use
+search retains useful researcher capabilities, and its public options use
 consistent kebab-case researcher terminology. Find a Grave's site-shaped parameter
-names will remain internal mappings. Duplicate and camel-case spellings and hidden
-pre-1.0 task and alias commands will be removed after their normalized replacements
-are established and before the 1.0 release.
+names remain internal mappings. Duplicate and camel-case spellings and hidden
+pre-1.0 task and alias commands are removed.
 
 Machine-readable success output uses documented, command-specific, schema-version-1
 JSON envelopes rather than raw database rows. The envelope carries a stable dotted
 command identifier and the application-facing result under `data`; syntax and
 operational failures currently retain nonzero exits and human-readable diagnostics
-rather than promising a JSON error schema. The root package will expose only a
+rather than promising a partial JSON error schema. For 1.0, exit status 1 identifies
+operational failure and 2 identifies invalid usage; clients needing structured error
+codes use the typed Python API. The root package will expose only a
 documented public facade. Parsers, SQL and migration helpers, transport mechanics,
 and wildcard constants are internal. `Driver` is transport infrastructure and will
 not be part of the public 1.0 API; a public acquisition client should be introduced
@@ -340,8 +341,8 @@ work-state history; subject events describe subject lifecycle and memorial
 association history, so the two streams must not be conflated.
 
 This implemented milestone does not include subject merge or split, manual memorial
-association or reassociation, preferred/canonical memorial decisions, FamilySearch
-or WikiTree persistence, or hidden-command removal.
+association or reassociation, preferred/canonical memorial decisions, or
+FamilySearch or WikiTree persistence.
 
 ## Public application API and desktop boundary
 
@@ -575,8 +576,7 @@ evolution.
 Dead-code cleanup requires corroborating evidence from repository searches, tests,
 coverage where appropriate, static analysis, import/export inspection, and the
 documented compatibility contract. One unused-code warning is insufficient. Review
-broad root exports and wildcard imports, `Driver`, hidden compatibility commands,
-commented-out tests, empty fixtures and hooks, unused dependencies, and obsolete
+broad root exports and wildcard imports, `Driver`, unused dependencies, and obsolete
 compatibility helpers. Remove only code demonstrated to be unused or explicitly
 approved as obsolete. Migration paths that protect researcher data remain even when
 ordinary code no longer calls them. Plausible external imports or commands removed
@@ -1168,10 +1168,10 @@ Pre-1.0 sequence:
    implementation mechanics as internal details.
 17. **Completed:** Add command-specific versioned JSON envelopes as adapter
    projections of the same typed application results.
-18. Normalize acquisition options and remove duplicate, site-shaped, and hidden
-   pre-1.0 compatibility paths. Modernize the remaining supported Typer declarations,
-   remove deprecated option behavior, keep help assertions semantic, and apply the
-   approved Typer retention/exit criteria before freezing the CLI.
+18. **Completed:** Normalize acquisition options and remove duplicate, site-shaped,
+   and hidden pre-1.0 compatibility paths. Modernize supported Typer declarations,
+   remove deprecated option behavior, keep help assertions semantic, retain Typer
+   after its evidence-based review, and define the exit-status error contract.
 19. **Completed:** Support `python -m graver` through `graver.__main__` and verify
    both entry points from the built wheel and an isolated uv tool installation.
 20. Maintain the uv-based Python 3.11-through-3.14 CI, Conventional Commit PR-title
