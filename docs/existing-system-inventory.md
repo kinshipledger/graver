@@ -49,9 +49,9 @@ notice is not planned.
   the supported full-record acquisition path. No unattended file loop remains.
 - `admin aliases list`, `show`, `record`, and `retract` expose specialist Find a Grave redirect maintenance and immutable history without moving tasks or grave data.
 - The earlier top-level task and alias commands remain functional as hidden compatibility aliases. They preserve existing arguments, output, and exit behavior but do not compete with ordinary workflows in root help.
-- The console entry point is `graver = graver.cli:app`. Direct execution through
-  `python -m graver.cli` is broken, and no `graver.__main__` module currently
-  provides `python -m graver`.
+- The console entry point is `graver = graver.cli:app`. `graver.__main__` invokes
+  the same application for supported `python -m graver` execution. Direct
+  execution of the implementation module `graver.cli` is not a public contract.
 
 graver currently has no durable background-job engine, scheduler, or unattended
 bulk-enrichment mode. Full memorial enrichment is intentionally person-at-a-time and
@@ -422,8 +422,8 @@ ordinary CLI reads, and API reads remain non-mutating; outdated schemas receive
 actionable guidance for `graver admin database upgrade DATABASE`. That explicit
 specialist workflow creates a verified backup, performs ordered transactional
 migration, and validates the result without automatically restoring over user data.
-Versioned JSON, normalized acquisition options, hidden-command removal, and
-`python -m graver` are not implemented yet.
+Normalized acquisition options and hidden-command removal are not implemented yet.
+Versioned successful-result JSON and `python -m graver` are implemented.
 
 Typer remains the current CLI adapter framework and is retained provisionally
 through 1.0 preparation for its nested-command, typed-conversion, generated-help,

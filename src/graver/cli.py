@@ -1180,7 +1180,3 @@ def search(
                 f"  {change.memorial_id} | {change.field}: "
                 f"{change.previous!r} -> {change.current!r}"
             )
-
-
-if __name__ == "__main__":  # pragma: no cover
-    typer.run(app)
