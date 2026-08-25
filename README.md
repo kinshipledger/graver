@@ -239,6 +239,8 @@ For contributors and maintainers:
 - [Maintainer release process](docs/releasing.md)
 - [Performance and responsiveness](docs/performance.md)
 - [Security policy](SECURITY.md)
+- [Security threat model](docs/security-threat-model.md)
+- [Privacy and data handling](docs/privacy-and-data-handling.md)
 - [Project context and roadmap](docs/project-context.md)
 - [Verified implementation inventory](docs/existing-system-inventory.md)
 - [Initial inspection guide](docs/initial-inspection.md)
@@ -246,6 +248,14 @@ For contributors and maintainers:
 Longer-term ideas—including GEDCOM interchange—are indexed with the other
 architecture documents in [docs](docs/README.md). They are not part of the current
 researcher workflow.
+
+Research stays in the local database you select; graver has no telemetry, account,
+or cloud synchronization. Local genealogy can still be sensitive—especially when
+it includes living people, private notes, or inferred relationships—so read the
+[privacy and data-handling guide](docs/privacy-and-data-handling.md) before sharing
+a database or export. The [threat model](docs/security-threat-model.md) documents
+current protections and limitations without pretending a local SQLite file is a
+fortress with a moat.
 
 Project changes and releases are documented in the [changelog](CHANGELOG.md).
 

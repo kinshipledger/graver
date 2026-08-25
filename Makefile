@@ -1,4 +1,4 @@
-.PHONY: help init sync run test performance canary canary-json lint typecheck doccheck format clean
+.PHONY: help init sync run test performance canary canary-json lint security typecheck doccheck format clean
 
 # Default goal when running just `make`
 .DEFAULT_GOAL := help
@@ -37,6 +37,13 @@ canary-json: ## Run the live compatibility probe with JSON output
 lint: ## Run required formatting and lint checks
 	uv run --group dev black --check src/graver tests review consumer_spike benchmarks maintenance
 	uv run --group dev ruff check src/graver tests review consumer_spike benchmarks maintenance
+
+security: ## Audit dependencies and production Python security rules
+	uv run --group dev pip-audit
+	# S608 is excluded here: all current dynamic SQL identifiers come from fixed
+	# internal allowlists; values remain parameter-bound. CodeQL provides a
+	# second SQL-injection check, and the threat model records this review.
+	uv run --group dev ruff check --select S --ignore S608 src/graver maintenance
 
 typecheck: ## Type-check the supported application boundary
 	uv run --group dev mypy

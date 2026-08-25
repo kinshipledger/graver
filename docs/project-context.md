@@ -1209,9 +1209,18 @@ Pre-1.0 sequence:
    or live acquisition. Cover populated task updates, injected summary and full
    acquisition, progress, safe cancellation, optimistic concurrency, typed boundary
    values, and retained observation behavior.
-23. Resolve spike findings and prepare `1.0.0rc1` without weakening migration,
+23. Complete the pre-RC security and privacy gate. Maintain a public threat model
+   and data-handling guide; audit dependencies, source, workflows, packaging,
+   transport, local storage, and privacy boundaries; enable CodeQL and repository
+   secret protections where supported; and resolve every Critical or High finding
+   or record a dated explicit risk decision. Obtain an independent targeted review
+   before final 1.0. Hosted services, authentication, synchronization, production
+   network listeners, plugins, or cloud storage require a new threat model and a
+   stronger external assessment. Keep jurisdictional applicability and legal or
+   entrepreneurial analysis in the private outer planning area.
+24. Resolve spike and security findings and prepare `1.0.0rc1` without weakening migration,
    provenance, concurrency, or offline-test guarantees.
-24. Validate the release candidate, re-evaluate whether GEDCOM has demonstrated
+25. Validate the release candidate, re-evaluate whether GEDCOM has demonstrated
     enough value for later implementation, and release graver `1.0.0` after the core
     findings are resolved. Reconcile the source-adapter strategy, API guide, access
     policy, review gates, inventory, roadmap, tutorial, and README; confirm that

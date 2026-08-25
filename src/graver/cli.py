@@ -2,7 +2,6 @@ import importlib.metadata
 import json
 import logging
 import sys
-from logging.handlers import RotatingFileHandler
 from typing import Optional
 
 import typer
@@ -52,35 +51,7 @@ log = logging.getLogger(__name__)
 # Global Driver
 cli_driver = Driver()
 
-# Logging setup
-DEFAULT_LOG_FILENAME = "graver.log"
 DEFAULT_LOG_LEVEL = "INFO"
-DEFAULT_LOG_FORMAT = (
-    "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s"
-)
-DEFAULT_LOG_DATE_FORMAT = "%H:%M:%S"
-
-
-# set up logging to console and file
-logging.root.handlers = []
-console = logging.StreamHandler(sys.stdout)
-console_formatter = logging.Formatter("%(message)s")
-console.setFormatter(console_formatter)
-logging.basicConfig(
-    level=DEFAULT_LOG_LEVEL,
-    format=DEFAULT_LOG_FORMAT,
-    datefmt=DEFAULT_LOG_DATE_FORMAT,
-    handlers=[
-        RotatingFileHandler(
-            DEFAULT_LOG_FILENAME,
-            mode="a",
-            maxBytes=5 * 1024 * 1024,
-            backupCount=2,
-            encoding="utf8",
-        ),
-        console,
-    ],
-)
 
 
 def version_callback(value: bool):
@@ -89,15 +60,19 @@ def version_callback(value: bool):
         metadata = importlib.metadata.metadata(APP_NAME)
         name_str = metadata["Name"]
         version_str = metadata["Version"]
-        log.info("{} v{}".format(name_str, version_str))
+        typer.echo(f"{name_str} v{version_str}")
         raise typer.Exit()
 
 
-# FIXME clean up logging initialization
 def logging_callback(log_level: str):
-    """Set log level for graver application"""
+    """Configure explicit CLI diagnostics on standard error."""
     if log_level:
-        logging.getLogger().setLevel(log_level.upper())
+        logging.basicConfig(
+            level=log_level.upper(),
+            format="%(message)s",
+            handlers=[logging.StreamHandler(sys.stderr)],
+            force=True,
+        )
         log.debug("Log level is " + str(log_level.upper()))
 
 

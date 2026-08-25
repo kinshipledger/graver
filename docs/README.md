@@ -12,6 +12,11 @@ using the implemented command-line workflow.
 The [access policy](access-policy.md) defines current project governance for
 responsible acquisition behavior and contributions.
 
+The [security threat model](security-threat-model.md) records assets, trust
+boundaries, controls, known risks, and release gates. The companion
+[privacy and data-handling guide](privacy-and-data-handling.md) explains what local
+research data is retained, disclosed to providers, and safe to share.
+
 The [provider acquisition and import decision](provider-import-decision.md) applies
 that policy to the `1.0.0rc1` scope: bounded researcher-directed operations remain,
 while unattended Find a Grave acquisition, a public job engine, and speculative

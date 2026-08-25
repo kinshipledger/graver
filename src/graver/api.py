@@ -1862,10 +1862,14 @@ class _MemorialParser:
             self.burial_place = ", ".join([cemetery_name, cemetery_address])
 
     def scrape_cemetery_id(self, cem: Tag):
-        if (href := cast(str, cast(Tag, cem.find("a"))["href"])) is not None:
-            match: Optional[Match[str]] = re.search("/([0-9]+)/", href)
-            assert match is not None
-            self.cemetery_id = int(match.group(1))
+        anchor = cem.find("a")
+        href = anchor.get("href") if isinstance(anchor, Tag) else None
+        if not isinstance(href, str):
+            raise MemorialParseException("Cemetery link is missing from memorial page")
+        match: Optional[Match[str]] = re.search("/([0-9]+)/", href)
+        if match is None:
+            raise MemorialParseException("Cemetery link has no numeric cemetery ID")
+        self.cemetery_id = int(match.group(1))
 
     def scrape_plot_info(self, dt: Tag):
         self.plot = cast(Tag, dt.find_next("dd")).get_text(strip=True)
@@ -2236,20 +2240,25 @@ class _SearchWorker:
         ) is not None:
             line = tag.get_text(strip=True)
             match: Optional[Match[str]] = re.match("[0-9,]+", line)
-            assert match is not None
+            if match is None:
+                raise MemorialParseException("Search result count is malformed")
             num_str = match.group(0)
             num_str = num_str.replace(",", "")
             count = int(num_str)
         return count
 
     def scrape_memorial_url(self, tag: Tag, mem: dict) -> Optional[str]:
-        path = None
-        if (anchor := cast(Tag, tag.find("a"))) is not None:
-            path = cast(str, anchor["href"])
-            path = f"{FINDAGRAVE_BASE_URL}{path}"
+        anchor = tag.find("a")
+        href = anchor.get("href") if isinstance(anchor, Tag) else None
+        if not isinstance(href, str):
+            raise MemorialParseException("Search result has no memorial link")
+        path = f"{FINDAGRAVE_BASE_URL}{href}"
         mem["findagrave_url"] = path
         match: Optional[Match[str]] = re.match(".*/([0-9]+)/.*", path)
-        assert match is not None
+        if match is None:
+            raise MemorialParseException(
+                "Search result link has no numeric memorial ID"
+            )
         mid = match.group(1)
         mem["memorial_id"] = int(mid)
         return path

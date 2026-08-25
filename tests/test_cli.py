@@ -1,6 +1,8 @@
 import importlib.metadata
 import json
 import logging
+import subprocess
+import sys
 from pathlib import Path
 from typing import Dict
 
@@ -204,16 +206,29 @@ class TestCli(Test):
 
 
 class TestCliCommonOptions(TestCli):
+    def test_import_has_no_persistent_logging_side_effect(self, tmp_path) -> None:
+        result = subprocess.run(
+            [sys.executable, "-c", "import graver.cli"],
+            cwd=tmp_path,
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+
+        assert result.returncode == 0
+        assert result.stdout == ""
+        assert result.stderr == ""
+        assert not (tmp_path / "graver.log").exists()
+
     @pytest.mark.parametrize("arg", ["-V", "--version"])
-    def test_version(self, helpers, arg, caplog) -> None:
+    def test_version(self, helpers, arg) -> None:
         metadata = importlib.metadata.metadata(APP_NAME)
         name_str = metadata["Name"]
         version_str = metadata["Version"]
         expected_str = "{} v{}".format(name_str, version_str)
         result: Result = helpers.graver_cli(arg)
         assert result.exit_code == 0
-        assert result.output == ""
-        assert caplog.text.endswith(expected_str + "\n")
+        assert result.output == expected_str + "\n"
 
 
 class TestCliQueueMemorials(TestCli):
@@ -895,7 +910,7 @@ class TestCliSearch(TestCli):
         assert "1 dated snapshot" in result.output
 
     def test_access_block_is_reported_without_traceback(
-        self, helpers, tmp_path, monkeypatch, caplog
+        self, helpers, tmp_path, monkeypatch
     ) -> None:
         database = tmp_path / "blocked.db"
 
@@ -909,9 +924,8 @@ class TestCliSearch(TestCli):
         result = helpers.graver_cli(f"search --db '{database}'")
 
         assert result.exit_code == 1
-        assert "stop for human review" in caplog.text
+        assert "stop for human review" in result.output
         assert "Traceback" not in result.output
-        assert "Traceback" not in caplog.text
 
     def test_researcher_tutorial_workflow_is_offline(
         self,
