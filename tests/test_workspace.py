@@ -14,6 +14,7 @@ from graver.application import (
     DatabaseInspectionError,
     DatabaseOperationError,
     EnrichmentRedirectInvalid,
+    MemorialDetailInput,
     MemorialSummarySearchRequest,
     ResearchEnrichmentRequest,
     ResearchQueueRequest,
@@ -237,11 +238,35 @@ def test_workspace_enrichment_reports_progress_and_persists_after_safe_checks(
         ResearchTaskUpdate(1075, task.version, status="ready_for_full_scrape")
     )
     events = []
+    parsed = Memorial.from_dict(values)
+    detail_input = MemorialDetailInput(
+        memorial_id=parsed.memorial_id,
+        findagrave_url=parsed.findagrave_url,
+        prefix=parsed.prefix,
+        name=parsed.name,
+        suffix=parsed.suffix,
+        nickname=parsed.nickname,
+        maiden_name=parsed.maiden_name,
+        famous=parsed.famous,
+        veteran=parsed.veteran,
+        birth=parsed.birth,
+        death=parsed.death,
+        memorial_type=parsed.memorial_type,
+        cemetery_id=parsed.cemetery_id,
+        burial_place=parsed.burial_place,
+        plot=parsed.plot,
+        original_name=parsed.original_name,
+        birth_place=parsed.birth_place,
+        death_place=parsed.death_place,
+        coords=parsed.coords,
+        has_bio=parsed.has_bio,
+        date_added=parsed.date_added,
+    )
 
     result = workspace.acquisition.enrich(
         ResearchEnrichmentRequest(1075),
         progress=events.append,
-        acquire=lambda _url: Memorial.from_dict(values),
+        acquire=lambda _url: detail_input,
     )
 
     assert result.status == "full_scrape_complete"

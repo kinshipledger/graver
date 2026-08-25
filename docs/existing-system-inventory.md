@@ -494,8 +494,11 @@ concurrency-safe update operations, owns no long-lived connection, and performs 
 CLI configuration lookup. Meaningful task updates increment a revision; stale writes
 raise a typed `StaleResearchTask` without changing newer state. The workspace also
 exposes one-person enrichment with synchronous neutral progress events and
-cooperative cancellation before retrieval and persistence. Evidence, broader
-acquisition operations, and the final 1.0 method surface remain unfrozen.
+cooperative cancellation before retrieval and persistence. Its public injection
+seam accepts immutable `MemorialDetailInput` values and separately labeled
+`DisplayedRelationshipInput` observations rather than the legacy parser model.
+Evidence, broader acquisition operations, and the final 1.0 method surface remain
+unfrozen.
 
 The researcher-directed summary `search` command delegates to
 `workspace.acquisition.search()` using a typed provider-specific request. The
@@ -537,20 +540,20 @@ commands. The `deadcode` package was removed after its AST visitor failed on
 supported Python 3.14; unused-code decisions require corroborating repository,
 tests, coverage, exports, and compatibility evidence instead. Broader documentation
 build/link validation remains to be selected. Optimistic task concurrency is now
-implemented. Final acceptance still requires later installed-wheel examples for
-populated task updates and injected acquisition, evidenced removals, release notes, and green
-reproducible checks. The initial installed-wheel consumer now verifies workspace
-creation, opening, inspection, empty work queries, idempotent queueing, and the typed
-missing-item update boundary. A populated installed-wheel concurrency scenario
-remains a later extension. The
+implemented. The installed-wheel consumer now verifies workspace creation and
+inspection, typed summary and full-record injection, task queueing and meaningful
+updates, stale-write rejection, progress, cancellation after retrieval but before
+persistence, immutable boundary values and errors, retained observations, and
+successful enrichment without private imports or provider requests. Final acceptance
+still requires evidenced removals, release notes, and green reproducible checks. The
 researcher tutorial remains separate from this developer API reference.
 
 Before the release candidate, the planned facade must define typed requests,
 results, exceptions, progress, cancellation, threading, transaction ownership,
 stale-update handling, deterministic ordering, identifier and enum policies,
 injectable transport and nondeterminism, logging, supported imports, and public
-documentation. A separate top-level consumer spike against the built wheel will
-validate those contracts before `1.0.0rc1`; it is not a production GUI. Production
+documentation. The separate top-level consumer spike now validates the implemented
+workspace contract against the built wheel; it is not a production GUI. Production
 GUI work follows graver 1.0 and begins with the stable workspace/work-queue vertical
 slice before expanding alongside FamilySearch, reviewed identity, WikiTree, and
 family-work services.

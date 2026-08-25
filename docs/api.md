@@ -154,9 +154,42 @@ by graver and occurs only after acquisition and cancellation checks succeed. A
 batch containing duplicate memorial IDs is rejected before mutation.
 
 `workspace.acquisition.enrich()` performs one explicitly approved memorial operation.
-Its optional acquisition callable supports offline consumer tests without requiring
-a live provider. Network-capable clients remain responsible for the project
+Its optional acquisition callable returns a `MemorialDetailInput`, including any
+`DisplayedRelationshipInput` values observed on the provider page. Those displayed
+links remain source observations and never become proven kinship. This typed seam
+supports offline consumer tests and authorized adapters without exposing the legacy
+parser model. Network-capable clients remain responsible for the project
 [access policy](access-policy.md).
+
+```python
+from graver.application import MemorialDetailInput, ResearchEnrichmentRequest
+
+result = workspace.acquisition.enrich(
+    ResearchEnrichmentRequest(memorial_id=1075),
+    acquire=lambda url: MemorialDetailInput(
+        memorial_id=1075,
+        findagrave_url=url,
+        prefix="",
+        name="George Washington",
+        suffix="",
+        nickname="",
+        maiden_name="",
+        famous=True,
+        veteran=True,
+        birth="22 Feb 1732",
+        death="14 Dec 1799",
+        memorial_type="Burial",
+        cemetery_id=641532,
+        burial_place="Mount Vernon Estate",
+        plot="",
+        original_name="",
+        birth_place="Westmoreland County, Virginia",
+        death_place="Mount Vernon, Virginia",
+        coords="",
+        has_bio=True,
+    ),
+)
+```
 
 Long operations accept an optional `ProgressObserver`. It receives immutable
 `ProgressEvent` values synchronously in the operation's calling thread; a GUI should
@@ -209,10 +242,12 @@ uv run pytest
 
 CI also builds the wheel, verifies both `graver` and `python -m graver`, installs
 the artifact as an isolated uv tool, and runs `consumer_spike/workspace_client.py`.
-The spike uses only documented imports to
-create, open, inspect, query, queue, inject one summary acquisition, inspect its
-receipt and progress, and exercise typed immutable failure contracts in a disposable
-database. It is a GUI-readiness contract test, not a production client.
+The spike uses only documented imports to create, open, inspect, query, queue, update,
+and enrich work in a disposable database. It injects summary and full-record
+acquisition; verifies progress, cancellation before persistence, optimistic
+concurrency, immutable inputs and errors, typed results, and retained observations;
+and makes no provider request. It is a GUI-readiness contract test, not a production
+client.
 
 Mypy is deliberately scoped to the application-facing modules. Google-style
 docstring checks require useful public module, class, function, and method contracts;
