@@ -235,15 +235,18 @@ was measured at 2m32s of test time versus tens of seconds on the other hosted
 platforms. Every required job has a five-minute ceiling and a documented four-minute
 review threshold.
 
-The inherited suite mixes several responsibilities that should now be separated.
-Betamax cassettes provide valuable real Find a Grave contract examples, but ordinary
-execution is not explicitly locked to replay-only, Betamax warnings are globally
-suppressed, and the project is locked to Betamax 0.8.1. Generic Betamax and Faker
-smoke tests, incomplete or commented test bodies, time-seeded Faker providers,
-`delete=False` temporary databases, direct environment mutation, and test tools in
-runtime dependencies are legacy test-infrastructure debt rather than intentional
-long-term design. `requests-mock` is already available and is the preferred boundary
-for method, parameter, retry, and error-path tests.
+The inherited suite still mixes several responsibilities, but its external-access
+boundary is now explicit. Pytest disables socket access by default through
+`pytest-socket`; existing sanitized Betamax interactions are replay-only and are
+automatically marked `recorded`; and strict marker registration covers the planned
+`unit`, `integration`, `recorded`, and `slow` layers. A missing cassette interaction
+fails rather than contacting a provider. The duplicate inherited Faker smoke test,
+empty assertions, and obsolete commented test bodies have been removed.
+`requests-mock` remains the preferred boundary for method, parameter, retry, and
+error-path tests. Betamax is retained temporarily for 61 existing replay contracts;
+new tests should prefer static parser fixtures and explicit transport mocks while a
+small, evidence-based replacement trial determines whether another cassette tool is
+actually simpler.
 
 Runtime dependencies are limited to packages imported by the installed application.
 Pytest, Faker, Betamax, and typing support are isolated in test or development
@@ -666,24 +669,19 @@ empty database with the current schema. They no longer migrate recognized legacy
 databases implicitly. Removing that remaining implicit creation behavior is still a
 separate roadmap milestone.
 
-The planned testing-modernization milestone should avoid a large cassette rewrite.
-It will define parser/static-response, mocked-transport,
-temporary-database/workflow, and recorded-contract layers. Deny network access by
-default; make existing Betamax cases replay-only and explicitly marked; sanitize all
-recorded traffic; and require a deliberate maintainer-only refresh process. Move new
-parser cases to curated HTML/JSON fixtures and new transport cases to
-`requests-mock`. Trial VCR.py through pytest-recording on a few representative
-contracts before deciding whether to migrate the remaining cassettes or eliminate
-record/replay entirely.
+The testing-modernization milestone deliberately avoids a large cassette rewrite.
+Default socket denial, replay-only recorded contracts, strict marker registration,
+sanitization, fixed Faker seeding, isolated temporary database/configuration
+fixtures, test-only dependency grouping, and obsolete-test cleanup are implemented.
+The suite retains 61 recorded contracts while new parser cases favor curated static
+HTML/JSON and new transport cases favor `requests-mock`.
 
-Replace time-based Faker and Python randomness with fixed, reported seeds and an
-explicit locale. Move all test-only packages out of runtime dependencies. Replace
-leaking temporary files and global environment mutation with pytest-managed
-lifecycle fixtures. Remove generic tool smoke tests, empty tests, and commented-out
-bodies. Register strict `unit`, `integration`, `recorded`, and `slow` markers;
-evaluate importlib mode for the `src` layout. Branch-coverage reporting and a modest
-90% non-regression threshold are now established from the measured 91% baseline;
-future work should raise the floor only through meaningful behavioral tests.
+Remaining work is to classify more tests by layer, introduce clearer domain fixture
+factories with an explicit locale, evaluate importlib mode for the `src` layout, and
+trial VCR.py through pytest-recording on a few representative contracts before
+deciding whether to migrate the remaining cassettes or eliminate record/replay
+entirely. Branch coverage now measures 94.45% locally against the 90% non-regression
+floor; future increases should come only from meaningful behavioral tests.
 
 Add a distinct live-contract maintenance probe after the offline test boundaries are
 established. It should retrieve the public George Washington memorial at

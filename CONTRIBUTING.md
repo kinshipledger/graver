@@ -58,6 +58,14 @@ database, configuration, entry-point, workspace, error, progress, and public-con
 tests because its full fixture-heavy suite is disproportionately slow without adding
 equivalent platform evidence.
 
+Pytest disables socket access for the entire ordinary suite. Tests that consume the
+existing sanitized provider cassettes are marked `recorded` automatically and run in
+replay-only mode; a missing interaction fails instead of contacting the provider.
+Use `uv run pytest -m recorded` to run that contract layer alone. The registered
+`unit`, `integration`, `recorded`, and `slow` markers are checked strictly. Recording
+or refreshing provider fixtures is a separate, explicitly authorized maintainer
+activity—not part of an ordinary test run or pull request.
+
 Required CI jobs have a five-minute ceiling and should normally provide pull-request
 feedback in under four minutes. Review the workflow when a required job exceeds four
 minutes, its duration grows by 25 percent across comparable runs, or a proposed test
