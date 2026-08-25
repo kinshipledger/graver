@@ -54,8 +54,8 @@ doccheck: ## Check public application docstring coverage and style
 release-check: ## Build and smoke-test publishable wheel and source archive
 	rm -rf dist
 	uv build --no-sources
-	uv run --isolated --no-project --with dist/*.whl python maintenance/release_smoke_test.py
-	uv run --isolated --no-project --with dist/*.tar.gz python maintenance/release_smoke_test.py
+	uv run --isolated --no-project --with packaging --with dist/*.whl python maintenance/release_smoke_test.py
+	uv run --isolated --no-project --with packaging --with dist/*.tar.gz python maintenance/release_smoke_test.py
 
 format: ## Apply safe lint fixes and Black formatting
 	uv run --group dev ruff check --fix src/graver tests review consumer_spike benchmarks maintenance

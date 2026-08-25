@@ -20,16 +20,16 @@ checklist, not a declaration that the release candidate has shipped.
 
 ## Remaining release gates
 
-1. Correct the generated release pull request to `v1.0.0-rc.1`. Pinned-runtime dry
-   runs proposed that version, but the first live proposal ignored a `Release-As`
-   footer nested by squash merging and proposed unnumbered `v1.0.0-rc`. The reviewed
-   temporary `release-as` configuration must control the corrected proposal.
-2. Verify that the generated release pull request contains the same version, marks
-   the future GitHub Release as a prerelease, and changes only intended release
-   metadata and notes.
+1. Complete final review of release pull request #88, which now proposes the exact
+   version `1.0.0-rc.1`. Remove the temporary `release-as` setting on that branch so
+   it cannot influence a later release.
+2. Confirm the future GitHub Release will be marked as a prerelease and that the
+   final pull request changes only intended release metadata, notes, and the dated
+   readiness record.
 3. Run the full locked validation and `make release-check` on the final release pull
    request.
-4. Review the generated changelog and release notes as user-facing documents.
+4. Review the curated changelog and release notes as both researcher-facing and
+   developer-facing documents.
 5. Merge the release pull request, deliberately trigger publication, and verify the
    GitHub and PyPI artifacts after publication.
 

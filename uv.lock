@@ -530,7 +530,7 @@ wheels = [
 
 [[package]]
 name = "graver-genealogy"
-version = "0.1.0"
+version = "1.0.0rc1"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
@@ -554,6 +554,7 @@ test = [
     { name = "betamax" },
     { name = "click" },
     { name = "faker" },
+    { name = "packaging" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-helpers-namespace" },
@@ -585,6 +586,7 @@ test = [
     { name = "betamax", specifier = ">=0.8.1,<1" },
     { name = "click", specifier = ">=8.1,<9" },
     { name = "faker", specifier = ">=21" },
+    { name = "packaging", specifier = ">=24,<27" },
     { name = "pytest", specifier = ">=9.0.3,<10" },
     { name = "pytest-cov", specifier = ">=7.1.0,<8" },
     { name = "pytest-helpers-namespace", specifier = ">=2021.12.29,<2022" },

@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           for artifact in dist/*.whl dist/*.tar.gz; do
-            uv run --isolated --no-project --with "$artifact" python maintenance/release_smoke_test.py
+            uv run --isolated --no-project --with packaging --with "$artifact" python maintenance/release_smoke_test.py
           done
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

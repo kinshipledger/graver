@@ -8,7 +8,64 @@ Release Please maintains released sections from Conventional Commit pull-request
 titles. Maintainers review every release pull request and add any needed upgrade,
 compatibility, security, deprecation, or known-issue notes before merging it.
 
+## [Unreleased]
+
 ## [1.0.0-rc.1](https://github.com/mcqueary/graver/compare/v0.1.0...v1.0.0-rc.1) (2026-08-25)
+
+This is graver's first public release candidate. It is intended for careful
+evaluation with copied or otherwise recoverable research data, not yet as a promise
+of production stability.
+
+### Highlights
+
+- Added provenance-aware summary and full-memorial acquisition, immutable dated
+  observations, explicit research tasks, and researcher-controlled enrichment.
+- Added stable research subjects and source-neutral evidence packets without
+  turning discovery ordering into confidence, proof, or an automated identity
+  conclusion.
+- Added explicit database creation, read-only schema inspection, and transactional,
+  backed-up upgrades from recognized legacy databases.
+- Added a typed public application API for future graphical and other clients while
+  retaining `graver` as a first-class command-line tool.
+- Added professional-researcher evidence reviews, security and privacy guidance,
+  offline performance baselines, and fail-closed network testing.
+
+### Upgrade and compatibility notes
+
+- The distribution is installed as `graver-genealogy`; the command and Python
+  import package remain `graver`. The `graver` project on PyPI is unrelated.
+- Existing databases are never silently migrated by ordinary reads. Back up the
+  database, inspect it, and use `graver admin database upgrade DATABASE` when an
+  upgrade is required. See the migration guide before upgrading valuable data.
+- Machine-readable command output now uses a versioned envelope with
+  `schema_version`, `command`, and `data`. Pre-1.0 scripts that read result fields
+  at the top level must read them from `data`.
+- The supported Python API is the typed contract in `graver.application`. Accidental
+  root-package exports and internal parser, SQL, transport, alias, and task helpers
+  are no longer public API.
+- Hidden pre-1.0 command aliases, duplicate/site-shaped search option spellings,
+  `scrape-url`, and unattended `scrape-file` were removed. Use the documented
+  `graver work ...` workflow and the option names shown by `graver search --help`.
+
+### Security and provider access
+
+- The default HTTP transport is an ordinary Requests-based client that stops on
+  access challenges and repeated rate limiting; it does not solve challenges or
+  attempt to conceal automation.
+- Unattended provider acquisition remains disabled without documented authorization.
+  The live compatibility canary is a separate, explicitly invoked, one-request
+  maintainer check and is not part of ordinary tests or release automation.
+
+### Known limitations and deferred scope
+
+- This candidate has no graphical client. Its typed application boundary is the
+  foundation for a later GUI, whose workflows will receive dedicated UX review.
+- Find a Grave is a mutable external service; HTML changes can interrupt live
+  acquisition even when offline tests remain green.
+- FamilySearch, WikiTree, GEDCOM interchange, family work packets, and
+  provider-governed background jobs are not part of this release candidate.
+- The release candidate needs real-world feedback before the final `1.0.0`
+  compatibility promise is made.
 
 
 ### ⚠ BREAKING CHANGES
@@ -69,66 +126,3 @@ compatibility, security, deprecation, or known-issue notes before merging it.
 
 * **api:** finalize public boundary and CI hygiene ([2ce520e](https://github.com/mcqueary/graver/commit/2ce520e69faaf1a562ba978cfb014880eccb06b0))
 * **cli:** normalize public command contract ([9d3e3c0](https://github.com/mcqueary/graver/commit/9d3e3c0eb5b2adf7c82acffdc28387bd87d03aa4))
-
-## [Unreleased]
-
-### Added
-
-- Added an explicitly invoked, one-request live Find a Grave compatibility canary
-  with sanitized human and JSON reports; it remains outside ordinary tests, CI,
-  release automation, and researcher-facing commands.
-- Added a deterministic offline performance harness, weekly/manual baseline
-  workflow, retained machine-readable reports, and provisional GUI responsiveness
-  budgets without adding a pull-request timing gate.
-- Added researcher-safe database upgrade and recovery guidance, draft `1.0.0rc1`
-  release notes, and a manually gated maintainer release checklist.
-- Added typed full-memorial and displayed-relationship acquisition inputs to the
-  supported application API, with installed-wheel coverage of the complete offline
-  workspace workflow.
-
-graver is undergoing substantial pre-1.0 development. The current repository state
-does not yet represent a supported production release.
-
-### Changed
-
-- Adopted `graver-genealogy` as the installable distribution name because the PyPI
-  name `graver` belongs to unrelated software. The product name, repository,
-  command, and Python import package remain `graver`.
-
-- Completed the pre-1.0 API-hygiene pass with installed-wheel evidence-service
-  coverage, canonical-document indexing, CI checks for maintenance scripts, and
-  removal of only corroborated unreachable private scaffolding.
-- Summary batches now validate the database once at the operation boundary instead
-  of reopening schema validation for every memorial, preventing large transactions
-  from tripping over their own SQLite lock.
-- Made ordinary tests fail closed on socket access, locked existing provider
-  cassettes to replay-only mode, registered strict test-layer markers, and removed
-  duplicate inherited smoke coverage and obsolete commented test bodies.
-- Reduced redundant CI work by making branch coverage the complete Python 3.14 lane,
-  focusing Windows on portability-sensitive contracts, and enforcing five-minute
-  job ceilings. Removed two unused development dependencies.
-- Machine-readable CLI results now use a versioned envelope with
-  `schema_version`, a stable dotted `command` identifier, and the previous result
-  payload under `data`. Pre-1.0 scripts that read top-level result fields must read
-  them from `data` instead.
-- `graver` remains the primary installed command, and `python -m graver` now invokes
-  the same command application as a supported fallback. CI verifies both entry
-  points and installs the built wheel as an isolated uv tool.
-- Search options now use consistent researcher-facing kebab-case names. Tri-state
-  filters use explicit pairs such as `--famous/--not-famous`, and deprecated Typer
-  value-taking Boolean behavior has been removed.
-
-### Removed
-
-- Removed accidental parser, persistence, transport-driver, alias, and task-helper
-  re-exports from the `graver` package root. Application clients must import the
-  documented typed contract from `graver.application`; internal modules are not a
-  supported replacement API.
-- Removed the hidden pre-1.0 task and alias command names. Use `graver work …` for
-  research tasks and `graver admin aliases …` for redirect maintenance. Removed
-  duplicate and site-shaped search spellings including `--id`, `--cid`, `--max`,
-  and camel-case options; use the names shown by `graver search --help`.
-- Removed the legacy `scrape-url` and unattended `scrape-file` commands. Use
-  `graver search` to retain summary observations, then `graver work queue`,
-  `graver work mark`, and `graver work enrich` for explicit one-person full-record
-  acquisition with task approval and provenance.
