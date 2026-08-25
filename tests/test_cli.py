@@ -68,9 +68,15 @@ class TestCli(Test):
             == retracted.exit_code
             == 0
         )
-        assert json.loads(listed.output)[0]["target_memorial_id"] == 999999
-        assert json.loads(shown.output)["path"] == [source.memorial_id, 999999]
-        assert json.loads(retracted.output)["history"][-1]["event_type"] == "retracted"
+        assert json.loads(listed.output)["data"][0]["target_memorial_id"] == 999999
+        assert json.loads(shown.output)["data"]["path"] == [
+            source.memorial_id,
+            999999,
+        ]
+        assert (
+            json.loads(retracted.output)["data"]["history"][-1]["event_type"]
+            == "retracted"
+        )
 
     def test_scrape_task_refuses_known_alias_before_network(
         self, database, helpers, monkeypatch
@@ -286,16 +292,19 @@ class TestCliResearchTasks(Test):
         )
 
         assert listed.exit_code == shown.exit_code == updated.exit_code == 0
-        assert json.loads(listed.output)[0]["memorial_id"] == summary.memorial_id
+        assert (
+            json.loads(listed.output)["data"][0]["memorial_id"] == summary.memorial_id
+        )
         assert (
             listed.output
             == json.dumps(json.loads(listed.output), ensure_ascii=False, sort_keys=True)
             + "\n"
         )
         assert (
-            json.loads(shown.output)["observations"][0]["payload"] == summary.to_dict()
+            json.loads(shown.output)["data"]["observations"][0]["payload"]
+            == summary.to_dict()
         )
-        assert json.loads(updated.output)["status"] == "researching"
+        assert json.loads(updated.output)["data"]["status"] == "researching"
 
     def test_missing_memorial_and_missing_task_exit_nonzero(self, helpers, database):
         missing_memorial = helpers.graver_cli(f"show-task 999 --db '{database.name}'")
@@ -506,9 +515,14 @@ class TestCliResearcherSurface(Test):
             for result in (saved_result, environment_result, explicit_result)
         )
         assert calls == [str(saved), str(environment.resolve()), str(explicit)]
-        assert json.loads(saved_result.output) == []
-        assert json.loads(environment_result.output) == []
-        assert json.loads(explicit_result.output) == []
+        saved_json = json.loads(saved_result.output)
+        assert saved_json == {
+            "command": "work.list",
+            "data": [],
+            "schema_version": 1,
+        }
+        assert json.loads(environment_result.output)["data"] == []
+        assert json.loads(explicit_result.output)["data"] == []
 
     def test_invalid_saved_database_blocks_command_without_fallback(
         self, helpers, isolate_graver_configuration, tmp_path, monkeypatch
@@ -667,7 +681,10 @@ class TestCliResearcherSurface(Test):
         )
 
         assert selected.exit_code == empty.exit_code == 0
-        assert json.loads(selected.output)["grave"]["memorial_id"] == newer.memorial_id
+        selected_json = json.loads(selected.output)
+        assert selected_json["schema_version"] == 1
+        assert selected_json["command"] == "work.next"
+        assert selected_json["data"]["grave"]["memorial_id"] == newer.memorial_id
         assert "No people match" in empty.output
 
     def test_work_show_discloses_history_and_alias_only_when_relevant(
@@ -701,7 +718,10 @@ class TestCliResearcherSurface(Test):
         assert ordinary.name in history_result.output
         assert "Redirect requires review" in alias_result.output
         assert "alias_path" not in alias_result.output
-        assert json.loads(json_result.output)["alias"]["path"] == [
+        shown_json = json.loads(json_result.output)
+        assert shown_json["schema_version"] == 1
+        assert shown_json["command"] == "work.show"
+        assert shown_json["data"]["alias"]["path"] == [
             redirected.memorial_id,
             999999,
         ]
@@ -725,17 +745,22 @@ class TestCliResearcherSurface(Test):
             f"work mark {summary.memorial_id} --db '{database.name}' "
             "--status researching"
         )
+        machine_result = helpers.graver_cli(
+            f"work mark {summary.memorial_id} --db '{database.name}' "
+            "--status researching --json"
+        )
         after_noop = graver.api.show_research_task(database.name, summary.memorial_id)[
             "task"
         ]
 
-        assert changed.exit_code == noop.exit_code == 0
+        assert changed.exit_code == noop.exit_code == machine_result.exit_code == 0
         assert "Updated status, note" in changed.output
         assert "No changes were needed" in noop.output
         assert after_noop == before_noop
         assert after_noop["priority"] == 6
         assert after_noop["owner"] == "owner"
         assert after_noop["review_note"] == "new"
+        assert json.loads(machine_result.output)["command"] == "work.mark"
 
     def test_work_queue_is_idempotent_and_network_free(
         self, helpers, database, monkeypatch
@@ -771,14 +796,16 @@ class TestCliResearcherSurface(Test):
             database.name, summary.memorial_id, status="ready_for_full_scrape"
         )
         enriched = helpers.graver_cli(
-            f"work enrich {summary.memorial_id} --db '{database.name}'"
+            f"work enrich {summary.memorial_id} --db '{database.name}' --json"
         )
 
         assert refused.exit_code == 1
         assert "not approved for enrichment" in refused.output
         assert calls == [summary.findagrave_url]
         assert enriched.exit_code == 0
-        assert "The full memorial was retrieved" in enriched.output
+        enriched_json = json.loads(enriched.output)
+        assert enriched_json["command"] == "work.enrich"
+        assert enriched_json["data"]["status"] == "full_scrape_complete"
 
     def test_admin_aliases_and_hidden_legacy_commands_both_work(
         self, helpers, database
@@ -806,12 +833,20 @@ class TestCliResearcherSurface(Test):
             result.exit_code == 0
             for result in (recorded, listed, shown, legacy_task, retracted)
         )
-        assert json.loads(listed.output)[0]["target_memorial_id"] == 999999
-        assert json.loads(shown.output)["canonical_memorial_id"] == 999999
+        listed_json = json.loads(listed.output)
+        shown_json = json.loads(shown.output)
+        assert listed_json["command"] == "admin.aliases.list"
+        assert listed_json["data"][0]["target_memorial_id"] == 999999
+        assert shown_json["command"] == "admin.aliases.show"
+        assert shown_json["data"]["canonical_memorial_id"] == 999999
+        assert json.loads(recorded.output)["command"] == "admin.aliases.record"
         assert (
-            json.loads(legacy_task.output)["task"]["memorial_id"] == source.memorial_id
+            json.loads(legacy_task.output)["data"]["task"]["memorial_id"]
+            == source.memorial_id
         )
-        assert json.loads(retracted.output)["history"][-1]["event_type"] == "retracted"
+        retracted_json = json.loads(retracted.output)
+        assert retracted_json["command"] == "admin.aliases.retract"
+        assert retracted_json["data"]["history"][-1]["event_type"] == "retracted"
 
 
 class TestCliSearch(TestCli):
@@ -949,7 +984,7 @@ class TestCliSearch(TestCli):
         assert "1075 | George Washington" in listed.output
         assert "Person: George Washington" in next_person.output
 
-        initial_record = json.loads(initial.output)
+        initial_record = json.loads(initial.output)["data"]
         assert initial_record["grave"]["detail_level"] == "summary"
         assert initial_record["task"]["status"] == "unprocessed"
         assert len(initial_record["observations"]) == 1
@@ -957,7 +992,7 @@ class TestCliSearch(TestCli):
         assert [task["memorial_id"] for task in approved_tasks] == [1075]
         assert full_calls == [summary.findagrave_url]
 
-        final_record = json.loads(final.output)
+        final_record = json.loads(final.output)["data"]
         assert final_record["task"]["status"] == "full_scrape_complete"
         assert final_record["grave"]["detail_level"] == "full"
         assert final_record["grave"]["full_fetched_at"]

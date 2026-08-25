@@ -161,15 +161,18 @@ or timestamps:
 
 - the research state is `full_scrape_complete`;
 - the acquisition level is `full`;
-- `full_fetched_at` has a timestamp in JSON output;
+- the JSON envelope has `schema_version` 1 and command `work.show`;
+- `data.grave.full_fetched_at` has a timestamp;
 - provenance includes a successful `full` acquisition observation;
 - the original summary observation still exists;
 - the Find a Grave source URL still identifies memorial `1075`;
 - the cemetery ID or cemetery context remains present.
 
-`--history` intentionally reveals immutable observation detail. `--json` exposes
-the complete current machine-readable record, including fields that ordinary
-human output summarizes. Optional values such as plot, coordinates, biography,
+`--history` intentionally reveals immutable observation detail. `--json` wraps the
+complete current machine-readable record in the documented
+[versioned command-line envelope](cli-json.md); the record is under `data` and
+includes fields that ordinary human output summarizes. Optional values such as
+plot, coordinates, biography,
 birth or death places may legitimately be absent. **Fully enriched** means the
 full memorial page was successfully observed and persisted, not that every
 optional field was populated.

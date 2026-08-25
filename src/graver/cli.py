@@ -28,6 +28,7 @@ from graver.application import (
     MemorialSummarySearchRequest,
     open_workspace,
 )
+from graver.cli_json import result_envelope
 from graver.constants import (
     APP_NAME,
 )
@@ -267,8 +268,15 @@ def queue_memorials(
     typer.echo(f"Created {created} research tasks; {existing} already present.")
 
 
-def _json_output(value) -> None:
-    typer.echo(json.dumps(value, ensure_ascii=False, sort_keys=True))
+def _json_output(command: str, value) -> None:
+    """Write a deterministic, versioned command-result envelope."""
+    typer.echo(
+        json.dumps(
+            result_envelope(command, value),
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
 
 
 @app.command("list-aliases", hidden=True)
@@ -285,7 +293,7 @@ def list_aliases(
     except MemorialAliasError as ex:
         raise typer.BadParameter(str(ex))
     if json_output:
-        _json_output(aliases)
+        _json_output("admin.aliases.list", aliases)
         return
     for alias in aliases:
         typer.echo(
@@ -309,7 +317,7 @@ def show_alias(
         typer.echo(str(ex), err=True)
         raise typer.Exit(1)
     if json_output:
-        _json_output(result)
+        _json_output("admin.aliases.show", result)
         return
     typer.echo(f"Alias {memorial_id}: {' -> '.join(map(str, result['path']))}")
     typer.echo(f"Canonical memorial: {result['canonical_memorial_id']}")
@@ -338,7 +346,7 @@ def record_alias(
     except (NotFound, MemorialAliasError) as ex:
         typer.echo(str(ex), err=True)
         raise typer.Exit(1)
-    _json_output(result)
+    _json_output("admin.aliases.record", result)
 
 
 @app.command("retract-alias", hidden=True)
@@ -353,7 +361,7 @@ def retract_alias(
     except MemorialAliasError as ex:
         typer.echo(str(ex), err=True)
         raise typer.Exit(1)
-    _json_output(result)
+    _json_output("admin.aliases.retract", result)
 
 
 @app.command("list-tasks", hidden=True)
@@ -370,7 +378,7 @@ def list_tasks(
     except ValueError as ex:
         raise typer.BadParameter(str(ex))
     if json_output:
-        _json_output(tasks)
+        _json_output("work.list", tasks)
         return
     for task in tasks:
         alias_marker = (
@@ -404,7 +412,7 @@ def show_task(
         typer.echo(str(ex), err=True)
         raise typer.Exit(1)
     if json_output:
-        _json_output(result)
+        _json_output("work.show", result)
         return
     task = result["task"]
     grave = result["grave"]
@@ -460,7 +468,7 @@ def update_task(
     except ResearchTaskNotFound as ex:
         typer.echo(str(ex), err=True)
         raise typer.Exit(1)
-    _json_output(task)
+    _json_output("work.mark", task)
 
 
 @app.command("scrape-task", hidden=True)
@@ -532,7 +540,7 @@ def _enrich_task(
         typer.echo(message, err=True)
         raise typer.Exit(1)
     if json_output:
-        _json_output(result.to_compatibility_dict())
+        _json_output("work.enrich", result.to_compatibility_dict())
     else:
         typer.echo(
             f"The full memorial was retrieved. Person {memorial_id} is now "
@@ -641,7 +649,7 @@ def work_list(
     except ValueError as ex:
         raise typer.BadParameter(str(ex))
     if json_output:
-        _json_output(tasks)
+        _json_output("work.list", tasks)
     else:
         _display_work_list(tasks)
 
@@ -671,7 +679,7 @@ def work_next(
         return
     result = _load_task_or_exit(db, tasks[0].memorial_id)
     if json_output:
-        _json_output(result)
+        _json_output("work.next", result)
     else:
         _display_work_task(result)
 
@@ -692,7 +700,7 @@ def work_show(
     """Review one person's current research state."""
     result = _load_task_or_exit(db, memorial_id)
     if json_output:
-        _json_output(result)
+        _json_output("work.show", result)
     else:
         _display_work_task(result, history)
 
@@ -729,7 +737,7 @@ def work_mark(
         typer.echo(str(ex), err=True)
         raise typer.Exit(2)
     if json_output:
-        _json_output(task)
+        _json_output("work.mark", task)
         return
     labels = {
         "status": "status",

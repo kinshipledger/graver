@@ -228,8 +228,11 @@ names will remain internal mappings. Duplicate and camel-case spellings and hidd
 pre-1.0 task and alias commands will be removed after their normalized replacements
 are established and before the 1.0 release.
 
-Machine-readable command output will use documented, command-specific, versioned
-JSON envelopes rather than raw database rows. The root package will expose only a
+Machine-readable success output uses documented, command-specific, schema-version-1
+JSON envelopes rather than raw database rows. The envelope carries a stable dotted
+command identifier and the application-facing result under `data`; syntax and
+operational failures currently retain nonzero exits and human-readable diagnostics
+rather than promising a JSON error schema. The root package will expose only a
 documented public facade. Parsers, SQL and migration helpers, transport mechanics,
 and wildcard constants are internal. `Driver` is transport infrastructure and will
 not be part of the public 1.0 API; a public acquisition client should be introduced
@@ -300,9 +303,9 @@ Ordinary researcher commands continue to accept memorial IDs as convenient
 lookup keys and will not expose subject UUIDs by default. Until a reviewed preferred
 memorial policy exists, the lowest associated memorial ID is the deterministic
 display fallback for a subject with multiple memorials. This is only a display
-choice, never a canonical identity assertion. Transitional pre-1.0 JSON behavior
-will be preserved through compatibility projection until documented versioned JSON
-envelopes replace it.
+choice, never a canonical identity assertion. The versioned CLI envelope preserves
+the existing person/task compatibility projection under `data` while moving the
+stable machine boundary away from raw top-level dictionaries.
 
 ### Schema-version-2 migration invariants
 
@@ -338,7 +341,7 @@ association history, so the two streams must not be conflated.
 
 This implemented milestone does not include subject merge or split, manual memorial
 association or reassociation, preferred/canonical memorial decisions, FamilySearch
-or WikiTree persistence, versioned JSON envelopes, or hidden-command removal.
+or WikiTree persistence, or hidden-command removal.
 
 ## Public application API and desktop boundary
 
@@ -438,10 +441,11 @@ and consumer-oriented examples.
 Typed Python objects are the primary in-process contract for GUI and other library
 clients. Raw dictionaries are not the preferred API. Versioned JSON remains a
 separate CLI and machine-readable serialization contract. Both Python results and
-JSON envelopes will project the same application results; raw database rows define
+JSON envelopes project the same application results; raw database rows define
 neither contract, and JSON serialization belongs outside domain and persistence
-layers. Transitional CLI JSON compatibility remains intact until the versioned-
-envelope milestone.
+layers. The schema-version-1 successful-result envelope is implemented at the CLI
+adapter boundary. A future machine-readable error contract remains a separate,
+explicit compatibility decision.
 
 Application services return typed information or raise documented typed exceptions.
 They must not print, render Rich content, invoke Typer, prompt, call `sys.exit`,
@@ -1051,6 +1055,8 @@ Completed foundation:
    migration, immutable subject/task events, subject-owned tasks, and memorial-ID
    compatibility across existing work CLI and API operations while preserving
    human output, transitional JSON, aliases, observations, and tutorial behavior.
+5. Added documented command-specific schema-version-1 JSON envelopes for successful
+   work and alias-maintenance results while keeping serialization in the CLI adapter.
 
 Pre-1.0 sequence:
 
@@ -1158,8 +1164,8 @@ Pre-1.0 sequence:
    `1.0.0rc1` requirements.
 16. Complete remaining runtime/test dependency separation; retain `Driver` and
    implementation mechanics as internal details.
-17. Add command-specific versioned JSON envelopes as adapter projections of the same
-   typed application results.
+17. **Completed:** Add command-specific versioned JSON envelopes as adapter
+   projections of the same typed application results.
 18. Normalize acquisition options and remove duplicate, site-shaped, and hidden
    pre-1.0 compatibility paths. Modernize the remaining supported Typer declarations,
    remove deprecated option behavior, keep help assertions semantic, and apply the
