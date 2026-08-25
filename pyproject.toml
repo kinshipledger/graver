@@ -35,6 +35,7 @@ test = [
     "pytest>=9.0.3,<10",
     "pytest-cov>=7.1.0,<8",
     "pytest-helpers-namespace>=2021.12.29,<2022",
+    "pytest-socket>=0.8,<1",
     "python-dateutil>=2.9,<3",
     "requests-mock>=1.11.0,<2",
     "betamax>=0.8.1,<1",
@@ -85,6 +86,14 @@ disallow_untyped_defs = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = ["--disable-socket"]
+strict_markers = true
+markers = [
+    "unit: isolated domain behavior without storage or recorded HTTP",
+    "integration: multiple graver components using isolated local resources",
+    "recorded: sanitized replay-only provider interaction; never records or contacts live services",
+    "slow: deliberately longer maintenance test excluded only by an explicit workflow",
+]
 filterwarnings = [
     "error::ResourceWarning",
     "error::pytest.PytestUnraisableExceptionWarning",

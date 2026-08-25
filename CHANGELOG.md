@@ -21,6 +21,9 @@ does not yet represent a supported production release.
 
 ### Changed
 
+- Made ordinary tests fail closed on socket access, locked existing provider
+  cassettes to replay-only mode, registered strict test-layer markers, and removed
+  duplicate inherited smoke coverage and obsolete commented test bodies.
 - Reduced redundant CI work by making branch coverage the complete Python 3.14 lane,
   focusing Windows on portability-sensitive contracts, and enforcing five-minute
   job ceilings. Removed two unused development dependencies.

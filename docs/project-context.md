@@ -941,9 +941,9 @@ Authenticated FamilySearch or WikiTree traffic requires an especially strict rev
 before any sanitized fixture may be committed.
 
 Betamax remains a temporary compatibility mechanism for the existing cassette
-inventory, not the foundation for new tests. First lock it to replay-only and mark
-the recorded-contract tests. Then migrate parser coverage to static response
-fixtures and transport behavior to `requests-mock`. Trial a small conversion of the
+inventory, not the foundation for new tests. It is now locked to replay-only and
+its consumers are marked as recorded contracts. Next migrate parser coverage to
+static response fixtures and transport behavior to `requests-mock`. Trial a small conversion of the
 remaining contract cases to the actively maintained VCR.py/pytest-recording stack;
 complete that migration only if it is demonstrably simpler and stable. Remove the
 cassette layer entirely if static fixtures and transport mocks provide the same
@@ -1111,9 +1111,12 @@ Pre-1.0 sequence:
    graph and built wheel, and document any accepted residual risk. Treat alert counts
    as dated observations rather than release criteria; `1.0.0rc1` requires no
    unresolved known vulnerability without an explicit, documented risk decision.
-11. Modernize offline test boundaries, default network denial, deterministic domain
-   fixtures and Faker, temporary lifecycle, markers, replay-only contracts, and the
-   bounded live-contract probe.
+11. Continue the offline test modernization. Default socket denial, strict marker
+   registration, replay-only recorded contracts, deterministic Faker seeding,
+   temporary database/configuration isolation, and the bounded live-contract probe
+   are complete. Remaining work is clearer layer classification, additional static
+   parser/domain fixtures, and a small evidence-based cassette-tool trial before any
+   decision to migrate or remove Betamax.
 12. Before freezing source-facing public types, prototype a small internal,
    source-neutral evidence packet with privacy-safe marriage/death, census, and
    probate examples. The packet must also exercise the minimum privacy-conscious

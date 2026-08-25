@@ -219,8 +219,6 @@ class TestMemorialParser(TestApi):
 
 
 class TestMemorial(TestApi):
-    pass
-
     @pytest.mark.parametrize(
         "html, expected",
         [
@@ -1558,41 +1556,6 @@ class TestSearch(TestApi):
             assert death_year == result.death[-4:]
             assert result.nickname == person["nickname"]
 
-    # @pytest.mark.parametrize(
-    #     "param: dict[str, Any]",
-    #     [
-    #         {"famous": True},
-    #         {"famous": False},
-    #         {"sponsored": True},
-    #         {"sponsored": False},
-    #         {"noCemetery": True},
-    #         {"cenotaph": True},
-    #         {"cenotaph": False},
-    #         {"monument": True},
-    #         {"monument": False},
-    #         {"isVeteran": True},
-    #         {"isVeteran": False},
-    #         {"photofilter": "photos"},
-    #         {"photofilter": "nophotos"},
-    #         {"gpsfilter": "gps"},
-    #         {"gpsfilter": "nogps"},
-    #         {"flowers": True},
-    #         {"flowers": False},
-    #         {"hasPlot": True},
-    #         {"hasPlot": False},
-    #     ],
-    # )
-    # @pytest.mark.parametrize("key, value", [("famous", [True, False])])
-    # def test_search_parameters(self, key, value, driver):
-    #     max_results = 5
-    #     args: dict[str, any] = {
-    #         "driver": driver,
-    #         "max_results": max_results,
-    #         key: value,
-    #     }
-    #     rs = Memorial.search(**args)
-    #     assert 0 < len(rs) <= max_results
-
     @pytest.mark.parametrize("value", [True, False])
     @pytest.mark.parametrize(
         "key",
@@ -1678,7 +1641,6 @@ class TestSearch(TestApi):
         args["driver"] = driver
         rs = Memorial.search(**args)
         assert 0 < len(rs) <= expected
-        pass
 
     @pytest.mark.parametrize("name", TestApi.famous_memorials)
     def test_search_famous_people(self, name: str, driver) -> None:
@@ -1722,28 +1684,6 @@ class TestSearch(TestApi):
         logging.getLogger("betamax").setLevel(logging.DEBUG)
         results = Memorial.search(driver=driver)
         assert len(results) == 0
-
-    # @pytest.mark.parametrize(
-    #     "cemetery_url",
-    #     [
-    #         "https://www.findagrave.com/cemetery/641519",
-    #     ],
-    # )
-    # def test_search_cemetery_famous_veterans(self, cemetery_url, driver):
-    #     c = Cemetery(cemetery_url, driver=driver)
-    #     results = Memorial.search(c, famous="true", isVeteran="true")
-    #     assert results is not None
-    #     assert len(results) > 0
-    #     for m in results:
-    #         assert m.famous
-    #         assert m.veteran
-
-    # @pytest.mark.parametrize(
-    #     "url, max_results", [("https://www.findagrave.com/cemetery/641519", 37)]
-    # )
-    # def test_search_cemetery_max_results(self, url, max_results, driver):
-    #     rs = Memorial.search(Cemetery(url, driver=driver), max_results=max_results)
-    #     assert len(rs) == max_results
 
     def test_search_cemetery_identifies_memorial_type_monument(self, driver):
         cem = Cemetery(

@@ -1,7 +1,9 @@
+import socket
 from types import SimpleNamespace
 
 import pytest
 import requests
+from pytest_socket import SocketBlockedError
 
 from graver.api import Driver
 from graver.transport import (
@@ -14,6 +16,13 @@ from graver.transport import (
     TransportResponse,
     TransportTimeout,
 )
+
+
+def test_ordinary_suite_denies_live_socket_access() -> None:
+    """An unmocked HTTP request fails before opening a network connection."""
+    with pytest.warns(UserWarning, match="tried to use socket.socket"):
+        with pytest.raises(SocketBlockedError):
+            socket.socket()
 
 
 def _response(status_code=200, text="ok", headers=None, url="https://example.test"):

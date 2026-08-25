@@ -17,6 +17,13 @@ from tests.memorial_provider import MemorialProvider, ResultSetProvider
 pytest_plugins = ["pytest_helpers_namespace"]
 
 
+def pytest_collection_modifyitems(items):
+    """Classify every replay-session consumer before marker selection occurs."""
+    for item in items:
+        if "driver" in item.fixturenames:
+            item.add_marker(pytest.mark.recorded)
+
+
 def sanitize_cassette_interaction(interaction, _cassette):
     """Remove session- and location-identifying headers before recording."""
     request_headers = interaction.data["request"]["headers"]
@@ -75,13 +82,14 @@ with Betamax.configure() as config:
     path = os.path.dirname(os.path.abspath(__file__))
     config.cassette_library_dir = os.path.join(path, "fixtures/cassettes")
     config.before_record(callback=sanitize_cassette_interaction)
-    # config.default_cassette_options["record_mode"] = "none"
+    config.default_cassette_options["record_mode"] = "none"
 
 runner = CliRunner()
 
 
 @pytest.fixture(scope="function")
 def driver(betamax_parametrized_session):
+    """Provide a replay-only recorded transport and classify its consumer."""
     d = Driver(session=betamax_parametrized_session)
     yield d
 
