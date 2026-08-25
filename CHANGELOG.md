@@ -10,6 +10,12 @@ compatibility, security, deprecation, or known-issue notes before merging it.
 
 ## [Unreleased]
 
+### Added
+
+- Added typed full-memorial and displayed-relationship acquisition inputs to the
+  supported application API, with installed-wheel coverage of the complete offline
+  workspace workflow.
+
 graver is undergoing substantial pre-1.0 development. The current repository state
 does not yet represent a supported production release.
 

@@ -32,11 +32,13 @@ from graver.progress import (
 )
 
 __all__ = (
+    "DisplayedRelationshipInput",
     "EnrichmentAliasBlocked",
     "EnrichmentFailed",
     "EnrichmentNotApproved",
     "EnrichmentRedirectInvalid",
     "EnrichmentRedirected",
+    "MemorialDetailInput",
     "ResearchEnrichmentRequest",
     "ResearchEnrichmentResult",
     "ResearchInputError",
@@ -211,6 +213,65 @@ class ResearchQueueResult:
     def to_compatibility_tuple(self) -> tuple[int, int]:
         """Project the pre-1.0 queue return contract."""
         return self.created, self.existing
+
+
+@dataclass(frozen=True)
+class DisplayedRelationshipInput:
+    """Carry one provider-displayed relationship link without asserting kinship."""
+
+    displayed_group: str
+    memorial_id: int
+    url: str
+    name: str
+    life_text: Optional[str] = None
+    birth_text: Optional[str] = None
+    death_text: Optional[str] = None
+    marriage_year: Optional[str] = None
+
+    def _to_legacy(self) -> legacy_api.RelatedMemorialObservation:
+        """Translate at the private persistence boundary."""
+        return legacy_api.RelatedMemorialObservation(**vars(self))
+
+
+@dataclass(frozen=True)
+class MemorialDetailInput:
+    """Carry one fully observed memorial from an acquisition adapter.
+
+    Values describe the provider representation that the adapter observed. They are
+    neither accepted subject facts nor proof of displayed family relationships.
+    """
+
+    memorial_id: int
+    findagrave_url: str
+    prefix: Optional[str]
+    name: str
+    suffix: Optional[str]
+    nickname: Optional[str]
+    maiden_name: Optional[str]
+    famous: bool
+    veteran: bool
+    birth: Optional[str]
+    death: Optional[str]
+    memorial_type: Optional[str]
+    cemetery_id: Optional[int]
+    burial_place: Optional[str]
+    plot: Optional[str]
+    original_name: Optional[str]
+    birth_place: Optional[str]
+    death_place: Optional[str]
+    coords: Optional[str]
+    has_bio: bool
+    date_added: Optional[str] = None
+    displayed_relationships: tuple[DisplayedRelationshipInput, ...] = ()
+
+    def _to_legacy(self) -> legacy_api.Memorial:
+        """Translate at the private persistence boundary."""
+        values = vars(self).copy()
+        relationships = values.pop("displayed_relationships")
+        values["findagrave_displayed_relationship_links"] = tuple(
+            relationship._to_legacy() for relationship in relationships
+        )
+        return legacy_api.Memorial.from_dict(values)
 
 
 @dataclass(frozen=True)
@@ -760,7 +821,7 @@ class ResearchService:
     def enrich_memorial(
         self,
         command: ResearchEnrichmentRequest,
-        acquire: Optional[Callable[[str], object]] = None,
+        acquire: Optional[Callable[[str], MemorialDetailInput]] = None,
         progress: Optional[ProgressObserver] = None,
         cancellation: Optional[CancellationToken] = None,
     ) -> ResearchEnrichmentResult:
@@ -789,9 +850,10 @@ class ResearchService:
         token.raise_if_cancelled(operation, "acquisition")
         if progress is not None:
             progress(ProgressEvent(operation, "acquisition", 0, 1))
+        acquire_memorial: Callable[[str], MemorialDetailInput | legacy_api.Memorial]
         acquire_memorial = acquire or legacy_api.Memorial.parse
         try:
-            memorial = acquire_memorial(attempted_url)
+            acquired = acquire_memorial(attempted_url)
         except CancellationRequested:
             raise
         except legacy_api.MemorialMergedException as merged:
@@ -813,6 +875,11 @@ class ResearchService:
         except Exception as ex:
             self.record_enrichment_failure(command.memorial_id, attempted_url, ex)
             raise EnrichmentFailed(command.memorial_id, ex) from ex
+        memorial = (
+            acquired._to_legacy()
+            if isinstance(acquired, MemorialDetailInput)
+            else acquired
+        )
         token.raise_if_cancelled(operation, "persistence")
         if progress is not None:
             progress(ProgressEvent(operation, "persistence", 0, 1))

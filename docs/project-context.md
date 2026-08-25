@@ -631,10 +631,13 @@ The top-level `consumer_spike` now installs graver from its built wheel and impo
 only documented APIs. It is not the production GUI and adds no Qt dependency. The
 initial slice creates and opens an isolated workspace, inspects it, queries empty
 work, and queues idempotently without importing persistence or adapter internals.
-The consumer now covers the public concurrency-update boundary and verifies that a
-pre-cancelled installed-wheel acquisition stops at validation without provider
-access. Before `1.0.0rc1`, extend it with a populated injected acquisition and fuller
-boundary-type assertions. Its findings may continue to refine the facade before the
+The consumer now covers populated typed summary and full-record acquisition, task
+queueing and optimistic updates, stale-write rejection, progress, cancellation after
+retrieval but before persistence, immutable boundary values and errors, retained
+observations, and successful enrichment. It uses no private import or provider
+request. The spike exposed and closed the untyped full-record injection seam by
+adding `MemorialDetailInput` and `DisplayedRelationshipInput` to the supported
+application boundary. Its findings may continue to refine the facade before the
 release candidate.
 
 After graver 1.0, the production GUI should grow incrementally through workspace
@@ -1178,9 +1181,11 @@ Pre-1.0 sequence:
    enforcement, reviewed changelog, and manually gated Release Please workflow.
 21. Finish the public API guide, database and 0.1 migration instructions,
    compatibility and release notes, and the later authorized branch/tag plan.
-22. Build the separate consumer spike against the installed wheel, validating the
-   documented facade without private imports, direct SQLite access, or live bulk
-   acquisition.
+22. **Completed:** Build the separate consumer spike against the installed wheel,
+   validating the documented facade without private imports, direct SQLite access,
+   or live acquisition. Cover populated task updates, injected summary and full
+   acquisition, progress, safe cancellation, optimistic concurrency, typed boundary
+   values, and retained observation behavior.
 23. Resolve spike findings and prepare `1.0.0rc1` without weakening migration,
    provenance, concurrency, or offline-test guarantees.
 24. Validate the release candidate, re-evaluate whether GEDCOM has demonstrated

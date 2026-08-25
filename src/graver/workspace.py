@@ -23,6 +23,7 @@ from graver.database import (
 from graver.errors import ApplicationError, DatabaseBusy, DatabaseOperationError
 from graver.progress import CancellationToken, ProgressObserver
 from graver.research import (
+    MemorialDetailInput,
     ResearchEnrichmentRequest,
     ResearchEnrichmentResult,
     ResearchQueueRequest,
@@ -156,7 +157,7 @@ class WorkspaceAcquisition:
         *,
         progress: Optional[ProgressObserver] = None,
         cancellation: Optional[CancellationToken] = None,
-        acquire: Optional[Callable[[str], object]] = None,
+        acquire: Optional[Callable[[str], MemorialDetailInput]] = None,
     ) -> ResearchEnrichmentResult:
         """Retrieve and persist one approved memorial at safe cancellation boundaries."""
         try:
