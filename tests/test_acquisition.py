@@ -169,6 +169,42 @@ def test_summary_search_rolls_back_the_complete_batch_on_persistence_failure(
         )
 
 
+def test_summary_batch_validates_database_once_before_transaction(
+    tmp_path, monkeypatch
+) -> None:
+    """Batch persistence does not reopen schema validation for every memorial."""
+    database = create_database(str(tmp_path / "research.db"))
+    workspace = open_workspace(database)
+    first = _george_summary()
+    summaries = tuple(
+        dataclasses.replace(
+            first,
+            memorial_id=memorial_id,
+            findagrave_url=f"https://example.invalid/memorial/{memorial_id}",
+        )
+        for memorial_id in range(1, 51)
+    )
+    initialize = acquisition.legacy_api._initialize_database
+    calls = 0
+
+    def count_initialization(database_name):
+        nonlocal calls
+        calls += 1
+        return initialize(database_name)
+
+    monkeypatch.setattr(
+        acquisition.legacy_api, "_initialize_database", count_initialization
+    )
+
+    receipt = workspace.acquisition.search(
+        MemorialSummarySearchRequest(max_results=50),
+        acquire=lambda _command: MemorialSummaryBatch(summaries),
+    )
+
+    assert receipt.memorials_created == 50
+    assert calls == 1
+
+
 def test_summary_search_preserves_sqlite_failures_for_workspace_translation(
     tmp_path, monkeypatch
 ) -> None:

@@ -32,6 +32,10 @@ researcher and developer changes, compatibility breaks, deferred scope, and know
 limitations. The [maintainer release process](releasing.md) defines the review gates
 and manually triggered Release Please workflow.
 
+The [performance and responsiveness guide](performance.md) defines the generated
+offline baseline, non-blocking weekly/manual measurement workflow, interpretation
+rules, and provisional targets for the future desktop vertical slice.
+
 The [source-neutral adapter strategy](source-adapter-strategy.md) defines graver's
 scope boundary, adapter roles, admission gates, prioritization scorecard, and
 professional-review cadence. It is a guardrail against both source-specific core

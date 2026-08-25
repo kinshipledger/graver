@@ -34,13 +34,15 @@ uv run pre-commit install
 make lint
 make typecheck
 make doccheck
+make performance
 uv run pytest
 uv run pytest --cov=graver --cov-report=term-missing --cov-report=xml
 uv lock --check
 ```
 
 `make lint` runs the required Black formatting check and Ruff lint/import-order
-check over `src/graver`, `tests`, and `review`. `make typecheck` runs mypy over the
+check over production, test, review, consumer-spike, and benchmark Python. `make
+typecheck` runs mypy over the
 supported application boundary in `graver.application`, `graver.database`,
 `graver.evidence`, and `graver.research`. `make doccheck` enforces Google-style
 public docstring coverage over that same boundary, excluding redundant magic-method
@@ -72,6 +74,12 @@ minutes, its duration grows by 25 percent across comparable runs, or a proposed 
 substantially duplicates an existing lane. Optimize fixtures and lane responsibilities
 before weakening assertions; platform-specific or live checks need an explicit reason
 and bounded fallback. Test count is useful context, not a goal by itself.
+
+`make performance` runs the informational offline workspace baseline with generated
+100- and 10,000-record databases. It is not a required pull-request gate and its
+wall-clock results should not be compared across unlike machines. The separate
+weekly/manual workflow retains JSON reports for trend review. See the
+[performance and responsiveness guide](docs/performance.md).
 
 SQLite `ResourceWarning`s
 and unraisable finalizer warnings fail pytest so connection leaks cannot quietly

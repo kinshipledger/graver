@@ -721,7 +721,8 @@ def _save_grave(
     timestamp: Optional[str] = None,
 ) -> None:
     database_name = database_name or os.getenv("DATABASE_NAME", "graves.db")
-    _initialize_database(database_name)
+    if connection is None:
+        _initialize_database(database_name)
     timestamp = timestamp or _utc_now_iso()
     parameters = {name: values[name] for name in data_fields}
     parameters.update(detail_level=detail_level, fetched_at=timestamp)
