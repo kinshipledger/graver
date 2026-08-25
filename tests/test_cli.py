@@ -144,7 +144,6 @@ class TestCli(Test):
     def fake_memorial(faker):
         def _fake_memorial() -> Memorial:
             m = faker.memorial(faker)
-            # log.debug(f"Generated {m} from faker instance {faker}")
             TestCli.cache(m)
             return m
 

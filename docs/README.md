@@ -1,7 +1,10 @@
 # Canonical project documentation
 
-This directory is the canonical, version-controlled source for the project
-context, existing-system inventory, and roadmap.
+This directory is the canonical, version-controlled source for the
+[project context and roadmap](project-context.md) and the
+[existing-system inventory](existing-system-inventory.md). The
+[initial inspection](initial-inspection.md) remains as dated historical context;
+current behavior is recorded in the inventory.
 
 The [researcher tutorial](tutorial.md) is the canonical end-to-end guide for
 using the implemented command-line workflow.

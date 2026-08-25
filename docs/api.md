@@ -40,11 +40,13 @@ CLI defaults, creates a missing file, or upgrades an older schema. The workspace
 immutable and holds no SQLite connection; each operation owns a short-lived internal
 unit of work.
 
-The façade currently contains database inspection; typed work-queue list, show,
-idempotent queue, and concurrency-safe update operations; and researcher-directed
-single-record enrichment. Evidence and broader acquisition namespaces will be added
-only after their contracts are ready. Clients should not import internal packet,
-transport, persistence, or CLI modules to fill those temporary gaps.
+The workspace façade currently contains database inspection; typed work-queue list,
+show, idempotent queue, and concurrency-safe update operations; and
+researcher-directed summary search and single-record enrichment. The supported
+lower-level `EvidenceService` supplies the reviewed offline evidence contract;
+workspace evidence composition remains deferred until its client ergonomics are
+ready. Clients should not import internal packet, transport, persistence, or CLI
+modules to fill that temporary gap.
 
 Expected lookup failures are translated to `WorkItemNotFound`, which carries the
 requested memorial identifier without exposing SQL detail or a legacy exception
@@ -135,6 +137,11 @@ Evidence and research services return graver-owned immutable result objects or r
 graver-owned exceptions. Presentation adapters translate those outcomes into CLI
 exit codes, JSON, dialogs, or future GUI state; the services themselves do not emit
 terminal or toolkit-specific output.
+
+The installed-wheel consumer exercises an offline discovery and comparison through
+`EvidenceService` after obtaining the subject identifier from a typed task detail.
+It confirms that candidate agreement affects review ordering only and that no
+identity conclusion appears unless a researcher explicitly records one.
 
 ## Acquisition boundary
 

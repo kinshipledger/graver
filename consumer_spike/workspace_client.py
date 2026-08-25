@@ -11,7 +11,12 @@ from graver.application import (
     ApplicationError,
     CancellationRequested,
     CancellationToken,
+    CandidateInput,
+    ComparisonSignalInput,
+    DiscoveryRequest,
+    DiscoveryResult,
     DisplayedRelationshipInput,
+    EvidenceService,
     MemorialDetailInput,
     MemorialSummaryBatch,
     MemorialSummaryInput,
@@ -26,6 +31,7 @@ from graver.application import (
     ResearchTaskRecord,
     ResearchTaskSummary,
     ResearchTaskUpdate,
+    SourceObservationInput,
     StaleResearchTask,
     WorkItemNotFound,
     create_database,
@@ -187,6 +193,73 @@ def main(database: Path) -> None:
         ][0]["name"]
         == "Martha Washington"
     )
+    evidence = EvidenceService(str(created))
+    observation = evidence.record_source_observation(
+        SourceObservationInput(
+            subject_id=completed.task.subject_id,
+            source_kind="memorial_snapshot",
+            title="George Washington memorial observation",
+            citation="Offline installed-wheel fixture; no live page examined.",
+            observed_at="2026-08-24T12:00:00Z",
+            assertions={"name": "George Washington"},
+            provenance={"fixture": "consumer-spike/1"},
+            actor="installed-wheel consumer",
+        )
+    )
+    discovery = evidence.record_discovery(
+        DiscoveryRequest(
+            subject_id=completed.task.subject_id,
+            provider="offline-consumer-fixture",
+            query={"name": "George Washington"},
+            started_at="2026-08-24T12:01:00Z",
+            completed_at="2026-08-24T12:01:00Z",
+            strategy_version="consumer-spike/1",
+            candidates=(
+                CandidateInput(
+                    provider_profile_id="fixture-profile-1075",
+                    observed_at="2026-08-24T12:01:00Z",
+                    assertions={"name": "George Washington"},
+                ),
+            ),
+        )
+    )
+    assert isinstance(discovery, DiscoveryResult)
+    snapshot = discovery.snapshots[0]
+    signals = evidence.record_comparison(
+        snapshot.snapshot_id,
+        "consumer-spike/1",
+        (
+            ComparisonSignalInput(
+                fact_type="name",
+                classification="exact",
+                explanation=(
+                    "Displayed values agree; this orders review and does not "
+                    "establish identity."
+                ),
+                subject_assertion={
+                    "record_id": observation.observation_id,
+                    "path": "name",
+                    "original": "George Washington",
+                },
+                candidate_assertion={
+                    "record_id": snapshot.snapshot_id,
+                    "path": "name",
+                    "original": "George Washington",
+                },
+                normalized_subject_value="george washington",
+                normalized_candidate_value="george washington",
+                ordering_contribution=1,
+            ),
+        ),
+    )
+    assert len(signals) == 1
+    assert (
+        evidence.ranked_candidates(completed.task.subject_id, "consumer-spike/1")[
+            0
+        ].candidate_id
+        == snapshot.candidate_id
+    )
+    assert evidence.conclusion_history(snapshot.candidate_id) == ()
     try:
         full.name = "Changed"  # type: ignore[misc]
     except FrozenInstanceError:
