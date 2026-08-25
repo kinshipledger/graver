@@ -87,6 +87,8 @@ The CLI no longer creates a persistent `graver.log` merely by being imported or
 run; explicit diagnostics go to standard error. Malformed provider links are typed
 parse failures rather than assertions. Locked dependencies are audited with
 `pip-audit`, and CodeQL analyzes Python changes and `main` on a weekly schedule.
+Human-readable terminal output visibly escapes control and bidirectional display
+characters from untrusted text without rewriting retained evidence or JSON.
 
 Research databases are local, unencrypted SQLite files. Newly created databases
 and upgrade backups use owner-only permissions where supported, but graver does not
