@@ -289,11 +289,14 @@ alias functions, transport infrastructure through `Driver`, and wildcard constan
 The README does not define that collection as a supported Python API. It is therefore
 an accidental import surface, not yet a suitable 1.0 facade.
 
-Current `--json` paths serialize raw API dictionaries whose fields closely follow
-SQLite rows and internal alias-resolution structures. Those outputs are deterministic
-and useful for current tests, but they are not documented, versioned, command-specific
-1.0 schemas. The hidden compatibility commands remain implemented and tested today;
-their approved pre-1.0 removal has not yet occurred.
+Supported `--json` paths now wrap application-facing compatibility projections in
+the documented schema-version-1 envelope: `schema_version`, a stable dotted
+`command` identifier, and command-specific `data`. The envelope is deterministic,
+keeps subject UUIDs and private SQL structures out of the CLI, and permits additive
+optional fields within version 1. Runtime JSON errors are not yet a documented
+contract; syntax and operational failures retain nonzero exits and human-readable
+standard-error diagnostics. Hidden compatibility commands use the envelope while
+they remain implemented, but are not part of the supported 1.0 command contract.
 
 No desktop GUI currently exists. Current CLI and Python boundaries still expose a
 mixture of persistence-shaped dictionaries, root-level functions, SQLite-oriented
@@ -375,8 +378,8 @@ and 9m51s respectively.
 Keep the existing scraper and its `graves` table as the **Find a Grave acquisition component**. The additive `cemeteries`, `memorial_observations`, and `research_tasks` layer now provides provenance and a practical queue.
 
 The task-oriented CLI, explicit database lifecycle, schema-v2 subject ownership,
-and additive schema-v4 offline evidence structures
-are complete, but raw JSON, broad exports, compatibility aliases,
+additive schema-v4 offline evidence structures, and versioned successful-result JSON
+envelopes are complete, but broad exports, compatibility aliases,
 dependency boundaries, and accidental internal APIs must not be frozen as the 1.0
 contract. Before beginning FamilySearch work, follow the ordered pre-1.0 roadmap in
 `docs/project-context.md`. The subject-oriented application service now provides

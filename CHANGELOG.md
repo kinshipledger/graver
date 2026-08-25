@@ -13,6 +13,13 @@ compatibility, security, deprecation, or known-issue notes before merging it.
 graver is undergoing substantial pre-1.0 development. The current repository state
 does not yet represent a supported production release.
 
+### Changed
+
+- Machine-readable CLI results now use a versioned envelope with
+  `schema_version`, a stable dotted `command` identifier, and the previous result
+  payload under `data`. Pre-1.0 scripts that read top-level result fields must read
+  them from `data` instead.
+
 ### Removed
 
 - Removed the legacy `scrape-url` and unattended `scrape-file` commands. Use

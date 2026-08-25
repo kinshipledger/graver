@@ -17,6 +17,9 @@ import APIs are deferred pending a concrete authorized workflow.
 The [developer API guide](api.md) documents the supported pre-1.0 typed application
 boundary for CLI, future GUI, and other client adapters.
 
+The [command-line JSON contract](cli-json.md) defines the versioned envelope and
+command identifiers used by supported machine-readable CLI results.
+
 The [source-neutral adapter strategy](source-adapter-strategy.md) defines graver's
 scope boundary, adapter roles, admission gates, prioritization scorecard, and
 professional-review cadence. It is a guardrail against both source-specific core

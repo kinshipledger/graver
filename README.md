@@ -210,6 +210,7 @@ For contributors and maintainers:
 
 - [Contribution guide](CONTRIBUTING.md)
 - [Developer API guide](docs/api.md)
+- [Command-line JSON contract](docs/cli-json.md)
 - [Security policy](SECURITY.md)
 - [Project context and roadmap](docs/project-context.md)
 - [Verified implementation inventory](docs/existing-system-inventory.md)
