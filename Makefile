@@ -1,4 +1,4 @@
-.PHONY: help init sync run test lint typecheck doccheck format clean
+.PHONY: help init sync run test performance lint typecheck doccheck format clean
 
 # Default goal when running just `make`
 .DEFAULT_GOAL := help
@@ -25,9 +25,12 @@ run: ## Run the main application
 test: ## Run tests using pytest
 	PYTHONPATH=src uv run --group test pytest
 
+performance: ## Measure the informational offline performance baseline
+	uv run python benchmarks/performance_baseline.py --sizes 100 10000 --repetitions 7
+
 lint: ## Run required formatting and lint checks
-	uv run --group dev black --check src/graver tests review consumer_spike
-	uv run --group dev ruff check src/graver tests review consumer_spike
+	uv run --group dev black --check src/graver tests review consumer_spike benchmarks
+	uv run --group dev ruff check src/graver tests review consumer_spike benchmarks
 
 typecheck: ## Type-check the supported application boundary
 	uv run --group dev mypy
@@ -36,8 +39,8 @@ doccheck: ## Check public application docstring coverage and style
 	uv run --group dev ruff check --select D --ignore D105,D107 src/graver/acquisition.py src/graver/application.py src/graver/database.py src/graver/errors.py src/graver/evidence.py src/graver/progress.py src/graver/research.py src/graver/workspace.py
 
 format: ## Apply safe lint fixes and Black formatting
-	uv run --group dev ruff check --fix src/graver tests review consumer_spike
-	uv run --group dev black src/graver tests review consumer_spike
+	uv run --group dev ruff check --fix src/graver tests review consumer_spike benchmarks
+	uv run --group dev black src/graver tests review consumer_spike benchmarks
 
 clean: ## Remove virtual environment and build artifacts
 	rm -rf .venv

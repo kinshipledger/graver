@@ -1193,6 +1193,10 @@ Pre-1.0 sequence:
    both entry points from the built wheel and an isolated uv tool installation.
 20. Maintain the uv-based Python 3.11-through-3.14 CI, Conventional Commit PR-title
    enforcement, reviewed changelog, and manually gated Release Please workflow.
+   Maintain the separate informational performance baseline without making noisy
+   hosted-runner wall-clock measurements a pull-request gate. Review sustained
+   regressions and convert only demonstrated user-visible budgets into later GUI
+   acceptance criteria.
 21. **Implemented:** Complete the public API guide, database and 0.1 migration
    instructions, compatibility mapping, draft `1.0.0rc1` release notes, and the
    maintainer release process for the trunk-based, manually gated Release Please

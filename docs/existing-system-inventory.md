@@ -238,6 +238,18 @@ was measured at 2m32s of test time versus tens of seconds on the other hosted
 platforms. Every required job has a five-minute ceiling and a documented four-minute
 review threshold.
 
+A separate non-required performance workflow now measures deterministic generated
+100- and 10,000-record workspaces weekly and on manual request. It retains versioned
+JSON reports for 90 days and records setup cost, database size, workspace validation,
+work-list, task-detail, task-update, latency, and peak traced Python allocation. It
+does not use providers, real research data, or PR timing thresholds. A 100,000-record
+capacity probe remains explicit and manual until its cost is understood.
+The initial Apple Silicon/Python 3.14 run completed both datasets in about 12 seconds.
+At 10,000 tasks, median open/validation, list-50, show, and update operations remained
+between 63 and 80 milliseconds. The first run also found repeated per-record schema
+validation that could lock a large batch; summary persistence now validates once at
+the operation boundary, protected by a focused regression test.
+
 The inherited suite still mixes several responsibilities, but its external-access
 boundary is now explicit. Pytest disables socket access by default through
 `pytest-socket`; existing sanitized Betamax interactions are replay-only and are

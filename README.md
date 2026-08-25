@@ -232,6 +232,7 @@ For contributors and maintainers:
 - [Pre-1.0 command-line migration](docs/cli-migration.md)
 - [Draft 1.0.0rc1 release notes](docs/release-notes-1.0.0rc1.md)
 - [Maintainer release process](docs/releasing.md)
+- [Performance and responsiveness](docs/performance.md)
 - [Security policy](SECURITY.md)
 - [Project context and roadmap](docs/project-context.md)
 - [Verified implementation inventory](docs/existing-system-inventory.md)

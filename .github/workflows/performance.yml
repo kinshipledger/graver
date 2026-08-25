@@ -1,0 +1,38 @@
+name: Performance baseline
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 8 * * 0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: performance-baseline
+  cancel-in-progress: false
+
+jobs:
+  baseline:
+    name: Offline workspace baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
+        with:
+          python-version: "3.14"
+      - run: uv sync --locked --group test --group dev
+      - name: Measure generated 100- and 10,000-record workspaces
+        run: >-
+          uv run python benchmarks/performance_baseline.py
+          --sizes 100 10000
+          --repetitions 7
+          --output performance-baseline.json
+      - name: Retain the informational baseline
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: performance-baseline-${{ github.run_id }}
+          path: performance-baseline.json
+          if-no-files-found: error
+          retention-days: 90

@@ -12,6 +12,9 @@ compatibility, security, deprecation, or known-issue notes before merging it.
 
 ### Added
 
+- Added a deterministic offline performance harness, weekly/manual baseline
+  workflow, retained machine-readable reports, and provisional GUI responsiveness
+  budgets without adding a pull-request timing gate.
 - Added researcher-safe database upgrade and recovery guidance, draft `1.0.0rc1`
   release notes, and a manually gated maintainer release checklist.
 - Added typed full-memorial and displayed-relationship acquisition inputs to the
@@ -23,6 +26,9 @@ does not yet represent a supported production release.
 
 ### Changed
 
+- Summary batches now validate the database once at the operation boundary instead
+  of reopening schema validation for every memorial, preventing large transactions
+  from tripping over their own SQLite lock.
 - Made ordinary tests fail closed on socket access, locked existing provider
   cassettes to replay-only mode, registered strict test-layer markers, and removed
   duplicate inherited smoke coverage and obsolete commented test bodies.
