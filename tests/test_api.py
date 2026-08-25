@@ -1473,14 +1473,38 @@ class TestMemorialAliases:
 
 
 class TestSearch(TestApi):
-    def test_malformed_result_link_is_a_parse_error(self):
+    @pytest.mark.parametrize(
+        "html, message",
+        [
+            ("<div></div>", "no memorial link"),
+            (
+                '<div><a href="/memorial/not-a-number/name"></a></div>',
+                "numeric memorial ID",
+            ),
+        ],
+    )
+    def test_malformed_result_link_is_a_parse_error(self, html, message):
         worker = graver.api._SearchWorker()
-        tag = BeautifulSoup(
-            '<div><a href="/memorial/not-a-number/name"></a></div>', "html.parser"
-        ).div
+        tag = BeautifulSoup(html, "html.parser").div
 
-        with pytest.raises(MemorialParseException, match="numeric memorial ID"):
+        with pytest.raises(MemorialParseException, match=message):
             worker.scrape_memorial_url(tag, {})
+
+    def test_malformed_result_count_is_a_parse_error(self):
+        class MalformedCount:
+            @staticmethod
+            def get_text(strip=False):
+                return "not a number"
+
+        class MatchingSoup:
+            @staticmethod
+            def find(*args, **kwargs):
+                return MalformedCount()
+
+        worker = graver.api._SearchWorker()
+
+        with pytest.raises(MemorialParseException, match="count is malformed"):
+            worker.scrape_count(MatchingSoup())
 
     def test_search_reports_progress(self, monkeypatch):
         progress_state = {"updates": []}
