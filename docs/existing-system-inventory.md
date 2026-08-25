@@ -126,8 +126,9 @@ audit with `pip-audit` and Ruff production security checks; manually reviewed S6
 findings are limited to fixed internal SQL identifiers with parameter-bound values.
 The pinned CodeQL workflow analyzes pull requests, `main`, and a weekly schedule.
 GitHub secret scanning and push protection are enabled; the enablement check on
-2026-08-25 reported no secret alerts. CodeQL had not yet completed its first run at
-the time of this inventory update, so no clean-analysis claim is made here.
+2026-08-25 reported no secret alerts. The first CodeQL analysis completed on that
+date; the post-merge check reported zero CodeQL, Dependabot, and secret-scanning
+alerts.
 No hosted service, account system, telemetry, remote synchronization, database
 encryption, or secure-erasure facility exists.
 
