@@ -133,6 +133,10 @@ Human-readable CLI output passes through one terminal-safety boundary that rende
 C0/C1 controls and bidirectional display controls visibly. Stored observations and
 versioned JSON preserve the source values exactly; this is presentation hardening,
 not evidence normalization.
+The live Requests transport now bounds every final and redirect response body to
+8 MiB. It checks a valid declared length before reading and otherwise streams in
+64 KiB chunks, stops as soon as the limit is exceeded, closes the response, and
+raises a graver-owned typed transport error before parsing or persistence.
 No hosted service, account system, telemetry, remote synchronization, database
 encryption, or secure-erasure facility exists.
 

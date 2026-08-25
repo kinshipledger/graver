@@ -7,6 +7,7 @@ from pytest_socket import SocketBlockedError
 
 from graver.api import Driver
 from graver.transport import (
+    DEFAULT_MAX_RESPONSE_BYTES,
     DEFAULT_TIMEOUT,
     RequestsTransport,
     TransportAccessBlocked,
@@ -14,6 +15,7 @@ from graver.transport import (
     TransportError,
     TransportRateLimited,
     TransportResponse,
+    TransportResponseTooLarge,
     TransportTimeout,
 )
 
@@ -78,7 +80,113 @@ def test_requests_transport_always_applies_explicit_timeout():
 
     transport.get("https://example.test", timeout=None)
 
-    assert calls == [("https://example.test", {"timeout": (1.5, 7.0)})]
+    assert calls == [("https://example.test", {"timeout": (1.5, 7.0), "stream": True})]
+
+
+class StreamingResponse:
+    def __init__(self, chunks, headers=None):
+        self.status_code = 200
+        self.reason = "OK"
+        self.headers = headers or {}
+        self.url = "https://example.test/large"
+        self.request = SimpleNamespace(url=self.url)
+        self.history = ()
+        self._chunks = chunks
+        self.closed = False
+
+    def iter_content(self, chunk_size):
+        assert chunk_size > 0
+        yield from self._chunks
+
+    def close(self):
+        self.closed = True
+
+
+def test_transport_rejects_declared_oversize_before_reading_body():
+    response = StreamingResponse(
+        [b"must not be read"], headers={"Content-Length": "11"}
+    )
+    session = SimpleNamespace(headers={}, get=lambda *args, **kwargs: response)
+
+    with pytest.raises(TransportResponseTooLarge, match="10-byte safety limit"):
+        RequestsTransport(session=session, max_response_bytes=10).get(response.url)
+
+    assert response.closed
+
+
+def test_transport_rejects_streamed_oversize_without_declared_length():
+    response = StreamingResponse([b"123456", b"78901"])
+    session = SimpleNamespace(headers={}, get=lambda *args, **kwargs: response)
+
+    with pytest.raises(TransportResponseTooLarge, match="10-byte safety limit"):
+        RequestsTransport(session=session, max_response_bytes=10).get(response.url)
+
+    assert response.closed
+
+
+def test_transport_accepts_response_exactly_at_limit():
+    response = StreamingResponse([b"12345", b"", b"67890"])
+    session = SimpleNamespace(headers={}, get=lambda *args, **kwargs: response)
+
+    result = RequestsTransport(session=session, max_response_bytes=10).get(response.url)
+
+    assert result.content == b"1234567890"
+    assert result.text == "1234567890"
+    assert response.closed
+
+
+def test_transport_ignores_malformed_declared_length_and_measures_body():
+    response = StreamingResponse([b"small"], headers={"CONTENT-LENGTH": "unknown"})
+    session = SimpleNamespace(headers={}, get=lambda *args, **kwargs: response)
+
+    result = RequestsTransport(session=session, max_response_bytes=10).get(response.url)
+
+    assert result.content == b"small"
+
+
+def test_transport_bounds_lightweight_preloaded_response_double():
+    response = SimpleNamespace(
+        status_code=200,
+        reason="OK",
+        headers={},
+        url="https://example.test/double",
+        request=SimpleNamespace(url="https://example.test/double"),
+        history=(),
+        content=b"12345678901",
+        text="12345678901",
+    )
+    session = SimpleNamespace(headers={}, get=lambda *args, **kwargs: response)
+
+    with pytest.raises(TransportResponseTooLarge, match="10-byte safety limit"):
+        RequestsTransport(session=session, max_response_bytes=10).get(response.url)
+
+
+def test_transport_accepts_lightweight_preloaded_response_double():
+    response = SimpleNamespace(
+        status_code=200,
+        reason="OK",
+        headers={},
+        url="https://example.test/double",
+        request=SimpleNamespace(url="https://example.test/double"),
+        history=(),
+        content=b"small",
+        text="fixture text",
+    )
+    session = SimpleNamespace(headers={}, get=lambda *args, **kwargs: response)
+
+    result = RequestsTransport(session=session, max_response_bytes=10).get(response.url)
+
+    assert result.content == b"small"
+    assert result.text == "fixture text"
+
+
+def test_default_response_limit_is_finite_and_positive():
+    assert DEFAULT_MAX_RESPONSE_BYTES == 8 * 1024 * 1024
+
+
+def test_nonpositive_response_limit_is_rejected():
+    with pytest.raises(ValueError, match="must be positive"):
+        RequestsTransport(session=SimpleNamespace(headers={}), max_response_bytes=0)
 
 
 def test_driver_accepts_small_injected_transport():
