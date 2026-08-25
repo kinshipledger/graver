@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "graver-genealogy"
-version = "0.1.0"
+version = "1.0.0-rc.1"
 description = "Build provenance-aware genealogical research from cemetery memorials"
 authors = [{ name = "Larry McQueary", email = "contact@mcqueary.org" }]
 requires-python = ">=3.11"
