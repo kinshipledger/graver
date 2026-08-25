@@ -89,6 +89,8 @@ parse failures rather than assertions. Locked dependencies are audited with
 `pip-audit`, and CodeQL analyzes Python changes and `main` on a weekly schedule.
 Human-readable terminal output visibly escapes control and bidirectional display
 characters from untrusted text without rewriting retained evidence or JSON.
+Live HTTP response bodies are limited to 8 MiB and streamed in bounded chunks;
+oversized responses stop with a typed error before parsing or persistence.
 
 Research databases are local, unencrypted SQLite files. Newly created databases
 and upgrade backups use owner-only permissions where supported, but graver does not
