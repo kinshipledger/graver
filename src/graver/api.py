@@ -854,16 +854,6 @@ def _ensure_subject_for_memorial(
     return subject_id
 
 
-def _subject_id_for_memorial(
-    connection: sqlite3.Connection, memorial_id: int
-) -> Optional[str]:
-    row = connection.execute(
-        "SELECT subject_id FROM subject_memorials WHERE memorial_id = ?",
-        (memorial_id,),
-    ).fetchone()
-    return None if row is None else row[0]
-
-
 def _task_dict_for_memorial(row: sqlite3.Row, memorial_id: int) -> dict:
     return {
         "memorial_id": memorial_id,
@@ -1686,7 +1676,6 @@ class _MemorialParser:
             self.scrape_page()
 
     def parse(self):
-        pass
         return Memorial(
             memorial_id=self.memorial_id,
             findagrave_url=self.findagrave_url,

@@ -10,12 +10,6 @@ from graver.api import Memorial, ResultSet
 
 
 class MemorialProvider(BaseProvider):
-    # def __init__(self) -> None:
-    #     super().__init__(pytest.fixtures.faker)
-    #     # super().generator
-    # fake = pytest.fixture.faker
-    # fake = faker.Faker()
-
     @staticmethod
     def format_url(memorial_id: int, name: str) -> str:
         # remove periods

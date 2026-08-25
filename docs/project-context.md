@@ -548,14 +548,15 @@ verification; the canonical inventory records only behavior actually implemented
 
 ### API hygiene and documentation milestone
 
-This milestone is partially implemented and must finish before the workspace facade
-is frozen as graver's 1.0 contract. The initial `graver.application` boundary,
+This milestone is implemented and must remain green when the workspace facade is
+frozen as graver's 1.0 contract. The `graver.application` boundary,
 explicit exports, typed request/result services, developer guide, bounded mypy and
 Google-convention docstring checks, workspace composition, optimistic task
 concurrency, a stable application-error contract, thread-isolation coverage, and an
-executable installed-wheel client are current. Expanded wheel consumer scenarios,
-evidenced dead-code cleanup, and broader documentation/link validation remain. Keep
-that work separate from substantial behavioral changes.
+executable installed-wheel client are current. The final hygiene pass added offline
+evidence-service use to that wheel consumer, corroborated dependency retention,
+removed only demonstrably unreachable private scaffolding, indexed every canonical
+top-level document, and brought maintenance scripts into CI quality checks.
 
 The supported boundary uses Google-style docstrings. Every supported public
 module, class, protocol, exception, function, method, typed command, query, and
@@ -1099,11 +1100,12 @@ Pre-1.0 sequence:
    review and focused re-review found blockers; final focused verification passed
    after evidence-selection fidelity and negative-search reproducibility were
    corrected.
-9. Finish the partially implemented API hygiene and documentation milestone. The
+9. **Completed:** Finish the API hygiene and documentation milestone. The
    explicit pre-1.0 application exports, bounded mypy and Google-style docstring
-   gates, developer guide, and wheel import check are complete. Remaining work is
-   evidenced dead-code cleanup, broader documentation/link validation, and expanded
-   executable installed-wheel client examples before the 1.0 surface is frozen.
+   gates, developer guide, evidenced dead-code and dependency audit, canonical-doc
+   indexing and local-link validation, and expanded executable installed-wheel
+   client examples are complete. The final public-surface freeze occurs at the
+   separate RC-readiness contract audit.
    Synchronous workspace composition and optimistic task concurrency are complete.
 10. Maintain the completed dependency-security and software-supply-chain baseline:
    keep runtime and development dependencies separated, review weekly grouped
@@ -1181,8 +1183,9 @@ Pre-1.0 sequence:
    authorization gates and preserve provenance. A job engine, scheduler, general
    import command, GEDCOM adapter, and unattended provider adapter are not
    `1.0.0rc1` requirements.
-16. Complete remaining runtime/test dependency separation; retain `Driver` and
-   implementation mechanics as internal details.
+16. **Completed:** Runtime, test, and development dependency responsibilities are
+   separated and evidenced; retain `Driver` and compatibility persistence mechanics
+   as internal details while they support active acquisition and data safety.
 17. **Completed:** Add command-specific versioned JSON envelopes as adapter
    projections of the same typed application results.
 18. **Completed:** Normalize acquisition options and remove duplicate, site-shaped,

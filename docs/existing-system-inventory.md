@@ -528,8 +528,9 @@ exposes one-person enrichment with synchronous neutral progress events and
 cooperative cancellation before retrieval and persistence. Its public injection
 seam accepts immutable `MemorialDetailInput` values and separately labeled
 `DisplayedRelationshipInput` observations rather than the legacy parser model.
-Evidence, broader acquisition operations, and the final 1.0 method surface remain
-unfrozen.
+Evidence remains available through the supported lower-level `EvidenceService`;
+workspace evidence composition and the final 1.0 surface freeze remain pending the
+RC-readiness contract audit.
 
 The researcher-directed summary `search` command delegates to
 `workspace.acquisition.search()` using a typed provider-specific request. The
@@ -550,35 +551,37 @@ or busy SQLite failures to `DatabaseBusy` and other operation failures to
 composition is exercised concurrently from multiple worker threads; every call owns
 and closes its connection in the calling thread.
 
-The dedicated **API hygiene and documentation** milestone is now partially complete:
-explicit imports, a deliberately empty package-root export surface, typed
-graver-owned results and exceptions, bounded
-mypy/docstring gates, and offline developer guidance are implemented. Typer, Rich,
-SQLite connections and rows, SQL helpers, parsers, Requests objects, `Driver`, and
-transport implementation types remain outside the boundary as intended.
+The dedicated **API hygiene and documentation** milestone is complete: explicit
+imports, a deliberately empty package-root export surface, typed graver-owned
+results and exceptions, bounded mypy/docstring gates, offline developer guidance,
+canonical-document indexing, and installed-wheel consumer validation are
+implemented. Typer, Rich, SQLite connections and rows, SQL helpers, parsers,
+Requests objects, `Driver`, and transport implementation types remain outside the
+boundary as intended.
 
-That milestone will review broad root and wildcard exports, obsolete compatibility
-helpers, and unused
-dependencies. Removal requires corroborating repository, test, coverage or static-
-analysis, import/export, and compatibility evidence rather than one linter warning;
-research-data migration paths remain protected. Compatibility-sensitive removals
-receive release notes. Separate commits will cover export/type boundaries,
-evidenced dead-code and dependency removal, Google-style docstrings and installed-
-wheel API examples, bounded CI enforcement, and migration/release notes.
+The final audit corroborated dependency use through direct imports, tests, the
+locked graph, exports, and compatibility responsibilities. No runtime dependency
+was removable without deleting active behavior. One unreachable private subject
+lookup helper and inert scaffolding were removed; research-data migrations and the
+active internal compatibility persistence seams were retained. Maintenance scripts
+now participate in both local and CI formatting and lint checks.
 
 Ruff now enforces Google-convention public docstring coverage, and mypy enforces the
 listed application-facing modules through deterministic local, pre-commit, and CI
 commands. The `deadcode` package was removed after its AST visitor failed on
 supported Python 3.14; unused-code decisions require corroborating repository,
-tests, coverage, exports, and compatibility evidence instead. Broader documentation
-build/link validation remains to be selected. Optimistic task concurrency is now
-implemented. The installed-wheel consumer now verifies workspace creation and
+tests, coverage, exports, and compatibility evidence instead. Top-level canonical
+documents are required to be discoverable from the docs index, and all local
+Markdown links remain validated. Optimistic task concurrency is implemented. The
+installed-wheel consumer verifies workspace creation and
 inspection, typed summary and full-record injection, task queueing and meaningful
 updates, stale-write rejection, progress, cancellation after retrieval but before
 persistence, immutable boundary values and errors, retained observations, and
-successful enrichment without private imports or provider requests. Final acceptance
-still requires evidenced removals, release notes, and green reproducible checks. The
-researcher tutorial remains separate from this developer API reference.
+successful enrichment without private imports or provider requests. It also invokes
+the supported offline evidence service for citation-bearing observation, candidate
+discovery, comparison, and review ordering while confirming that no conclusion is
+created automatically. The researcher tutorial remains separate from this developer
+API reference.
 
 Before the release candidate, the planned facade must define typed requests,
 results, exceptions, progress, cancellation, threading, transaction ownership,

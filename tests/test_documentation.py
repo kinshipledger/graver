@@ -32,3 +32,17 @@ def test_local_markdown_links_resolve() -> None:
                 missing.append(f"{document.relative_to(REPOSITORY_ROOT)} -> {target}")
 
     assert missing == [], "Missing local documentation links:\n" + "\n".join(missing)
+
+
+def test_canonical_documents_are_linked_from_the_documentation_index() -> None:
+    """Keep every top-level canonical document discoverable from the docs index."""
+    index = (REPOSITORY_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+    unlisted = [
+        document.name
+        for document in sorted((REPOSITORY_ROOT / "docs").glob("*.md"))
+        if document.name != "README.md" and document.name not in index
+    ]
+
+    assert (
+        unlisted == []
+    ), "Canonical documents missing from docs/README.md: " + ", ".join(unlisted)
