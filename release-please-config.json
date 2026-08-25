@@ -9,6 +9,7 @@
       "package-name": "graver-genealogy",
       "prerelease": true,
       "prerelease-type": "rc",
+      "release-as": "1.0.0-rc.1",
       "versioning": "prerelease",
       "release-type": "python"
     }
