@@ -129,6 +129,10 @@ GitHub secret scanning and push protection are enabled; the enablement check on
 2026-08-25 reported no secret alerts. The first CodeQL analysis completed on that
 date; the post-merge check reported zero CodeQL, Dependabot, and secret-scanning
 alerts.
+Human-readable CLI output passes through one terminal-safety boundary that renders
+C0/C1 controls and bidirectional display controls visibly. Stored observations and
+versioned JSON preserve the source values exactly; this is presentation hardening,
+not evidence normalization.
 No hosted service, account system, telemetry, remote synchronization, database
 encryption, or secure-erasure facility exists.
 

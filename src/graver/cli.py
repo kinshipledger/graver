@@ -48,6 +48,42 @@ from graver.research import (
 
 log = logging.getLogger(__name__)
 
+_raw_echo = typer.echo
+
+_BIDI_CONTROL_CODEPOINTS = {
+    0x061C,
+    0x200E,
+    0x200F,
+    *range(0x202A, 0x202F),
+    *range(0x2066, 0x206A),
+}
+
+
+def _terminal_safe_text(value: object) -> str:
+    """Render control characters visibly without changing stored source data."""
+    safe = []
+    for character in str(value):
+        codepoint = ord(character)
+        if character == "\n":
+            safe.append(r"\n")
+        elif character == "\r":
+            safe.append(r"\r")
+        elif character == "\t":
+            safe.append(r"\t")
+        elif codepoint < 0x20 or 0x7F <= codepoint <= 0x9F:
+            safe.append(f"\\x{codepoint:02x}")
+        elif codepoint in _BIDI_CONTROL_CODEPOINTS:
+            safe.append(f"\\u{codepoint:04x}")
+        else:
+            safe.append(character)
+    return "".join(safe)
+
+
+def _human_echo(message: object = "", **kwargs) -> None:
+    """Write terminal-safe human output through Typer's normal stream handling."""
+    _raw_echo(_terminal_safe_text(message), **kwargs)
+
+
 # Global Driver
 cli_driver = Driver()
 
@@ -60,7 +96,7 @@ def version_callback(value: bool):
         metadata = importlib.metadata.metadata(APP_NAME)
         name_str = metadata["Name"]
         version_str = metadata["Version"]
-        typer.echo(f"{name_str} v{version_str}")
+        _human_echo(f"{name_str} v{version_str}")
         raise typer.Exit()
 
 
@@ -81,7 +117,7 @@ def database_callback(value: Optional[str]) -> str:
     try:
         return graver_config.resolve_database(value).path
     except graver_config.GraverConfigurationError as ex:
-        raise typer.BadParameter(str(ex))
+        raise typer.BadParameter(_terminal_safe_text(ex))
 
 
 def database_option(help_text: str):
@@ -118,18 +154,19 @@ def admin_database_upgrade(
     try:
         result = upgrade_database(database)
     except DatabaseUpgradeError as ex:
-        typer.echo(str(ex), err=True)
+        _human_echo(str(ex), err=True)
         raise typer.Exit(1)
     if not result.changed:
-        typer.echo(
+        _human_echo(
             f"Research database is already current at schema version "
             f"{result.version}: {result.path}"
         )
         return
-    typer.echo(
+    _human_echo(
         f"Upgraded {result.source.source_label} to schema version {result.version}: "
-        f"{result.path}\nVerified backup: {result.backup_path}"
+        f"{result.path}"
     )
+    _human_echo(f"Verified backup: {result.backup_path}")
 
 
 @app.callback()
@@ -165,18 +202,18 @@ def init(
     try:
         initialized = create_database(database)
     except DatabaseInitializationError as ex:
-        typer.echo(str(ex), err=True)
+        _human_echo(str(ex), err=True)
         raise typer.Exit(1)
     try:
         selected = graver_config.select_default_database(str(initialized))
     except graver_config.GraverConfigurationError as ex:
-        typer.echo(
+        _human_echo(
             f"Database was initialized at {initialized}, but it could not be "
             f"selected: {ex}",
             err=True,
         )
         raise typer.Exit(1)
-    typer.echo(f"Initialized and selected research database: {selected}")
+    _human_echo(f"Initialized and selected research database: {selected}")
 
 
 @app.command()
@@ -200,29 +237,29 @@ def use(
     try:
         if database is not None:
             selected = graver_config.select_default_database(database)
-            typer.echo(f"Default research database: {selected}")
+            _human_echo(f"Default research database: {selected}")
         elif show:
             selected = graver_config.configured_default_database()
             if selected is None:
-                typer.echo(
+                _human_echo(
                     "No default research database is selected. "
                     "Run `graver use DATABASE` to select one."
                 )
             else:
-                typer.echo(f"Default research database: {selected}")
+                _human_echo(f"Default research database: {selected}")
         else:
             graver_config.clear_default_database()
-            typer.echo(
+            _human_echo(
                 "The saved default database was cleared. No database was deleted."
             )
     except graver_config.GraverConfigurationError as ex:
-        typer.echo(str(ex), err=True)
+        _human_echo(str(ex), err=True)
         raise typer.Exit(1)
 
 
 def _json_output(command: str, value) -> None:
     """Write a deterministic, versioned command-result envelope."""
-    typer.echo(
+    _raw_echo(
         json.dumps(
             result_envelope(command, value),
             ensure_ascii=False,
@@ -242,12 +279,12 @@ def _list_aliases(
     try:
         aliases = list_memorial_aliases(db, status, target_id, limit)
     except MemorialAliasError as ex:
-        raise typer.BadParameter(str(ex))
+        raise typer.BadParameter(_terminal_safe_text(ex))
     if json_output:
         _json_output("admin.aliases.list", aliases)
         return
     for alias in aliases:
-        typer.echo(
+        _human_echo(
             f"{alias['source_memorial_id']} ({alias['source_name'] or '-'}) -> "
             f"{alias['target_memorial_id']} ({alias['target_name'] or '-'}) | "
             f"{alias['alias_type']} | {alias['status']} | "
@@ -260,15 +297,15 @@ def _show_alias(memorial_id: int, db: str, json_output: bool) -> None:
     try:
         result = get_memorial_alias(db, memorial_id)
     except (NotFound, MemorialAliasError) as ex:
-        typer.echo(str(ex), err=True)
+        _human_echo(str(ex), err=True)
         raise typer.Exit(1)
     if json_output:
         _json_output("admin.aliases.show", result)
         return
-    typer.echo(f"Alias {memorial_id}: {' -> '.join(map(str, result['path']))}")
-    typer.echo(f"Canonical memorial: {result['canonical_memorial_id']}")
+    _human_echo(f"Alias {memorial_id}: {' -> '.join(map(str, result['path']))}")
+    _human_echo(f"Canonical memorial: {result['canonical_memorial_id']}")
     for item in result["history"]:
-        typer.echo(
+        _human_echo(
             f"  {item['observed_at']} | {item['event_type']} | "
             f"{item['source_memorial_id']} -> {item['target_memorial_id']}"
         )
@@ -289,7 +326,7 @@ def _record_alias(
             db, source_id, target_id, alias_type, source_url, target_url, reason
         )
     except (NotFound, MemorialAliasError) as ex:
-        typer.echo(str(ex), err=True)
+        _human_echo(str(ex), err=True)
         raise typer.Exit(1)
     _json_output("admin.aliases.record", result)
 
@@ -299,7 +336,7 @@ def _retract_alias(source_id: int, db: str, reason: str) -> None:
     try:
         result = retract_memorial_alias(db, source_id, reason)
     except MemorialAliasError as ex:
-        typer.echo(str(ex), err=True)
+        _human_echo(str(ex), err=True)
         raise typer.Exit(1)
     _json_output("admin.aliases.retract", result)
 
@@ -311,7 +348,7 @@ def _enrich_task(
     try:
         result = service.enrich_memorial(ResearchEnrichmentRequest(memorial_id))
     except (NotFound, ResearchTaskNotFound, DatabaseLifecycleError) as ex:
-        typer.echo(str(ex), err=True)
+        _human_echo(str(ex), err=True)
         raise typer.Exit(1)
     except EnrichmentNotApproved:
         message = (
@@ -319,17 +356,17 @@ def _enrich_task(
             if researcher_output
             else f"Task {memorial_id} is not ready_for_full_scrape"
         )
-        typer.echo(message, err=True)
+        _human_echo(message, err=True)
         raise typer.Exit(1)
     except EnrichmentAliasBlocked as blocked:
         if researcher_output:
-            typer.echo(
+            _human_echo(
                 f"Find a Grave redirects this memorial to "
                 f"{blocked.canonical_id}. No retrieval was made.",
                 err=True,
             )
         else:
-            typer.echo(
+            _human_echo(
                 f"Memorial {memorial_id} is an active alias; canonical target "
                 f"{blocked.canonical_id} via "
                 f"{' -> '.join(map(str, blocked.path))}",
@@ -337,7 +374,7 @@ def _enrich_task(
             )
         raise typer.Exit(1)
     except EnrichmentRedirectInvalid:
-        typer.echo(
+        _human_echo(
             "Merged-memorial response did not contain the expected source "
             "and target IDs",
             err=True,
@@ -353,7 +390,7 @@ def _enrich_task(
             f"{redirected.target_memorial_id}; "
             "alias recorded for review"
         )
-        typer.echo(message, err=True)
+        _human_echo(message, err=True)
         raise typer.Exit(1)
     except EnrichmentFailed as ex:
         message = (
@@ -361,12 +398,12 @@ def _enrich_task(
             if researcher_output
             else f"Full scrape failed for memorial {memorial_id}: {ex}"
         )
-        typer.echo(message, err=True)
+        _human_echo(message, err=True)
         raise typer.Exit(1)
     if json_output:
         _json_output("work.enrich", result.to_compatibility_dict())
     else:
-        typer.echo(
+        _human_echo(
             f"The full memorial was retrieved. Person {memorial_id} is now "
             f"{result.status}."
         )
@@ -383,7 +420,7 @@ def _display_work_list(tasks: list) -> None:
             if task.get("alias_status") == "active"
             else ""
         )
-        typer.echo(
+        _human_echo(
             f"{task['memorial_id']} | {task['name'] or 'Unknown person'} | "
             f"{task['birth'] or '?'}–{task['death'] or '?'} | "
             f"{task['status']} | priority {task['priority']} | {detail}{action}"
@@ -394,50 +431,50 @@ def _load_task_or_exit(db: str, memorial_id: int) -> dict:
     try:
         return ResearchService(db).get_task(memorial_id).to_compatibility_dict()
     except (NotFound, ResearchTaskNotFound, DatabaseLifecycleError) as ex:
-        typer.echo(str(ex), err=True)
+        _human_echo(str(ex), err=True)
         raise typer.Exit(1)
 
 
 def _display_work_task(result: dict, history: bool = False) -> None:
     task, grave = result["task"], result["grave"]
-    typer.echo(
+    _human_echo(
         f"Person: {grave['name'] or 'Unknown'} "
         f"({grave['birth'] or '?'}–{grave['death'] or '?'})"
     )
-    typer.echo(
+    _human_echo(
         f"Research: {task['status']} | priority {task['priority']} | "
         f"owner {task['owner'] or 'unassigned'}"
     )
-    typer.echo(
+    _human_echo(
         f"Find a Grave: memorial {grave['memorial_id']} | "
         f"{grave['detail_level'] or 'legacy/unclassified'} | "
         f"cemetery {grave['cemetery_id'] or 'unknown'}"
     )
     alias = result["alias"]
     if alias["is_active_source"]:
-        typer.echo(
+        _human_echo(
             f"Important: Find a Grave redirects this memorial to "
             f"{alias['canonical_memorial_id']}. Redirect requires review."
         )
-        typer.echo(
+        _human_echo(
             f"Next action: review with `graver admin aliases show "
             f"{grave['memorial_id']}`."
         )
     elif task["status"] == "unprocessed":
-        typer.echo(
+        _human_echo(
             "Next action: begin research or mark this person ready for enrichment."
         )
     elif task["status"] == "ready_for_full_scrape":
-        typer.echo(f"Next action: run `graver work enrich {grave['memorial_id']}`.")
+        _human_echo(f"Next action: run `graver work enrich {grave['memorial_id']}`.")
     else:
-        typer.echo(
+        _human_echo(
             "Next action: review the current research state and choose a status."
         )
-    typer.echo(f"Provenance: {len(result['observations'])} acquisition observations.")
+    _human_echo(f"Provenance: {len(result['observations'])} acquisition observations.")
     if history:
-        typer.echo("Detailed provenance:")
+        _human_echo("Detailed provenance:")
         for observation in result["observations"]:
-            typer.echo(
+            _human_echo(
                 f"  {observation['observed_at']} | "
                 f"{observation['acquisition_level']} | "
                 f"{observation['fetch_outcome']} | "
@@ -445,7 +482,7 @@ def _display_work_task(result: dict, history: bool = False) -> None:
                 f"{json.dumps(observation['payload'], ensure_ascii=False, sort_keys=True)}"
             )
         if alias["is_active_source"]:
-            typer.echo(f"Alias path: {' -> '.join(map(str, alias['path']))}")
+            _human_echo(f"Alias path: {' -> '.join(map(str, alias['path']))}")
 
 
 @work_app.command("list")
@@ -471,7 +508,7 @@ def work_list(
             )
         ]
     except ValueError as ex:
-        raise typer.BadParameter(str(ex))
+        raise typer.BadParameter(_terminal_safe_text(ex))
     if json_output:
         _json_output("work.list", tasks)
     else:
@@ -497,9 +534,9 @@ def work_next(
             ResearchTaskQuery(status, cemetery_id, 1)
         )
     except ValueError as ex:
-        raise typer.BadParameter(str(ex))
+        raise typer.BadParameter(_terminal_safe_text(ex))
     if not tasks:
-        typer.echo("No people match the requested research queue filters.")
+        _human_echo("No people match the requested research queue filters.")
         return
     result = _load_task_or_exit(db, tasks[0].memorial_id)
     if json_output:
@@ -558,7 +595,7 @@ def work_mark(
             memorial_id, status, priority, owner, note
         )
     except ValueError as ex:
-        typer.echo(str(ex), err=True)
+        _human_echo(str(ex), err=True)
         raise typer.Exit(2)
     if json_output:
         _json_output("work.mark", task)
@@ -571,9 +608,9 @@ def work_mark(
     }
     changed = [label for key, label in labels.items() if before[key] != task[key]]
     if changed:
-        typer.echo(f"Updated {', '.join(changed)} for person {memorial_id}.")
+        _human_echo(f"Updated {', '.join(changed)} for person {memorial_id}.")
     else:
-        typer.echo(f"No changes were needed for person {memorial_id}.")
+        _human_echo(f"No changes were needed for person {memorial_id}.")
 
 
 @work_app.command("enrich")
@@ -607,7 +644,7 @@ def work_queue(
     created, existing = result.created, result.existing
     created_label = "person" if created == 1 else "people"
     existing_label = "person was" if existing == 1 else "people were"
-    typer.echo(
+    _human_echo(
         f"Added {created} {created_label} to the research queue; "
         f"{existing} {existing_label} already present."
     )
@@ -982,23 +1019,23 @@ def search(
     snapshot_label = (
         "dated snapshot" if receipt.observations_appended == 1 else "dated snapshots"
     )
-    typer.echo(
+    _human_echo(
         f"Observed {receipt.observations_appended} {summary_label}: "
         f"{receipt.memorials_created} new, {receipt.memorials_existing} existing."
     )
-    typer.echo(
+    _human_echo(
         f"Retained {receipt.observations_appended} {snapshot_label} without replacing "
         "earlier snapshots."
     )
     if receipt.changed_memorials:
         memorial_label = "memorial" if receipt.changed_memorials == 1 else "memorials"
         field_label = "field" if len(receipt.changes) == 1 else "fields"
-        typer.echo(
+        _human_echo(
             f"Changed the current display for {receipt.changed_memorials} existing "
             f"{memorial_label} ({len(receipt.changes)} {field_label}):"
         )
         for change in receipt.changes:
-            typer.echo(
+            _human_echo(
                 f"  {change.memorial_id} | {change.field}: "
                 f"{change.previous!r} -> {change.current!r}"
             )

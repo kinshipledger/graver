@@ -11,6 +11,7 @@ from click import unstyle
 from click.testing import Result
 
 import graver.api
+import graver.cli as graver_cli_module
 from graver._sqlite import connect_database
 from graver.api import (
     Driver,
@@ -206,6 +207,42 @@ class TestCli(Test):
 
 
 class TestCliCommonOptions(TestCli):
+    def test_terminal_text_escapes_controls_and_preserves_unicode(self) -> None:
+        source = "Zoë\x1b[2J\r\nnext\t\u202efalse"
+
+        assert graver_cli_module._terminal_safe_text(source) == (
+            r"Zoë\x1b[2J\r\nnext\t\u202efalse"
+        )
+
+    def test_human_task_output_neutralizes_untrusted_controls(self, capsys) -> None:
+        graver_cli_module._display_work_list(
+            [
+                {
+                    "alias_status": None,
+                    "birth": "1900",
+                    "death": "1980",
+                    "detail_level": "summary",
+                    "memorial_id": 123,
+                    "name": "Person\x1b[2J\nForged line",
+                    "priority": 100,
+                    "status": "unprocessed",
+                }
+            ]
+        )
+
+        output = capsys.readouterr().out
+        assert "\x1b" not in output
+        assert "Person\\x1b[2J\\nForged line" in output
+        assert output.count("\n") == 1
+
+    def test_json_output_preserves_source_values(self, capsys) -> None:
+        source = "Person\x1b[2J\nSecond line"
+
+        graver_cli_module._json_output("test.output", {"name": source})
+
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["data"]["name"] == source
+
     def test_import_has_no_persistent_logging_side_effect(self, tmp_path) -> None:
         result = subprocess.run(
             [sys.executable, "-c", "import graver.cli"],
