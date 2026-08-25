@@ -51,7 +51,21 @@ the full required scope.
 The first test command is the ordinary fast suite. The second reproduces the
 dedicated CI branch-coverage measurement and should be run when behavior or tests
 change. Coverage is reported from one Ubuntu/Python lane rather than duplicated
-across every supported Python and operating-system lane. SQLite `ResourceWarning`s
+across every supported Python and operating-system lane. That coverage lane is also
+the complete Python 3.14 test lane; Python 3.11–3.13 run the ordinary suite
+separately. macOS runs the complete suite, while Windows runs the portability-focused
+database, configuration, entry-point, workspace, error, progress, and public-contract
+tests because its full fixture-heavy suite is disproportionately slow without adding
+equivalent platform evidence.
+
+Required CI jobs have a five-minute ceiling and should normally provide pull-request
+feedback in under four minutes. Review the workflow when a required job exceeds four
+minutes, its duration grows by 25 percent across comparable runs, or a proposed test
+substantially duplicates an existing lane. Optimize fixtures and lane responsibilities
+before weakening assertions; platform-specific or live checks need an explicit reason
+and bounded fallback. Test count is useful context, not a goal by itself.
+
+SQLite `ResourceWarning`s
 and unraisable finalizer warnings fail pytest so connection leaks cannot quietly
 return.
 

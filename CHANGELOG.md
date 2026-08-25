@@ -21,6 +21,9 @@ does not yet represent a supported production release.
 
 ### Changed
 
+- Reduced redundant CI work by making branch coverage the complete Python 3.14 lane,
+  focusing Windows on portability-sensitive contracts, and enforcing five-minute
+  job ceilings. Removed two unused development dependencies.
 - Machine-readable CLI results now use a versioned envelope with
   `schema_version`, a stable dotted `command` identifier, and the previous result
   payload under `data`. Pre-1.0 scripts that read top-level result fields must read
@@ -34,6 +37,10 @@ does not yet represent a supported production release.
 
 ### Removed
 
+- Removed accidental parser, persistence, transport-driver, alias, and task-helper
+  re-exports from the `graver` package root. Application clients must import the
+  documented typed contract from `graver.application`; internal modules are not a
+  supported replacement API.
 - Removed the hidden pre-1.0 task and alias command names. Use `graver work …` for
   research tasks and `graver admin aliases …` for redirect maintenance. Removed
   duplicate and site-shaped search spellings including `--id`, `--cid`, `--max`,

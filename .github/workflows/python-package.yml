@@ -13,10 +13,11 @@ jobs:
   test:
     name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
@@ -26,8 +27,9 @@ jobs:
       - run: uv run pytest
 
   coverage:
-    name: Branch coverage
+    name: Python 3.14
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
@@ -46,6 +48,7 @@ jobs:
   quality:
     name: Quality and package
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
@@ -78,6 +81,7 @@ jobs:
   platform:
     name: ${{ matrix.os }} / Python 3.14
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
@@ -93,4 +97,14 @@ jobs:
         run: uv run pytest
       - name: Run tests with slow-test report
         if: runner.os == 'Windows'
-        run: uv run pytest --durations=25
+        run: >-
+          uv run pytest --durations=15
+          tests/test_application_api.py
+          tests/test_cli_json.py
+          tests/test_config.py
+          tests/test_database.py
+          tests/test_errors.py
+          tests/test_module_entrypoint.py
+          tests/test_progress.py
+          tests/test_sqlite.py
+          tests/test_workspace.py
