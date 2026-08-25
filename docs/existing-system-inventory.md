@@ -205,7 +205,7 @@ immediately.
 - `graves` remains a current-state acquisition table rather than immutable observation history. The new upserts protect richer data but do not retain earlier versions of changed source values.
 - Ordered explicit migration, fetch timestamps, successful and failed acquisition observations, foreign keys, supporting indexes, initial work-queue state, and alias provenance now exist.
 - Accepted family relationships, live FamilySearch matches, WikiTree matches, and
-  cemetery-tag decisions are not modeled. Schema v4 now contains an internal,
+  cemetery-tag decisions are not modeled. The current schema now contains an internal,
   fixture-only evidence model for discovery snapshots, comparison signals,
   assessments, and reviewed identity conclusions; it is not a live provider or
   user-facing matching feature.
@@ -227,6 +227,9 @@ immediately.
 ## Test and environment status
 
 The repository has a substantial fixture-backed test suite covering memorial parsing, search filters, cemetery pagination, merged/removed memorial handling, CLI behavior, SQLite persistence, additive migration, summary/full overwrite protection, atomic observation creation, observation immutability, foreign-key constraints, and queue idempotency.
+The 2026-08-24 documentation-contract addition brought the complete offline suite to
+456 passing tests in 7.37 seconds locally. Local branch coverage immediately before
+that documentation-only addition was 94.45% against the 90% floor.
 
 CI avoids counting the same evidence repeatedly: the coverage job is also the full
 Python 3.14 lane, Python 3.11–3.13 retain full Linux runs, macOS retains a full
@@ -450,7 +453,7 @@ semantic presentation-boundary tests. The cleaned adapter currently satisfies th
 approved Typer retention criteria; recurring unsupported behavior or disproportionate
 framework maintenance would still trigger migration to direct Click before 1.0.
 
-The implemented current schema is version 3. The schema-v2 foundation uses
+The implemented current schema is version 5. The schema-v2 foundation uses
 canonical lowercase UUIDv4 `TEXT` subject IDs and adds
 `research_subjects`, `subject_memorials`, immutable `research_subject_events`,
 subject-keyed `research_tasks`, and immutable `research_task_events`. A subject is an
@@ -459,11 +462,14 @@ conclusion. Migration mechanically creates one subject for every grave and
 associates only that memorial with it, including for graves without tasks. It does
 not merge records because of aliases, redirects, names, dates, or similarity.
 
-Schema v4 adds empty-on-migration evidence structures for immutable offline
+Schema v3 adds empty-on-migration evidence structures for immutable offline
 discovery runs, provider-scoped candidates and snapshots, comparison signals,
 concurrency-checked current assessments with immutable history, and immutable
 reviewed conclusions. The version-2-to-version-3 migration creates no candidates,
 assessments, comparisons, conclusions, relationships, or identity associations.
+Schema v4 adds immutable, citation-bearing source observations without fabricating
+them during migration. Schema v5 adds optimistic-concurrency task revisions; existing
+tasks begin at revision 1 without changing their human-owned values or timestamps.
 
 The association constraint permits at most one current subject per memorial and
 structurally permits a subject to have zero or multiple memorials. Multiple-
@@ -575,7 +581,7 @@ family-work services.
 The accepted
 [evidence assessment and identity conclusion architecture](evidence-assessment-architecture.md)
 is now implemented as an internal, completely offline vertical slice using curated
-FamilySearch-shaped fixtures. Schema v4 preserves immutable discovery runs and
+FamilySearch-shaped fixtures. The current schema preserves immutable discovery runs and
 candidate snapshots, assertion-level comparison signals, explainable review
 ordering, concurrency-checked assessments, reproducible negative searches,
 unresolved questions, citation-bearing source observations, and immutable

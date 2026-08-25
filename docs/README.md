@@ -23,6 +23,15 @@ command identifiers used by supported machine-readable CLI results.
 The [pre-1.0 command-line migration](cli-migration.md) maps removed compatibility
 commands and provider-shaped search spellings to the supported CLI.
 
+The [database upgrade and recovery guide](database-upgrades.md) explains the
+explicit backed-up migration workflow, preservation guarantees, safe failure
+behavior, and the limits of manual recovery.
+
+The [draft 1.0.0rc1 release notes](release-notes-1.0.0rc1.md) summarize the intended
+researcher and developer changes, compatibility breaks, deferred scope, and known
+limitations. The [maintainer release process](releasing.md) defines the review gates
+and manually triggered Release Please workflow.
+
 The [source-neutral adapter strategy](source-adapter-strategy.md) defines graver's
 scope boundary, adapter roles, admission gates, prioritization scorecard, and
 professional-review cadence. It is a guardrail against both source-specific core
@@ -76,8 +85,7 @@ real offline evidence service. It is a moderated-review artifact, not a producti
 GUI or supported public interface.
 
 The [first R2 professional review](professional-researcher-r2-review-2026-08-23.md)
-records the blocking decision-safety and citation-traceability findings that now
-await focused re-review.
+records the original blocking decision-safety and citation-traceability findings.
 
 The [focused R2 re-review](professional-researcher-r2-rereview-2026-08-23.md)
 records the remaining evidence-selection and negative-search presentation defects.

@@ -1193,8 +1193,10 @@ Pre-1.0 sequence:
    both entry points from the built wheel and an isolated uv tool installation.
 20. Maintain the uv-based Python 3.11-through-3.14 CI, Conventional Commit PR-title
    enforcement, reviewed changelog, and manually gated Release Please workflow.
-21. Finish the public API guide, database and 0.1 migration instructions,
-   compatibility and release notes, and the later authorized branch/tag plan.
+21. **Implemented:** Complete the public API guide, database and 0.1 migration
+   instructions, compatibility mapping, draft `1.0.0rc1` release notes, and the
+   maintainer release process for the trunk-based, manually gated Release Please
+   workflow. Recheck and finalize these living documents at the RC readiness gate.
 22. **Completed:** Build the separate consumer spike against the installed wheel,
    validating the documented facade without private imports, direct SQLite access,
    or live acquisition. Cover populated task updates, injected summary and full

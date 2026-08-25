@@ -22,6 +22,8 @@ spellings to the supported researcher-facing interface.
 
 The supported commands use the versioned JSON envelope documented in
 [Command-line JSON contract](cli-json.md). Previous result fields are under `data`.
+Database-file upgrades are a separate concern covered by the
+[database upgrade and recovery guide](database-upgrades.md).
 
 ## Search-option replacements
 
