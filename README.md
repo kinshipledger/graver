@@ -220,6 +220,7 @@ that provenance matters.
 For researchers:
 
 - [Researcher tutorial](docs/tutorial.md)
+- [Database upgrades and recovery](docs/database-upgrades.md)
 - [Access policy](docs/access-policy.md)
 - [Documentation index](docs/README.md)
 
@@ -229,6 +230,8 @@ For contributors and maintainers:
 - [Developer API guide](docs/api.md)
 - [Command-line JSON contract](docs/cli-json.md)
 - [Pre-1.0 command-line migration](docs/cli-migration.md)
+- [Draft 1.0.0rc1 release notes](docs/release-notes-1.0.0rc1.md)
+- [Maintainer release process](docs/releasing.md)
 - [Security policy](SECURITY.md)
 - [Project context and roadmap](docs/project-context.md)
 - [Verified implementation inventory](docs/existing-system-inventory.md)

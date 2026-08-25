@@ -12,6 +12,8 @@ compatibility, security, deprecation, or known-issue notes before merging it.
 
 ### Added
 
+- Added researcher-safe database upgrade and recovery guidance, draft `1.0.0rc1`
+  release notes, and a manually gated maintainer release checklist.
 - Added typed full-memorial and displayed-relationship acquisition inputs to the
   supported application API, with installed-wheel coverage of the complete offline
   workspace workflow.
