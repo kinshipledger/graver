@@ -35,7 +35,6 @@ test = [
     "pytest>=9.0.3,<10",
     "pytest-cov>=7.1.0,<8",
     "pytest-helpers-namespace>=2021.12.29,<2022",
-    "pytest-integration>=0.2.3,<0.3",
     "python-dateutil>=2.9,<3",
     "requests-mock>=1.11.0,<2",
     "betamax>=0.8.1,<1",
@@ -49,7 +48,6 @@ dev = [
     "types-beautifulsoup4>=4.12.0.7,<5",
     "types-tqdm>=4.66.0.5,<5",
     "types-requests>=2.31.0.10,<3",
-    "types-python-dateutil>=2.8.19.14,<3",
 ]
 
 [tool.black]

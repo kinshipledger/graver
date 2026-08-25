@@ -494,7 +494,6 @@ dev = [
     { name = "pre-commit" },
     { name = "ruff" },
     { name = "types-beautifulsoup4" },
-    { name = "types-python-dateutil" },
     { name = "types-requests" },
     { name = "types-tqdm" },
 ]
@@ -505,7 +504,6 @@ test = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-helpers-namespace" },
-    { name = "pytest-integration" },
     { name = "python-dateutil" },
     { name = "requests-mock" },
 ]
@@ -525,7 +523,6 @@ dev = [
     { name = "pre-commit", specifier = ">=3.5.0,<5" },
     { name = "ruff", specifier = ">=0.14,<1" },
     { name = "types-beautifulsoup4", specifier = ">=4.12.0.7,<5" },
-    { name = "types-python-dateutil", specifier = ">=2.8.19.14,<3" },
     { name = "types-requests", specifier = ">=2.31.0.10,<3" },
     { name = "types-tqdm", specifier = ">=4.66.0.5,<5" },
 ]
@@ -536,7 +533,6 @@ test = [
     { name = "pytest", specifier = ">=9.0.3,<10" },
     { name = "pytest-cov", specifier = ">=7.1.0,<8" },
     { name = "pytest-helpers-namespace", specifier = ">=2021.12.29,<2022" },
-    { name = "pytest-integration", specifier = ">=0.2.3,<0.3" },
     { name = "python-dateutil", specifier = ">=2.9,<3" },
     { name = "requests-mock", specifier = ">=1.11.0,<2" },
 ]
@@ -887,15 +883,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pytest-integration"
-version = "0.2.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/35/e0/c823048dc0866f2e0fa2e4a34cd6ec290697b238b7672b30cb07c65e59cc/pytest_integration-0.2.3.tar.gz", hash = "sha256:b00988a5de8a6826af82d4c7a3485b43fbf32c11235e9f4a8b7225eef5fbcf65", size = 3295, upload-time = "2022-11-17T10:34:50.319Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1b/41/9b393be6252635e4d39c3e62805018c42bfcc486b42246b582b755ff9ad3/pytest_integration-0.2.3-py3-none-any.whl", hash = "sha256:7f59ed1fa1cc8cb240f9495b68bc02c0421cce48589f78e49b7b842231604b12", size = 4456, upload-time = "2022-11-17T10:34:47.341Z" },
-]
-
-[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -1203,15 +1190,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b8/5a/0c708d1b0d35ad48b6a223c77c4a882fd016b40c25becb082a92e02a9c00/types_html5lib-1.1.11.20260518.tar.gz", hash = "sha256:4f33c087cb1119d65c4c80eca4323c2b501f9eaf8af9616b8b732ed4d8eae8fa", size = 18420, upload-time = "2026-05-18T06:07:23.662Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4d/d0/b088b9f11eb69637d6826843f06caaff60247156735a25512922d3dc2c13/types_html5lib-1.1.11.20260518-py3-none-any.whl", hash = "sha256:9baa7912224ebb37027c5ccb7e3768e43ea47b1dfdd977e7ddc4b0a4a550584d", size = 24339, upload-time = "2026-05-18T06:07:22.876Z" },
-]
-
-[[package]]
-name = "types-python-dateutil"
-version = "2.9.0.20260807"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c8/4e/b3fa538f9cb38dfece0d6ccf6d3d0d925bdedb144fb9c8129dfc007cd003/types_python_dateutil-2.9.0.20260807.tar.gz", hash = "sha256:e0b8a90d464c8684c66b7b8e4556d9074afdddcc56ca45323f0987134f9e7034", size = 17618, upload-time = "2026-08-07T04:17:13.491Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e4/5e/3715867caea2f4cea56ccb04c851cde23ed063449c3b004c7a047f20dd48/types_python_dateutil-2.9.0.20260807-py3-none-any.whl", hash = "sha256:54aa3707350ed7a9cc0776fd2f6739679d6967d11b40150985e81edcb86df4db", size = 18486, upload-time = "2026-08-07T04:17:12.504Z" },
 ]
 
 [[package]]

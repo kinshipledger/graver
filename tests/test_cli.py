@@ -9,14 +9,14 @@ from click import unstyle
 from click.testing import Result
 
 import graver.api
-from graver import (
+from graver._sqlite import connect_database
+from graver.api import (
     Driver,
     Memorial,
     MemorialMergedException,
     MemorialParseException,
     MemorialSummary,
 )
-from graver._sqlite import connect_database
 from graver.application import AcquisitionReceipt, WorkspaceAcquisition
 from graver.constants import APP_NAME
 from graver.transport import TransportAccessBlocked

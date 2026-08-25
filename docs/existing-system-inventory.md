@@ -228,6 +228,13 @@ immediately.
 
 The repository has a substantial fixture-backed test suite covering memorial parsing, search filters, cemetery pagination, merged/removed memorial handling, CLI behavior, SQLite persistence, additive migration, summary/full overwrite protection, atomic observation creation, observation immutability, foreign-key constraints, and queue idempotency.
 
+CI avoids counting the same evidence repeatedly: the coverage job is also the full
+Python 3.14 lane, Python 3.11–3.13 retain full Linux runs, macOS retains a full
+platform run, and Windows runs a focused portability contract after its full suite
+was measured at 2m32s of test time versus tens of seconds on the other hosted
+platforms. Every required job has a five-minute ceiling and a documented four-minute
+review threshold.
+
 The inherited suite mixes several responsibilities that should now be separated.
 Betamax cassettes provide valuable real Find a Grave contract examples, but ordinary
 execution is not explicitly locked to replay-only, Betamax warnings are globally
@@ -240,7 +247,10 @@ for method, parameter, retry, and error-path tests.
 
 Runtime dependencies are limited to packages imported by the installed application.
 Pytest, Faker, Betamax, and typing support are isolated in test or development
-groups, and the unused `dill` dependency has been removed. The obsolete frozen
+groups, and the unused `dill` dependency has been removed. The unused
+`pytest-integration` plugin and `types-python-dateutil` stub have also been
+removed after repository, marker, import, and mypy-scope checks found no active role.
+The obsolete frozen
 `requirements.txt` export has been removed; `pyproject.toml` and `uv.lock` are the
 authoritative dependency inputs. Dependabot proposes weekly grouped updates for the
 Python lock graph and GitHub Actions; CI and a locked-graph vulnerability audit are
@@ -301,19 +311,19 @@ standard-error diagnostics. The 1.0 decision uses exit status 1 for operational
 failure and 2 for invalid usage rather than introducing a partial JSON error schema.
 The removed hidden compatibility commands are not part of the supported contract.
 
-No desktop GUI currently exists. Current CLI and Python boundaries still expose a
-mixture of persistence-shaped dictionaries, root-level functions, SQLite-oriented
-details, and CLI-coupled presentation behavior. An internal synchronous
+No desktop GUI currently exists. Compatibility modules still contain a mixture of
+persistence-shaped dictionaries and SQLite-oriented details, but the package root no
+longer re-exports them. An internal synchronous
 `ResearchService` and the private subject-task repository now own typed queue, list,
 show, update, and one-person enrichment workflows; the visible `work` adapter uses
 that service, while existing root functions remain compatibility projections. The
 service enforces approval and alias preconditions before injected acquisition and
 maps success, redirect, and recorded failure outcomes to typed results or errors;
 existing acquisition persistence helpers remain internal compatibility boundaries.
-The broad root exports described above are not a stable 1.0 application
-API. An explicit pre-1.0 typed boundary now exists at `graver.application`, with
+The documented pre-1.0 typed boundary exists at `graver.application`, with
 contract-tested `__all__` exports and no CLI, transport, or SQLite implementation
-types. The synchronous workspace, optimistic task concurrency, toolkit-neutral
+types. The package root deliberately exports no application symbols, so clients must
+choose that supported boundary explicitly. The synchronous workspace, optimistic task concurrency, toolkit-neutral
 progress events, and cooperative cancellation token are implemented. No desktop GUI
 or toolkit integration has been implemented.
 
@@ -520,7 +530,8 @@ composition is exercised concurrently from multiple worker threads; every call o
 and closes its connection in the calling thread.
 
 The dedicated **API hygiene and documentation** milestone is now partially complete:
-explicit imports, `__all__`, typed graver-owned results and exceptions, bounded
+explicit imports, a deliberately empty package-root export surface, typed
+graver-owned results and exceptions, bounded
 mypy/docstring gates, and offline developer guidance are implemented. Typer, Rich,
 SQLite connections and rows, SQL helpers, parsers, Requests objects, `Driver`, and
 transport implementation types remain outside the boundary as intended.

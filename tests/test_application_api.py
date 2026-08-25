@@ -2,6 +2,7 @@
 
 import inspect
 
+import graver
 import graver.application as application
 
 EXPECTED_PUBLIC_NAMES = {
@@ -120,3 +121,11 @@ def test_application_star_import_matches_all():
     namespace: dict[str, object] = {}
     exec("from graver.application import *", {}, namespace)
     assert set(namespace) == EXPECTED_PUBLIC_NAMES
+
+
+def test_package_root_does_not_reexport_internal_compatibility_api():
+    """Application clients must choose the documented typed boundary explicitly."""
+    assert graver.__all__ == ()
+    assert not hasattr(graver, "Driver")
+    assert not hasattr(graver, "Memorial")
+    assert not hasattr(graver, "queue_memorials")

@@ -6,8 +6,7 @@ from dateutil.relativedelta import relativedelta
 from faker import Faker
 from faker.providers import BaseProvider
 
-from graver import Memorial
-from graver.api import ResultSet
+from graver.api import Memorial, ResultSet
 
 
 class MemorialProvider(BaseProvider):

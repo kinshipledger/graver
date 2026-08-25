@@ -580,7 +580,10 @@ broad root exports and wildcard imports, `Driver`, unused dependencies, and obso
 compatibility helpers. Remove only code demonstrated to be unused or explicitly
 approved as obsolete. Migration paths that protect researcher data remain even when
 ordinary code no longer calls them. Plausible external imports or commands removed
-before 1.0 receive migration or release notes.
+before 1.0 receive migration or release notes. The accidental package-root parser,
+driver, persistence, alias, and task-helper exports have now been removed; the CLI
+and tests import their owning internal modules, while application clients use
+`graver.application`.
 
 Developer API documentation will include concise offline examples for opening a
 workspace, inspecting work, updating a task with stale-update protection, and
@@ -595,6 +598,14 @@ supported Python 3.14; unused-code removal instead requires corroborating refere
 test, coverage, export, and compatibility evidence. Broader documentation build/link
 validation still requires a reviewed tool choice. Any expansion must retain bounded
 correction rules and must not recreate the prior unbounded Flake8 workflow.
+
+CI efficiency is also a contributor-facing quality requirement. Required jobs have
+a five-minute ceiling and target feedback within four minutes. Python 3.14 coverage
+serves as its complete interpreter lane rather than duplicating another full run;
+macOS retains complete cross-platform coverage, while Windows exercises a focused
+portability contract because its fixture-heavy full suite was measured at roughly
+five times the macOS/Linux duration. Test or duration growth triggers review rather
+than making test count an end in itself.
 
 Use separate commits for public exports and type boundaries; evidenced dead-code
 and dependency removal; Google-style docstrings and API examples; bounded CI

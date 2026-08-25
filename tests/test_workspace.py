@@ -6,13 +6,14 @@ import sqlite3
 
 import pytest
 
-from graver import Memorial, MemorialMergedException, MemorialSummary
+from graver.api import Memorial, MemorialMergedException, MemorialSummary
 from graver.application import (
     CancellationRequested,
     CancellationToken,
     DatabaseBusy,
     DatabaseInspectionError,
     DatabaseOperationError,
+    DisplayedRelationshipInput,
     EnrichmentRedirectInvalid,
     MemorialDetailInput,
     MemorialSummarySearchRequest,
@@ -261,6 +262,14 @@ def test_workspace_enrichment_reports_progress_and_persists_after_safe_checks(
         coords=parsed.coords,
         has_bio=parsed.has_bio,
         date_added=parsed.date_added,
+        displayed_relationships=(
+            DisplayedRelationshipInput(
+                displayed_group="Spouse",
+                memorial_id=100,
+                url="https://www.findagrave.com/memorial/100/martha-washington",
+                name="Martha Washington",
+            ),
+        ),
     )
 
     result = workspace.acquisition.enrich(
@@ -270,6 +279,13 @@ def test_workspace_enrichment_reports_progress_and_persists_after_safe_checks(
     )
 
     assert result.status == "full_scrape_complete"
+    saved = workspace.work.show(1075)
+    assert (
+        saved.observations[-1]["payload"]["findagrave_displayed_relationship_links"][0][
+            "name"
+        ]
+        == "Martha Washington"
+    )
     assert [(event.stage, event.completed, event.total) for event in events] == [
         ("validation", 0, 1),
         ("acquisition", 0, 1),

@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from graver import Memorial
+from graver.api import Memorial
 
 
 @pytest.mark.usefixtures("helpers")

@@ -6,8 +6,8 @@ import sqlite3
 import pytest
 
 import graver.acquisition as acquisition
-from graver import MemorialSummary
 from graver._sqlite import connect_database
+from graver.api import MemorialSummary
 from graver.application import (
     AcquisitionFieldChange,
     CancellationRequested,
