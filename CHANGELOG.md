@@ -19,6 +19,9 @@ does not yet represent a supported production release.
   `schema_version`, a stable dotted `command` identifier, and the previous result
   payload under `data`. Pre-1.0 scripts that read top-level result fields must read
   them from `data` instead.
+- `graver` remains the primary installed command, and `python -m graver` now invokes
+  the same command application as a supported fallback. CI verifies both entry
+  points and installs the built wheel as an isolated uv tool.
 
 ### Removed
 

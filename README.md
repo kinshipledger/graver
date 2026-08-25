@@ -45,9 +45,8 @@ not yet a cross-platform identity-matching or family-tree publishing system.
 ## Installation
 
 [uv](https://docs.astral.sh/uv/getting-started/installation/) is required to
-install and run `graver`. A separate Python installation is optional: uv uses
-the version pinned in `.python-version` and downloads it when necessary. The
-project supports Python 3.11 through 3.14.
+install `graver`. A separate Python installation is optional: uv can supply a
+compatible interpreter. The project supports Python 3.11 through 3.14.
 
 Install uv on macOS or Linux:
 
@@ -64,22 +63,40 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 Other supported installation methods, including Homebrew and WinGet, are
 listed in the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
 
-Clone the repository, enter its root directory, and synchronize the environment
-from the committed lockfile:
+Beginning with the first published release candidate, the normal installation will
+be:
+
+```shell
+uv tool install graver
+graver --version
+```
+
+This installs `graver` in an isolated environment and places the command on your
+shell path. If uv reports that its tool directory is not on the path, run
+`uv tool update-shell` and follow its instructions. Upgrade a published installation
+with `uv tool upgrade graver`.
+
+Until the release candidate is published, install the current source checkout as a
+tool:
 
 ```shell
 git clone https://github.com/mcqueary/graver.git
 cd graver
-uv sync --locked
+uv tool install .
+graver --version
 ```
 
-This creates a virtual environment at `.venv` and installs `graver` with its
-locked dependencies. Run the command-line application through uv; activating
-the virtual environment is not required:
+Contributors who need the test and development toolchain should instead synchronize
+the committed development environment:
 
 ```shell
+uv sync --locked --group test --group dev
 uv run graver --help
 ```
+
+The installed `graver` command is the primary terminal interface. `python -m graver`
+is an equivalent fallback when working inside an environment where the package is
+already installed.
 
 ## Getting started
 

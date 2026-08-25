@@ -7,7 +7,8 @@ full memorial only after you approve it.
 
 Commands below assume the installed command is named `graver`. If you are
 working from a source checkout, use `uv run graver` anywhere the examples say
-`graver`.
+`graver`. `python -m graver` is also available as an equivalent troubleshooting
+fallback when graver is installed in the active Python environment.
 
 ## The workflow
 
@@ -225,7 +226,7 @@ network access, and never contacts Find a Grave.
 
 | Symptom | Safe next step |
 | --- | --- |
-| `graver: command not found` | Confirm graver was installed in the current environment. In a source checkout, try `uv run graver --help`. |
+| `graver: command not found` | Run `uv tool update-shell`, restart the terminal, and try `graver --help`. In a source checkout, try `uv run graver --help`. |
 | Unsupported Python or incomplete installation | Reinstall using the project's documented uv workflow, then rerun `graver --version`. Retain the Python, uv, and graver versions if asking for help. |
 | `tutorial.db` already exists | `init` will not overwrite it. Keep it and select it with `graver use tutorial.db` if it is compatible, or choose a new explicit filename. |
 | No selected database | Run `graver use --show`, then `graver use /absolute/path/to/tutorial.db`. |

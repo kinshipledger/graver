@@ -207,8 +207,9 @@ make doccheck
 uv run pytest
 ```
 
-CI also builds the wheel, installs that artifact in an isolated environment, and
-runs `consumer_spike/workspace_client.py`. The spike uses only documented imports to
+CI also builds the wheel, verifies both `graver` and `python -m graver`, installs
+the artifact as an isolated uv tool, and runs `consumer_spike/workspace_client.py`.
+The spike uses only documented imports to
 create, open, inspect, query, queue, inject one summary acquisition, inspect its
 receipt and progress, and exercise typed immutable failure contracts in a disposable
 database. It is a GUI-readiness contract test, not a production client.

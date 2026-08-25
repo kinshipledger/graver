@@ -219,9 +219,9 @@ foundation. The 1.0 compatibility promise will cover the documented researcher C
 documented Python facade, configuration format, explicit database migration policy,
 versioned machine-readable output, and Python 3.11 through 3.14.
 
-The installed `graver` command and `python -m graver` will both be supported. The
-module entry point will be implemented through `graver.__main__`; the currently
-broken direct execution of `graver.cli` is not a compatibility contract. Acquisition
+The installed `graver` command and `python -m graver` are both supported through the
+console entry point and `graver.__main__`. Direct execution of the implementation
+module `graver.cli` is not a compatibility contract. Acquisition
 search will retain useful researcher capabilities, but its public options will use
 consistent kebab-case researcher terminology. Find a Grave's site-shaped parameter
 names will remain internal mappings. Duplicate and camel-case spellings and hidden
@@ -1057,6 +1057,8 @@ Completed foundation:
    human output, transitional JSON, aliases, observations, and tutorial behavior.
 5. Added documented command-specific schema-version-1 JSON envelopes for successful
    work and alias-maintenance results while keeping serialization in the CLI adapter.
+6. Added equivalent installed `graver` and `python -m graver` entry points plus
+   built-wheel uv-tool installation verification.
 
 Pre-1.0 sequence:
 
@@ -1170,7 +1172,8 @@ Pre-1.0 sequence:
    pre-1.0 compatibility paths. Modernize the remaining supported Typer declarations,
    remove deprecated option behavior, keep help assertions semantic, and apply the
    approved Typer retention/exit criteria before freezing the CLI.
-19. Support `python -m graver` through `graver.__main__`.
+19. **Completed:** Support `python -m graver` through `graver.__main__` and verify
+   both entry points from the built wheel and an isolated uv tool installation.
 20. Maintain the uv-based Python 3.11-through-3.14 CI, Conventional Commit PR-title
    enforcement, reviewed changelog, and manually gated Release Please workflow.
 21. Finish the public API guide, database and 0.1 migration instructions,
