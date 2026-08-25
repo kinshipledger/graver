@@ -16,18 +16,16 @@ checklist, not a declaration that the release candidate has shipped.
 | Provider access | Ready for RC scope | Researcher-directed acquisition is fail-closed. Unattended provider acquisition remains disabled without documented authorization. |
 | Portability | Ready | Python 3.11–3.14, macOS, and the bounded Windows contract are CI-covered. |
 | Security and privacy | Ready for RC scope | Threat model, privacy guidance, security checks, secret scanning, response bounds, and terminal sanitization are in place. |
-| Release automation | Implemented, setup pending | Tagged artifacts are built separately and published with PyPI Trusted Publishing; the GitHub environment and pending PyPI publisher still require one-time configuration. |
+| Release automation | Ready | Tagged artifacts are built separately and published with PyPI Trusted Publishing. The protected GitHub environment and pending PyPI publisher were configured on 25 August 2026. |
 
 ## Remaining release gates
 
-1. Configure the protected `pypi` GitHub environment and pending Trusted Publisher
-   for `graver-genealogy`.
-2. Prepare and review the temporary Release Please prerelease configuration; verify
+1. Prepare and review the temporary Release Please prerelease configuration; verify
    by dry run that it proposes `1.0.0rc1` and a GitHub prerelease.
-3. Run the full locked validation and `make release-check` on the final release pull
+2. Run the full locked validation and `make release-check` on the final release pull
    request.
-4. Review the generated changelog and release notes as user-facing documents.
-5. Merge the release pull request, deliberately trigger publication, and verify the
+3. Review the generated changelog and release notes as user-facing documents.
+4. Merge the release pull request, deliberately trigger publication, and verify the
    GitHub and PyPI artifacts after publication.
 
 The production GUI, its R3 UX review, provider-governed background jobs, FamilySearch,
