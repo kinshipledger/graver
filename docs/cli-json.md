@@ -32,6 +32,12 @@ failures continue to use a nonzero exit status and a human-readable diagnostic o
 standard error; they do not promise a JSON error envelope yet. Successful JSON
 commands write no explanatory prose to standard output.
 
+For the 1.0 CLI contract, exit status `1` identifies an operational failure after a
+valid invocation, while exit status `2` identifies invalid command usage or input.
+The diagnostic wording is not a machine contract. Scripts should branch on the exit
+status, parse stdout only after success, and use the typed Python application API
+when they require structured failure codes and context.
+
 ## Supported command identifiers
 
 | Command | `command` value | `data` |
@@ -51,8 +57,8 @@ The complete person record currently contains the established `task`, `grave`,
 compatibility projections, not direct SQLite rows. Subject UUIDs and private SQL
 structures are intentionally absent.
 
-Hidden pre-1.0 compatibility commands use the same envelope while they remain in
-the package, but they are not part of the supported 1.0 command contract.
+The removed pre-1.0 compatibility commands are not part of this contract. Scripts
+must use the documented `work` and `admin aliases` command identifiers.
 
 ## Compatibility policy
 
@@ -61,6 +67,8 @@ It will not remove or rename documented fields, change their meaning, or change 
 documented value type without a new schema version. Consumers should ignore unknown
 fields and handle documented optional values.
 
-A future JSON error contract, if introduced, will be additive at the envelope level
-or use a new schema version. Human-readable terminal output remains intentionally
-outside this machine contract.
+A JSON error envelope is not required for 1.0. If a demonstrated external CLI
+consumer later requires one, it will be additive at the envelope level or use a new
+schema version and must cover parser, configuration, database, and application
+failures consistently. Human-readable terminal output remains intentionally outside
+this machine contract.

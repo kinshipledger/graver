@@ -22,9 +22,16 @@ does not yet represent a supported production release.
 - `graver` remains the primary installed command, and `python -m graver` now invokes
   the same command application as a supported fallback. CI verifies both entry
   points and installs the built wheel as an isolated uv tool.
+- Search options now use consistent researcher-facing kebab-case names. Tri-state
+  filters use explicit pairs such as `--famous/--not-famous`, and deprecated Typer
+  value-taking Boolean behavior has been removed.
 
 ### Removed
 
+- Removed the hidden pre-1.0 task and alias command names. Use `graver work …` for
+  research tasks and `graver admin aliases …` for redirect maintenance. Removed
+  duplicate and site-shaped search spellings including `--id`, `--cid`, `--max`,
+  and camel-case options; use the names shown by `graver search --help`.
 - Removed the legacy `scrape-url` and unattended `scrape-file` commands. Use
   `graver search` to retain summary observations, then `graver work queue`,
   `graver work mark`, and `graver work enrich` for explicit one-person full-record
