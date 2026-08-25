@@ -29,6 +29,10 @@ does not yet represent a supported production release.
 
 ### Changed
 
+- Adopted `graver-genealogy` as the installable distribution name because the PyPI
+  name `graver` belongs to unrelated software. The product name, repository,
+  command, and Python import package remain `graver`.
+
 - Completed the pre-1.0 API-hygiene pass with installed-wheel evidence-service
   coverage, canonical-document indexing, CI checks for maintenance scripts, and
   removal of only corroborated unreachable private scaffolding.

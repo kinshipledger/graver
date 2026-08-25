@@ -1,7 +1,7 @@
-"""Internal synchronous HTTP transport for Graver acquisition.
+"""Internal synchronous HTTP transport for graver acquisition.
 
 Third-party client and response types stop at this module.  The application and
-parser layers consume only the deliberately small Graver-owned protocol below.
+parser layers consume only the deliberately small graver-owned protocol below.
 """
 
 from dataclasses import dataclass
@@ -9,6 +9,8 @@ from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Mapping, Optional, Protocol, Sequence
 
 import requests
+
+from .constants import DISTRIBUTION_NAME
 
 DEFAULT_CONNECT_TIMEOUT_SECONDS = 5.0
 DEFAULT_READ_TIMEOUT_SECONDS = 30.0
@@ -21,19 +23,19 @@ DEFAULT_TIMEOUT = (
 
 
 class TransportError(Exception):
-    """A request failed at Graver's transport boundary."""
+    """A request failed at graver's transport boundary."""
 
 
 class TransportTimeout(TransportError):
-    """The provider did not respond within Graver's configured timeout."""
+    """The provider did not respond within graver's configured timeout."""
 
 
 class TransportConnectionError(TransportError):
-    """Graver could not connect to the provider."""
+    """graver could not connect to the provider."""
 
 
 class TransportAccessBlocked(TransportError):
-    """The provider denied or challenged access; Graver will not bypass it."""
+    """The provider denied or challenged access; graver will not bypass it."""
 
 
 class TransportRateLimited(TransportError):
@@ -41,12 +43,12 @@ class TransportRateLimited(TransportError):
 
 
 class TransportResponseTooLarge(TransportError):
-    """The provider response exceeded Graver's configured safety limit."""
+    """The provider response exceeded graver's configured safety limit."""
 
 
 @dataclass(frozen=True)
 class TransportResponse:
-    """The limited response information used by Graver parsers."""
+    """The limited response information used by graver parsers."""
 
     status_code: int
     reason: str
@@ -73,7 +75,7 @@ class HttpTransport(Protocol):
     """Minimal injectable synchronous transport used by current acquisition."""
 
     def get(self, url: str, **kwargs: Any) -> TransportResponse:
-        """Retrieve one URL and return a Graver-owned response."""
+        """Retrieve one URL and return a graver-owned response."""
 
 
 class RequestsTransport:
@@ -208,7 +210,7 @@ def _response_text(response: requests.Response, content: bytes) -> str:
 
 def _user_agent() -> str:
     try:
-        package_version = version("graver")
+        package_version = version(DISTRIBUTION_NAME)
     except PackageNotFoundError:  # pragma: no cover - source tree without install
         package_version = "development"
     return f"graver/{package_version}"

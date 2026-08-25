@@ -72,14 +72,19 @@ Beginning with the first published release candidate, the normal installation wi
 be:
 
 ```shell
-uv tool install graver
+uv tool install graver-genealogy
 graver --version
 ```
+
+The published distribution is named `graver-genealogy` because the shorter PyPI
+name belongs to an unrelated project. The application, command, Python import
+package, and repository all remain `graver`. Installing `graver` from PyPI would
+install different software.
 
 This installs `graver` in an isolated environment and places the command on your
 shell path. If uv reports that its tool directory is not on the path, run
 `uv tool update-shell` and follow its instructions. Upgrade a published installation
-with `uv tool upgrade graver`.
+with `uv tool upgrade graver-genealogy`.
 
 Until the release candidate is published, install the current source checkout as a
 tool:

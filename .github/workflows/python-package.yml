@@ -65,10 +65,8 @@ jobs:
         shell: bash
         run: |
           wheel_path=$(find dist -name '*.whl' -print -quit)
-          uv run --isolated --no-project --with "$wheel_path" python -c \
-            "import graver, graver.application as application, tomllib; from importlib.metadata import version; expected = tomllib.load(open('pyproject.toml', 'rb'))['project']['version']; assert version('graver') == expected; assert 'open_workspace' in application.__all__"
-          uv run --isolated --no-project --with "$wheel_path" graver --version
-          uv run --isolated --no-project --with "$wheel_path" python -m graver --version
+          uv run --isolated --no-project --with "$wheel_path" python \
+            maintenance/release_smoke_test.py
           tool_directory="$RUNNER_TEMP/graver-uv-tool"
           tool_bin_directory="$RUNNER_TEMP/graver-uv-tool-bin"
           UV_TOOL_DIR="$tool_directory" UV_TOOL_BIN_DIR="$tool_bin_directory" \

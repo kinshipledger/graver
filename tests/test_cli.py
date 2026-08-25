@@ -21,7 +21,7 @@ from graver.api import (
     MemorialSummary,
 )
 from graver.application import AcquisitionReceipt, WorkspaceAcquisition
-from graver.constants import APP_NAME
+from graver.constants import APP_NAME, DISTRIBUTION_NAME
 from graver.transport import TransportAccessBlocked
 
 from .test import Test
@@ -259,10 +259,9 @@ class TestCliCommonOptions(TestCli):
 
     @pytest.mark.parametrize("arg", ["-V", "--version"])
     def test_version(self, helpers, arg) -> None:
-        metadata = importlib.metadata.metadata(APP_NAME)
-        name_str = metadata["Name"]
+        metadata = importlib.metadata.metadata(DISTRIBUTION_NAME)
         version_str = metadata["Version"]
-        expected_str = "{} v{}".format(name_str, version_str)
+        expected_str = "{} v{}".format(APP_NAME, version_str)
         result: Result = helpers.graver_cli(arg)
         assert result.exit_code == 0
         assert result.output == expected_str + "\n"
@@ -542,8 +541,8 @@ class TestCliResearcherSurface(Test):
         rendered = " ".join(result.output.split())
 
         assert result.exit_code == 0
-        assert "Select the database Graver should use by default" in rendered
-        assert "Existing Graver database to use by default" in rendered
+        assert "Select the database graver should use by default" in rendered
+        assert "Existing graver database to use by default" in rendered
         assert "Show the currently selected default database" in rendered
         assert "without deleting it" in rendered
 

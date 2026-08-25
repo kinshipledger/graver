@@ -1,4 +1,5 @@
 APP_NAME = "graver"
+DISTRIBUTION_NAME = "graver-genealogy"
 FINDAGRAVE_BASE_URL: str = "https://www.findagrave.com"
 FINDAGRAVE_ROWS_PER_PAGE: int = 20
 MEMORIAL_CANONICAL_URL_FORMAT: str = FINDAGRAVE_BASE_URL + "/memorial/{}"

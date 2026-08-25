@@ -5,7 +5,7 @@
     ".": {
       "changelog-path": "CHANGELOG.md",
       "include-v-in-tag": true,
-      "package-name": "graver",
+      "package-name": "graver-genealogy",
       "release-type": "python"
     }
   }

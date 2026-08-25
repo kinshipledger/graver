@@ -28,7 +28,7 @@ def configuration_path(
     platform: Optional[str] = None,
     home: Optional[Path] = None,
 ) -> Path:
-    """Return Graver's platform-aware per-user JSON configuration path."""
+    """Return graver's platform-aware per-user JSON configuration path."""
     environment = os.environ if environment is None else environment
     platform = sys.platform if platform is None else platform
     home = Path.home() if home is None else home
@@ -51,11 +51,11 @@ def load_configuration(config_path: Optional[Path] = None) -> dict:
             configuration = json.load(config_file)
     except (OSError, UnicodeError, json.JSONDecodeError) as ex:
         raise GraverConfigurationError(
-            f"Graver configuration is unreadable: {config_path}. {ex}"
+            f"graver configuration is unreadable: {config_path}. {ex}"
         ) from ex
     if not isinstance(configuration, dict):
         raise GraverConfigurationError(
-            f"Graver configuration must contain a JSON object: {config_path}"
+            f"graver configuration must contain a JSON object: {config_path}"
         )
     configured_database = configuration.get(DATABASE_CONFIG_KEY)
     if configured_database is not None and not isinstance(configured_database, str):
@@ -82,7 +82,7 @@ def _write_configuration(configuration: dict, config_path: Path) -> None:
         os.replace(temporary_path, config_path)
     except OSError as ex:
         raise GraverConfigurationError(
-            f"Could not save Graver configuration at {config_path}: {ex}"
+            f"Could not save graver configuration at {config_path}: {ex}"
         ) from ex
     finally:
         if temporary_path is not None and temporary_path.exists():
@@ -90,7 +90,7 @@ def _write_configuration(configuration: dict, config_path: Path) -> None:
 
 
 def validate_graver_database(database: str) -> Path:
-    """Validate a current Graver database without changing it."""
+    """Validate a current graver database without changing it."""
     # Imported lazily because database initialization reuses configuration constants.
     from graver.database import DatabaseInspectionError, validate_current_database
 
