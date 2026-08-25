@@ -27,6 +27,11 @@ conceal automated activity. Users remain responsible for complying with applicab
 laws, provider terms, and access policies. See the project
 [access policy](docs/access-policy.md) for the acquisition and contribution rules.
 
+Maintainers can use the separately documented [live compatibility canary](docs/live-canary.md)
+to check one stable public memorial after parser or transport changes. It is an
+explicit, one-request diagnostic—not part of the ordinary test suite or a bulk
+acquisition tool.
+
 ## What graver does
 
 - Saves narrow Find a Grave search results as summary observations in SQLite.

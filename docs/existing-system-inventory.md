@@ -701,23 +701,22 @@ deciding whether to migrate the remaining cassettes or eliminate record/replay
 entirely. Branch coverage now measures 94.45% locally against the 90% non-regression
 floor; future increases should come only from meaningful behavioral tests.
 
-Add a distinct live-contract maintenance probe after the offline test boundaries are
-established. It should retrieve the public George Washington memorial at
-`https://www.findagrave.com/memorial/1075/george-washington`, execute one tightly
-constrained summary search, and optionally check one cemetery page, for a total of no
-more than two or three requests per run. It should validate minimum semantic parsing
-invariants rather than mutable content and classify results as `compatible`,
+The implemented `make canary` maintenance probe retrieves the public George
+Washington memorial at
+`https://www.findagrave.com/memorial/1075/george-washington`. It permits one
+top-level request attempt with retries disabled, validates minimum semantic parsing
+invariants rather than mutable page content, and classifies results as `compatible`,
 `schema_changed`, `access_blocked`, `site_unavailable`, `canary_changed`, or
-`probe_error`.
+`probe_error`. `make canary-json` emits the versioned machine-readable result.
 
-Mark the probe `live_contract` and exclude it from ordinary tests, pull-request
-checks, cassette recording, and the human CLI. It must use short timeouts, minimal
-retries, no database writes, no fixture refresh, and sanitized diagnostics. Start
-with manual pre-release and parser-change execution from a normal developer
-environment; trial a weekly scheduled runner only if Cloudflare does not make its
-signal unreliable. Confirm current Find a Grave terms, robots directives, and
-automation guidance before scheduling it. Do not let an unclassified live-site or
-runner failure automatically block an unrelated release.
+The probe is excluded from ordinary tests, pull-request checks, release automation,
+cassette recording, and the human CLI. It uses short timeouts, no database writes,
+no fixture refresh, no user configuration, and sanitized diagnostics. It is manually
+invoked before releases and after material parser or transport changes. It is not
+scheduled; current provider terms, robots directives, and automation guidance must
+be reviewed before that policy changes. An unclassified live-site or runner failure
+does not automatically block an unrelated release. See
+[live-canary.md](live-canary.md).
 
 After the offline contract slice and the `1.0.0rc1` validation are complete, an
 authorized live FamilySearch adapter may extend the same application services and
