@@ -31,6 +31,12 @@ FamilySearch discovery, production identity matching, WikiTree publishing, GEDCO
 interchange, background jobs, and the desktop interface are not included in this
 release candidate.
 
+In these notes and machine-readable records, `full` is an acquisition level: graver
+observed the individual memorial page and retained its supported structured fields.
+It is not a complete page archive. Biography text, images and attribution,
+contributor or manager details, edit history, and underlying records are not
+retained by this release. See the [acquisition-scope guide](acquisition-scope.md).
+
 Install the release candidate from the `graver-genealogy` distribution. The PyPI
 project named only `graver` is unrelated; the installed command and Python import
 for this project nevertheless remain `graver`.

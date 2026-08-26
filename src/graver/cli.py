@@ -404,15 +404,16 @@ def _enrich_task(
         _json_output("work.enrich", result.to_compatibility_dict())
     else:
         _human_echo(
-            f"The full memorial was retrieved. Person {memorial_id} is now "
-            f"{result.status}."
+            "Selected fields from the memorial's full page were retrieved and "
+            "retained as a dated observation; this is not a complete page archive. "
+            f"Person {memorial_id} is now {result.status}."
         )
 
 
 def _display_work_list(tasks: list) -> None:
     for task in tasks:
         detail = {
-            "full": "fully enriched",
+            "full": "full-page fields retained",
             "summary": "summary-only",
         }.get(task["detail_level"], "acquisition level unknown")
         action = (
@@ -473,6 +474,15 @@ def _display_work_task(result: dict, history: bool = False) -> None:
     _human_echo(f"Provenance: {len(result['observations'])} acquisition observations.")
     if history:
         _human_echo("Detailed provenance:")
+        if any(
+            observation["acquisition_level"] == "full"
+            for observation in result["observations"]
+        ):
+            _human_echo(
+                "  Capture scope: a full memorial page was observed, but only the "
+                "selected structured fields shown below were retained; this is not "
+                "a page archive."
+            )
         for observation in result["observations"]:
             _human_echo(
                 f"  {observation['observed_at']} | "
@@ -616,14 +626,15 @@ def work_mark(
 @work_app.command("enrich")
 def work_enrich(
     memorial_id: int = typer.Argument(
-        ..., help="Find a Grave memorial ID approved for full retrieval."
+        ...,
+        help="Find a Grave memorial ID approved for one live full-page acquisition.",
     ),
     db: str = database_option("Research database to update."),
     json_output: bool = typer.Option(
         False, "--json", help="Return the result as machine-readable JSON."
     ),
 ):
-    """Retrieve the full Find a Grave memorial for an approved person."""
+    """Observe a memorial's full page and retain selected structured fields."""
     _enrich_task(memorial_id, db, researcher_output=True, json_output=json_output)
 
 

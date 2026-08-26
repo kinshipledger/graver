@@ -14,10 +14,11 @@ Build a local, provenance-aware research database from
 [Find a Grave](https://www.findagrave.com/) memorials, then review and enrich records
 one person at a time.
 
-graver preserves summary and full-page observations separately, maintains a durable
-research queue, and records acquisition history without treating a memorial as a
-proven genealogical identity. FamilySearch matching, reviewed identity conclusions,
-WikiTree integration, and a desktop interface are planned but are not available yet.
+graver preserves summary and selected full-page observations separately, maintains
+a durable research queue, and records acquisition history without treating a
+memorial as a proven genealogical identity. FamilySearch matching, reviewed identity
+conclusions, WikiTree integration, and a desktop interface are planned but are not
+available yet.
 
 New to graver? Follow the [researcher tutorial](docs/tutorial.md) for a small,
 safe workflow from database creation through one approved memorial enrichment.
@@ -37,8 +38,9 @@ acquisition tool.
 
 - Saves narrow Find a Grave search results as summary observations in SQLite.
 - Queues acquired memorials for researcher-directed review.
-- Retrieves a full memorial only after the researcher explicitly approves that
-  person for enrichment.
+- Observes a memorial's full page only after the researcher explicitly approves
+  that person, retaining selected structured fields rather than a complete page
+  archive.
 - Preserves immutable acquisition observations alongside the current record.
 - Captures Find a Grave-displayed relationship links from full memorial pages as
   dated website observations—not as proven family relationships.
@@ -236,6 +238,7 @@ that provenance matters.
 For researchers:
 
 - [Researcher tutorial](docs/tutorial.md)
+- [Acquisition scope and citation limits](docs/acquisition-scope.md)
 - [Database upgrades and recovery](docs/database-upgrades.md)
 - [Access policy](docs/access-policy.md)
 - [Documentation index](docs/README.md)

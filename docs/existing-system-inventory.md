@@ -215,7 +215,9 @@ immediately.
 - Stable Find a Grave memorial ID and canonical URL.
 - Cemetery ID when available.
 - A useful first-pass cemetery-search population without requiring individual memorial requests.
-- An explicit distinction between search-summary and full-page acquisition.
+- An explicit distinction between search-summary acquisition and observing an
+  individual memorial page. The machine value `full` records that acquisition
+  level and selected structured payload; it is not a complete page archive.
 - Separate UTC fetch timestamps for summary and full retrieval.
 - Safe SQLite upserts: a later summary refresh cannot downgrade a `full` row or clear full-page-only fields.
 - Immutable JSON observations for each new summary or full acquisition, written atomically with the current-state `graves` upsert.
@@ -570,10 +572,11 @@ service owns explicit database persistence and returns an immutable receipt with
 source, memorial identifiers, new/existing counts, appended-observation count, and
 field-level before/after changes to the current displayed representation. The CLI
 renders the same receipt in researcher language. Search does not queue tasks, infer
-correctness, or claim full-page acquisition. Full-record retrieval is limited to
-the typed, explicitly approved one-person enrichment service. The legacy direct-URL
-and unattended file-loop commands were removed rather than promoted into the public
-application API.
+correctness, or claim full-page acquisition. Individual-page observation is limited
+to the typed, explicitly approved one-person enrichment service, which retains the
+supported structured fields rather than a complete page archive. The legacy
+direct-URL and unattended file-loop commands were removed rather than promoted into
+the public application API.
 
 Supported failures now share `ApplicationError` with a stable machine-readable
 `code`, safe normalized `summary`, and immutable structured `context`. Existing

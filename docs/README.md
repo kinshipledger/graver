@@ -9,6 +9,10 @@ current behavior is recorded in the inventory.
 The [researcher tutorial](tutorial.md) is the canonical end-to-end guide for
 using the implemented command-line workflow.
 
+The [acquisition-scope and citation guide](acquisition-scope.md) defines what
+summary and full acquisition retain, what `full` does not promise, and what a
+responsible citation or external research log must still supply.
+
 The [access policy](access-policy.md) defines current project governance for
 responsible acquisition behavior and contributions.
 

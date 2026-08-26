@@ -2,8 +2,8 @@
 
 This tutorial is for genealogical researchers who are comfortable entering
 commands but do not need to know Python or SQLite. It creates a dedicated
-database, acquires a deliberately small summary result set, and retrieves one
-full memorial only after you approve it.
+database, acquires a deliberately small summary result set, and observes one
+memorial's full page only after you approve it.
 
 Commands below assume the installed command is named `graver`. If you are
 working from a source checkout, use `uv run graver` anywhere the examples say
@@ -18,7 +18,7 @@ Find a Grave search
   → research task queued
   → person inspected
   → explicit enrichment approval
-  → one full-page retrieval
+  → one approved full-page observation with selected fields retained
   → immutable acquisition observation
   → enriched current record
 ```
@@ -145,9 +145,9 @@ Enrichment is the tutorial's second live Find a Grave operation:
 graver work enrich 1075
 ```
 
-Success includes the stable message `The full memorial was retrieved` and a
-completed task state. graver retrieves only the approved memorial—no related
-memorials and no other queued people.
+Success reports that selected fields from the memorial's full page were retained as
+a dated observation and that this is not a complete page archive. graver retrieves
+only the approved memorial—no related memorials and no other queued people.
 
 Inspect the result offline:
 
@@ -173,10 +173,13 @@ or timestamps:
 complete current machine-readable record in the documented
 [versioned command-line envelope](cli-json.md); the record is under `data` and
 includes fields that ordinary human output summarizes. Optional values such as
-plot, coordinates, biography,
-birth or death places may legitimately be absent. **Fully enriched** means the
-full memorial page was successfully observed and persisted, not that every
-optional field was populated.
+plot, coordinates, biography presence, and birth or death places may legitimately
+be absent. The machine value `full` means that graver observed the full memorial
+page and retained its supported structured fields. It does **not** mean that every
+optional field was populated or that graver saved the page, biography text,
+images, contributor details, or every displayed element. The
+[acquisition-scope guide](acquisition-scope.md) lists the retained categories,
+known exclusions, and responsible citation boundary.
 
 ## 6. Stop and resume safely
 
