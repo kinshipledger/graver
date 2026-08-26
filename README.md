@@ -20,8 +20,10 @@ memorial as a proven genealogical identity. FamilySearch matching, reviewed iden
 conclusions, WikiTree integration, and a desktop interface are planned but are not
 available yet.
 
-New to graver? Follow the [researcher tutorial](docs/tutorial.md) for a small,
-safe workflow from database creation through one approved memorial enrichment.
+New to command-line tools? Start with the
+[plain-language setup guide](docs/first-time-setup.md). Then follow the
+[researcher tutorial](docs/tutorial.md) for a small, safe workflow from database
+creation through one approved memorial enrichment.
 
 graver supports responsible, researcher-directed acquisition and
 provider-authorized data workflows. It is not designed to bypass access controls or
@@ -52,9 +54,11 @@ not yet a cross-platform identity-matching or family-tree publishing system.
 
 ## Installation
 
-[uv](https://docs.astral.sh/uv/getting-started/installation/) is required to
-install `graver`. A separate Python installation is optional: uv can supply a
-compatible interpreter. The project supports Python 3.11 through 3.14.
+[uv](https://docs.astral.sh/uv/getting-started/installation/) installs `graver` in
+an isolated tool environment and can supply the compatible Python runtime it needs.
+The [first-time setup guide](docs/first-time-setup.md) explains uv, the terminal,
+the command path, the local research database, and exactly what installation does
+and does not change. The project supports Python 3.11 through 3.14.
 
 Install uv on macOS or Linux:
 
@@ -83,8 +87,9 @@ name belongs to an unrelated project. The application, command, Python import
 package, and repository all remain `graver`. Installing `graver` from PyPI would
 install different software.
 
-This installs `graver` in an isolated environment and places the command on your
-shell path. If uv reports that its tool directory is not on the path, run
+This installs `graver` for your user account and places the command on your
+terminal's command path. It does not create a database or contact a genealogy
+provider. If uv reports that its tool directory is not on the path, run
 `uv tool update-shell` and follow its instructions. Upgrade a published installation
 with `uv tool upgrade graver-genealogy`.
 
@@ -95,26 +100,9 @@ or share
 Remove private research data before posting; security vulnerabilities belong in a
 [private advisory](https://github.com/mcqueary/graver/security/advisories/new).
 
-To test unreleased source changes instead, install a source checkout as a tool:
-
-```shell
-git clone https://github.com/mcqueary/graver.git
-cd graver
-uv tool install .
-graver --version
-```
-
-Contributors who need the test and development toolchain should instead synchronize
-the committed development environment:
-
-```shell
-uv sync --locked --group test --group dev
-uv run graver --help
-```
-
-The installed `graver` command is the primary terminal interface. `python -m graver`
-is an equivalent fallback when working inside an environment where the package is
-already installed.
+Source checkouts, tests, and unreleased development installations are documented
+separately in the [contribution guide](CONTRIBUTING.md). The installed `graver`
+command is the ordinary researcher interface.
 
 ## Getting started
 
@@ -123,8 +111,8 @@ already installed.
 Create a new current-schema research database and select it as the default:
 
 ```shell
-uv run graver init
-uv run graver init research.db
+graver init
+graver init research.db
 ```
 
 With no argument, `init` creates `./graves.db`. A supplied path creates the named
@@ -135,9 +123,9 @@ Choose an existing graver database once, then use ordinary research commands
 without repeating its path:
 
 ```shell
-uv run graver use /path/to/research.db
-uv run graver use --show
-uv run graver use --clear
+graver use /path/to/research.db
+graver use --show
+graver use --clear
 ```
 
 `use` selects an existing database and does not create or upgrade it. An explicit
@@ -151,7 +139,7 @@ Selection and ordinary reads never migrate a database. If graver reports that an
 older database needs an upgrade, run the specialist maintenance command explicitly:
 
 ```shell
-uv run graver admin database upgrade /path/to/research.db
+graver admin database upgrade /path/to/research.db
 ```
 
 Upgrade first inspects the database, then creates a verified backup before changing
@@ -167,7 +155,7 @@ Use a narrow search to save summary records without retrieving every individual
 memorial page. For example:
 
 ```shell
-uv run graver search --memorial-id 1075 --max-results 1
+graver search --memorial-id 1075 --max-results 1
 ```
 
 The command returns a concise acquisition receipt distinguishing new memorials,
@@ -187,11 +175,11 @@ the next person, review the current picture, record a decision, and enrich only
 an explicitly approved person:
 
 ```shell
-uv run graver work queue --cemetery-id 2181249
-uv run graver work next
-uv run graver work show MEMORIAL_ID
-uv run graver work mark MEMORIAL_ID --status ready_for_full_scrape
-uv run graver work enrich MEMORIAL_ID
+graver work queue --cemetery-id 2181249
+graver work next
+graver work show MEMORIAL_ID
+graver work mark MEMORIAL_ID --status ready_for_full_scrape
+graver work enrich MEMORIAL_ID
 ```
 
 `work enrich` accepts exactly one memorial and only proceeds when its durable
@@ -209,7 +197,7 @@ to the destination memorial. When a redirect affects the current person,
 are available under:
 
 ```shell
-uv run graver admin aliases --help
+graver admin aliases --help
 ```
 
 `work enrich` refuses a source with a known active alias before making a request.
@@ -239,6 +227,7 @@ that provenance matters.
 
 For researchers:
 
+- [First-time setup in plain language](docs/first-time-setup.md)
 - [Researcher tutorial](docs/tutorial.md)
 - [Acquisition scope and citation limits](docs/acquisition-scope.md)
 - [Database upgrades and recovery](docs/database-upgrades.md)
