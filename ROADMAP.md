@@ -31,12 +31,17 @@ search, or production identity-matching workflow.
 ## Stabilizing for final 1.0
 
 - Resolve bounded release-candidate feedback and decision-safety findings.
+- Establish the first reviewed graver icon and a small visual system before the
+  project identity is propagated across organization and distribution surfaces.
+- Add the initial researcher workflow, evidence reasoning, and client-architecture
+  diagrams without making the documentation dependent on graphics alone.
 - Make database targeting, acquisition receipts, recovery guidance, and retained
   data scope unmistakable to researchers.
 - Stabilize the documented CLI, Python API, JSON, database migration, packaging,
   security, privacy, and release contracts.
 - Repeat focused professional-genealogist, technical-publications, and security
-  reviews where material behavior changes.
+  reviews where material behavior changes; include visual assets when they shape
+  workflow or evidence meaning.
 
 Live FamilySearch integration is not required for final 1.0.
 

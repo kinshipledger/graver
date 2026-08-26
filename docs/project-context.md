@@ -1064,6 +1064,12 @@ architectural history. Material public direction changes must update the root
 roadmap; implementation facts belong in the existing-system inventory; private
 commercial, scheduling, and critical-path planning remains outside this repository.
 
+The [visual identity and documentation graphics guide](visual-identity.md) governs
+the distinct Kinship Ledger publisher and graver product identities, the initial
+icon brief, the first three explanatory diagrams, asset provenance, and recurring
+visual review. Visual meaning is treated as part of the researcher-facing contract
+rather than post-implementation decoration.
+
 Completed foundation:
 
 1. Inspected and preserved the scraper and SQLite persistence foundation.

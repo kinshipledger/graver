@@ -14,6 +14,10 @@ summary. This directory contains the detailed, version-controlled
 [initial inspection](initial-inspection.md) remains as dated historical context;
 current behavior is recorded in the inventory.
 
+The [visual identity and documentation graphics guide](visual-identity.md) records
+the brand relationship, icon brief, diagram priorities, asset provenance, and
+visual-review cadence.
+
 The [first-time setup guide](first-time-setup.md) explains the terminal, uv,
 command path, installation boundary, and local research database for readers who
 do not routinely use developer tools.

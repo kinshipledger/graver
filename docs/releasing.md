@@ -24,6 +24,9 @@ Before requesting another candidate or the final `1.0.0` release, confirm:
   migrations, security implications, known limitations, and deferred scope;
 - professional-researcher review gates required for implemented evidence behavior
   have passed; and
+- researcher-facing icons, diagrams, screenshots, badges, and version labels match
+  current behavior, have recorded provenance, and pass their applicable light/dark,
+  small-size, text-alternative, professional, and accessibility reviews; and
 - the private critical-path review shows no unacknowledged scope creep.
 
 The public distribution name is `graver-genealogy`; the product, console command,
