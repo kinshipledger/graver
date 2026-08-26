@@ -6,6 +6,10 @@ This directory is the canonical, version-controlled source for the
 [initial inspection](initial-inspection.md) remains as dated historical context;
 current behavior is recorded in the inventory.
 
+The [first-time setup guide](first-time-setup.md) explains the terminal, uv,
+command path, installation boundary, and local research database for readers who
+do not routinely use developer tools.
+
 The [researcher tutorial](tutorial.md) is the canonical end-to-end guide for
 using the implemented command-line workflow.
 

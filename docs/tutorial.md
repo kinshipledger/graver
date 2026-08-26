@@ -1,7 +1,9 @@
 # Research one Find a Grave memorial with graver
 
 This tutorial is for genealogical researchers who are comfortable entering
-commands but do not need to know Python or SQLite. It creates a dedicated
+commands but do not need to know Python or SQLite. If those terms or the terminal
+are unfamiliar, begin with the [plain-language setup guide](first-time-setup.md).
+This tutorial creates a dedicated
 database, acquires a deliberately small summary result set, and observes one
 memorial's full page only after you approve it.
 
