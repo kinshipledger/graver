@@ -20,6 +20,11 @@ usable; a professional genealogist evaluates whether their meaning remains safe 
 research and evidence. The final-1.0 review described below deliberately uses both
 roles without asking either reviewer to repeat the other's work.
 
+Any visual artifact that frames research flow, source quality, evidence comparison,
+confidence, identity, kinship, provenance, or a consequential action is part of the
+review packet. The reviewer evaluates what the visual implies as well as what its
+caption says; a diagram cannot quietly claim more than the underlying workflow.
+
 ## Governing rule
 
 > A professional-researcher review gate is complete only when the review occurred
@@ -355,7 +360,8 @@ internal refactors do not trigger these reviews.
    production layouts are declared stable. Check keyboard-only operation, focus,
    semantics, contrast, scaling, reduced motion, error recovery, and platform
    conventions; include disabled users or an accessibility specialist when
-   practical.
+   practical. Include icon comprehension, light/dark rendering, diagram meaning,
+   and consistency with the documented visual system.
 4. **Pre-release usability review:** against an installable release candidate with
    representative data and ordinary documentation. R3 supplies the professional
    evidence-workflow portion; additional usability and accessibility findings are

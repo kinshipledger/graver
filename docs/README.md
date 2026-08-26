@@ -1,10 +1,22 @@
 # Canonical project documentation
 
-This directory is the canonical, version-controlled source for the
-[project context and roadmap](project-context.md) and the
-[existing-system inventory](existing-system-inventory.md). The
+The repository root promotes the public project contracts: the
+[README](../README.md), [roadmap](../ROADMAP.md),
+[changelog](../CHANGELOG.md), [contribution guide](../CONTRIBUTING.md),
+[Code of Conduct](../CODE_OF_CONDUCT.md), [security policy](../SECURITY.md), and
+[license](../LICENSE). This page maps the supporting researcher, developer,
+architecture, review, and maintenance documents that remain in `docs/`.
+
+The root [public roadmap](../ROADMAP.md) is the canonical concise stage and feature
+summary. This directory contains the detailed, version-controlled
+[project context and architectural history](project-context.md) and the
+[verified existing-system inventory](existing-system-inventory.md). The
 [initial inspection](initial-inspection.md) remains as dated historical context;
 current behavior is recorded in the inventory.
+
+The [visual identity and documentation graphics guide](visual-identity.md) records
+the brand relationship, icon brief, diagram priorities, asset provenance, and
+visual-review cadence.
 
 The [first-time setup guide](first-time-setup.md) explains the terminal, uv,
 command path, installation boundary, and local research database for readers who

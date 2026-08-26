@@ -8,6 +8,11 @@ Please report reproducible defects and researcher-workflow friction through the
 repository's guided issue forms, after removing private research data. Report
 security vulnerabilities privately under the project's security policy.
 
+Python package metadata uses the normalized PEP 440 form `1.0.0rc1`; the Git tag
+and GitHub Release use the conventional prerelease form `v1.0.0-rc.1`. Python
+installers normalize equivalent prerelease spellings, but the examples below use
+the exact published package version.
+
 ## Who should try the release candidate
 
 `1.0.0rc1` is intended for researchers and application developers willing to test

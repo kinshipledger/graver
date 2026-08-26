@@ -11,8 +11,8 @@ cemetery searches. It does not turn an unrelated SQLite file into a graver datab
 ## Before upgrading
 
 1. Stop other graver commands or applications using the database.
-2. Confirm the exact database path. `graver use --show` reports the saved default;
-   an explicit `--db` may still select a different database for one command.
+2. Confirm the exact database path. `graver use --show` can help identify a saved
+   default, but the upgrade command does not use that preference or `GRAVER_DB`.
 3. Preserve any separate backup you already rely on. The automatic upgrade backup
    is an additional safeguard, not a substitute for your normal backup practice.
 4. Make sure the database directory is writable and has enough free space for a
@@ -27,6 +27,10 @@ practice on a copy first.
 graver admin database upgrade /absolute/path/to/research.db
 ```
 
+`DATABASE` is a required explicit path. Unlike ordinary research commands, the
+upgrade command never falls back to the saved selection or `GRAVER_DB`; omitting
+the path fails with command usage help before any database is opened.
+
 The command inspects the file before writing. It recognizes supported legacy,
 unversioned, and older versioned graver schemas. It refuses missing files,
 directories, symbolic links, unrelated or malformed SQLite files, unknown schema
@@ -40,8 +44,11 @@ current schema version 5, the backup name is:
 research.db.pre-upgrade-v5.backup
 ```
 
-graver will not overwrite an existing backup with that name. Preserve or rename an
-older backup deliberately before trying again.
+graver will not overwrite an existing backup with that name. This is a deliberate
+safe refusal, not database corruption. Stop and inspect the reported source and
+backup paths. Preserve both files until you understand why the backup exists, then
+follow your normal reviewed file-recovery procedure or ask for help before changing
+either one.
 
 ## What the upgrade preserves
 

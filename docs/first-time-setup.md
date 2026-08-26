@@ -104,8 +104,12 @@ graver use --show
 
 The selected database contains the research work. Selecting a different database
 changes where later commands read and write; it does not move, combine, or delete
-either file. `graver use --clear` forgets the saved selection but does not delete
-the database.
+either file. This selection is one OS-level preference shared by every terminal and
+working directory for your user account—not a setting local to this folder or
+terminal. If you work with more than one research or client database, confirm the
+selection before consequential commands or use a one-command explicit path, such
+as `graver --db /absolute/path/to/client.db work list`. `graver use --clear`
+forgets the saved selection but does not delete the database.
 
 ## Continue with the guided workflow
 

@@ -2,7 +2,8 @@
 
 Thank you for helping improve graver. Please read the
 [access policy](docs/access-policy.md) before proposing acquisition or provider
-integration changes.
+integration changes. Participation in project spaces is governed by the
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Development workflow
 
@@ -24,6 +25,13 @@ Supported types are `build`, `chore`, `ci`, `deps`, `docs`, `feat`, `fix`, `perf
 `refactor`, `revert`, `security`, and `test`. Add `!` before the colon for an
 intentional breaking change and explain it in the pull-request body.
 
+AI-assisted contributions are welcome under the same standards as any other
+contribution. The contributor remains responsible for understanding the change,
+its licensing and provenance, its tests, and every statement made in the pull
+request. Do not give an external assistant credentials, private genealogy data, or
+other material that is not appropriate to disclose. Assistance does not substitute
+for human review of evidence meaning, security, or data-preservation behavior.
+
 ## Local validation
 
 Install the locked environment and run the offline checks:
@@ -31,15 +39,19 @@ Install the locked environment and run the offline checks:
 ```shell
 uv sync --locked --group test --group dev
 uv run pre-commit install
-make lint
-make security
-make typecheck
-make doccheck
-make performance
+uv run pre-commit run --all-files
+uv run --group dev pip-audit
+uv run --group dev ruff check --select S --ignore S608 src/graver maintenance
 uv run pytest
 uv run pytest --cov=graver --cov-report=term-missing --cov-report=xml
 uv lock --check
 ```
+
+These commands are the cross-platform validation path and do not require an
+activated virtual environment. On systems with a compatible `make` installation,
+`make lint`, `make security`, `make typecheck`, and `make doccheck` are equivalent
+convenience shortcuts for the corresponding static and security checks. GNU Make
+is an external system tool and is not installed by uv or required by graver.
 
 `make lint` runs the required Black formatting check and Ruff lint/import-order
 check over production, test, review, consumer-spike, and benchmark Python. `make
@@ -80,11 +92,12 @@ substantially duplicates an existing lane. Optimize fixtures and lane responsibi
 before weakening assertions; platform-specific or live checks need an explicit reason
 and bounded fallback. Test count is useful context, not a goal by itself.
 
-`make performance` runs the informational offline workspace baseline with generated
-100- and 10,000-record databases. It is not a required pull-request gate and its
-wall-clock results should not be compared across unlike machines. The separate
-weekly/manual workflow retains JSON reports for trend review. See the
-[performance and responsiveness guide](docs/performance.md).
+The optional `make performance` shortcut runs the informational offline workspace
+baseline with generated 100- and 10,000-record databases. It is not a required
+pull-request gate and its wall-clock results should not be compared across unlike
+machines. A direct uv command is documented in the [performance and responsiveness
+guide](docs/performance.md). The separate weekly/manual workflow retains JSON
+reports for trend review.
 
 SQLite `ResourceWarning`s
 and unraisable finalizer warnings fail pytest so connection leaks cannot quietly
@@ -113,7 +126,8 @@ Put disposable JSON and other researcher-generated exports under `scratch/` or
 preparing versions, changelog sections, tags, and GitHub Releases. Its workflow is
 manual while graver is pre-1.0. A maintainer reviews the generated release pull
 request for meaningful user and developer notes before merging it. Package-index
-publication, if later added, is a separate trusted workflow.
+publication uses a separate trusted PyPI workflow; the release-candidate package is
+published as `graver-genealogy` while the command and import package remain `graver`.
 
 ## Project name and terminology
 

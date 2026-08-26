@@ -44,6 +44,10 @@ provider responses. -->
 Does this change affect researcher-visible terminology, evidence meaning, candidate
 ranking, identity conclusions, citations, provenance, or workflow continuity?
 
+<!-- Example: renaming a task state, changing how a displayed relationship is
+qualified, or altering which evidence references a conclusion retains is semantic;
+an internal refactor with identical typed results is ordinarily not. -->
+
 - [ ] No
 - [ ] Yes — relevant professional-researcher review gate or issue:
 
@@ -66,6 +70,16 @@ merely because this pull request updates plans, tests, or documentation.
 - [ ] User and developer documentation is updated where needed
 - [ ] User-facing, developer-facing, migration, security, or breaking-change notes are included where needed
 - [ ] No documentation or release-note change is required
+
+## Visual assets
+
+- [ ] This change adds or alters no icon, diagram, screenshot, color, or generated
+      visual asset
+- [ ] Visual changes follow `docs/visual-identity.md`; source/tool and licensing
+      provenance are recorded, light/dark and small-size rendering were checked,
+      and equivalent text remains available
+- [ ] A material researcher-facing visual change is linked to the appropriate
+      professional, accessibility, or external review:
 
 ## Final checklist
 

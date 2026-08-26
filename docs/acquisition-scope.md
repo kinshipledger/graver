@@ -69,7 +69,9 @@ Use these distinctions in notes and citations:
 A null or missing structured value must not automatically be described as “not
 displayed.” It may reflect source absence, non-collection, a changed page, or a
 parser limitation. Record the narrower claim that the retained observation does not
-contain the value unless independent inspection establishes why.
+contain the value unless direct examination of the dated representation establishes
+why. A later visit to a mutable live page cannot prove what an earlier snapshot did
+or did not display. Do not use a null structured field as negative evidence.
 
 ## Citation boundary
 

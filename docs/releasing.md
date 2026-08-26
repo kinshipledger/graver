@@ -8,9 +8,9 @@ archive and wheel, then publishes them to PyPI through Trusted Publishing. The b
 job has no publishing credential; the publishing job receives only an ephemeral OIDC
 identity.
 
-## Release-candidate entry gate
+## Release gate
 
-Before requesting `1.0.0rc1`, confirm:
+Before requesting another candidate or the final `1.0.0` release, confirm:
 
 - the supported CLI, Python API, JSON, configuration, and database contracts are
   documented and tested;
@@ -24,17 +24,19 @@ Before requesting `1.0.0rc1`, confirm:
   migrations, security implications, known limitations, and deferred scope;
 - professional-researcher review gates required for implemented evidence behavior
   have passed; and
+- researcher-facing icons, diagrams, screenshots, badges, and version labels match
+  current behavior, have recorded provenance, and pass their applicable light/dark,
+  small-size, text-alternative, professional, and accessibility reviews; and
 - the private critical-path review shows no unacknowledged scope creep.
 
 The public distribution name is `graver-genealogy`; the product, console command,
 and import package remain `graver`. PyPI's `graver` project is unrelated. Verify the
 built metadata and every installation example against this distinction.
 
-Before the first release, create the protected GitHub environment `pypi` and register
-a pending PyPI Trusted Publisher for project `graver-genealogy`, owner `mcqueary`,
-repository `graver`, workflow `release-please.yml`, and environment `pypi`. A pending
-publisher does not reserve the name; stop if the PyPI project is claimed before the
-first publication. Never add a long-lived PyPI token as a repository secret.
+The protected GitHub environment `pypi` and PyPI Trusted Publisher must match the
+current repository owner, repository `graver`, workflow `release-please.yml`, and
+environment `pypi`. Re-verify this binding after an organization transfer. Never add
+a long-lived PyPI token as a repository secret.
 
 Do not migrate the only copy of a research database for release validation. Use
 generated fixtures, sanitized purpose-built migration fixtures, or explicitly
@@ -48,23 +50,15 @@ authorized temporary copies.
 3. Run the complete locked local validation documented in `CONTRIBUTING.md`.
    Run `make release-check` to test both publishable artifact forms outside the
    source tree.
-4. In a separate reviewed configuration pull request, enable Release Please's
-   prerelease versioning, `rc` prerelease type, and GitHub prerelease flag. Do not
-   leave a one-time forced version in permanent configuration.
-5. Dry-run the exact Release Please configuration and confirm that its Python update
-   produces the intended first candidate version, `1.0.0rc1` in normalized PEP 440
-   form. Stop if it proposes an ordinary release, a `0.x` release, or a different
-   candidate number. For the first candidate only, use the reviewed temporary
-   `release-as` value `1.0.0-rc.1`; remove it on the generated release branch before
-   merging and publishing the candidate. A commit footer is not sufficient because
-   squash merging can preserve its text without preserving its release-control
-   semantics.
-6. Merge that configuration only after the dry run is correct, then trigger the
-   **Release Please** workflow manually.
-7. Review the generated release pull request. Confirm the package version has no
+4. Review the checked-in Release Please configuration and manifest. Confirm the
+   intended prerelease or ordinary-release mode, and do not add a one-time forced
+   version to routine release configuration.
+5. Trigger the **Release Please** workflow manually and review the generated release
+   pull request. Stop if it proposes an unexpected release line or candidate number.
+6. Confirm the package version has no
    leading `v`; the Git tag may use `v`, and the GitHub Release must be marked as a
-   prerelease.
-8. Require the ordinary pull-request checks to pass before merging.
+   prerelease when appropriate.
+7. Require the ordinary pull-request checks to pass before merging.
 
 Merging the release pull request and then deliberately running the Release Please
 workflow is the publication decision. A newly created release causes the workflow's
@@ -101,3 +95,14 @@ release automation dependency.
 - Keep prerelease feedback separate from promises for `1.0.0`; evaluate findings
   against data safety, provenance, public-contract compatibility, and scope.
 - Do not delete migration support merely because the release succeeded.
+
+## Historical first-candidate bootstrap
+
+The first supported candidate, `1.0.0rc1`, required a one-time reviewed Release
+Please bootstrap because the repository previously tracked development versions.
+That procedure temporarily used `release-as: 1.0.0-rc.1`, verified that Release
+Please proposed normalized Python version `1.0.0rc1` and Git tag
+`v1.0.0-rc.1`, and removed the forced value on the generated release branch before
+publication. The release manifest now records the published state. Do not repeat
+this bootstrap for later candidates or `1.0.0` unless a separately reviewed recovery
+plan establishes that the manifest is incorrect.
