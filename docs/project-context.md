@@ -1058,6 +1058,12 @@ testing, and interoperability constraints are retained in the canonical
 
 ## Roadmap
 
+The root [public roadmap](../ROADMAP.md) is the canonical concise stage and feature
+summary. This section retains the detailed implementation sequence and
+architectural history. Material public direction changes must update the root
+roadmap; implementation facts belong in the existing-system inventory; private
+commercial, scheduling, and critical-path planning remains outside this repository.
+
 Completed foundation:
 
 1. Inspected and preserved the scraper and SQLite persistence foundation.
@@ -1230,6 +1236,25 @@ Pre-1.0 sequence:
     only after these gates pass. Reconcile the source-adapter strategy, API guide,
     access policy, review gates, inventory, roadmap, tutorial, and README; confirm
     that scope and non-goals remain achievable. GEDCOM is not a release criterion.
+    Treat the saved default database as part of the researcher decision-safety
+    boundary: during RC observation, assess whether consequential human-readable
+    live and state-changing command receipts should display the fully resolved
+    database path. If the change materially reduces wrong-database risk without
+    destabilizing machine-readable output or ordinary workflows, implement and
+    validate it for a bounded `1.0.0rc2` or final `1.0.0` release; otherwise record
+    the explicit deferral and retain strengthened setup and tutorial guidance.
+    The independent new-researcher documentation gate is blocked for final 1.0
+    until the user-wide scope of `graver init` and `graver use` is unmistakable:
+    selection applies across terminal sessions and working directories, while a
+    command-specific `--db` is the safer concurrent multi-project boundary. Add
+    correct command-position examples, tutorial restoration or clearing guidance,
+    and an explicit `sqlite3` prerequisite; make the CSV recipe obtain and use the
+    exact selected path rather than assuming `graves.db`. Strengthen negative-
+    evidence guidance so absence is claimed only from a directly examined, dated,
+    and adequately recorded representation—not from a null field or a later live
+    page. Explain backup-name collisions as safe refusal without prescribing broad
+    or platform-fragile file commands. Keep `work show --json` described as
+    single-subject machine-readable inspection rather than a general export.
 
 The evidence contract, integrity invariants, default comparison and ordering
 definitions, citation/provenance projections, approved audit format, synthetic

@@ -207,8 +207,10 @@ graver work show 1075
 ```
 
 If you selected another database in the meantime, return to the tutorial with
-`graver use /absolute/path/to/graver-tutorial/tutorial.db`. A one-command `--db`
-option temporarily overrides the selection but does not replace it.
+`graver use /absolute/path/to/graver-tutorial/tutorial.db`. The saved selection is
+shared across terminals and working directories. A global one-command option, such
+as `graver --db /absolute/path/to/graver-tutorial/tutorial.db work next`,
+temporarily overrides the selection but does not replace it.
 
 ## 7. Optional cleanup
 
@@ -224,7 +226,9 @@ graver use --clear
 `use --clear` does not delete or alter the database. Delete the file only with a
 specific, non-recursive operation appropriate to your operating system after you
 have verified the exact path. Never use a broad wildcard or recursive deletion
-for tutorial cleanup.
+for tutorial cleanup. If you changed an existing saved selection to follow the
+tutorial, either restore that earlier selection explicitly or leave the preference
+cleared before returning to other research.
 
 ## Live-service safety
 
@@ -248,7 +252,7 @@ network access, and never contacts Find a Grave.
 | No selected database | Run `graver use --show`, then `graver use /absolute/path/to/tutorial.db`. |
 | Missing or invalid database path | Check the exact path and filename. `use` requires an existing, usable graver database and will not silently fall back. |
 | Database requires explicit upgrade | Preserve the reported path and run `graver admin database upgrade DATABASE` only when you intend to create a backup and migrate that database. |
-| Backup collision during upgrade | Preserve or rename the existing deterministic backup; graver will not overwrite it or begin migration. |
+| Backup collision during upgrade | Stop and inspect the reported database and backup paths. graver will not overwrite the existing backup or begin migration. Preserve both files and consult the upgrade guide before deliberately changing either one. |
 | No search results | Recheck the current `graver search --help`, try a known memorial ID or narrow cemetery query, and keep the result limit small. Do not loop rapid retries. |
 | Cloudflare challenge or access block | Stop. Wait and use Find a Grave normally in a browser if appropriate; do not repeatedly automate retries. |
 | Timeout or Find a Grave outage | Stop and try later. Offline commands can still inspect already persisted work. |

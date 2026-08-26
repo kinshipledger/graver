@@ -44,6 +44,10 @@ provider responses. -->
 Does this change affect researcher-visible terminology, evidence meaning, candidate
 ranking, identity conclusions, citations, provenance, or workflow continuity?
 
+<!-- Example: renaming a task state, changing how a displayed relationship is
+qualified, or altering which evidence references a conclusion retains is semantic;
+an internal refactor with identical typed results is ordinarily not. -->
+
 - [ ] No
 - [ ] Yes — relevant professional-researcher review gate or issue:
 

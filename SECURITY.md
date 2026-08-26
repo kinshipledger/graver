@@ -2,9 +2,11 @@
 
 ## Supported versions
 
-graver has not yet published a supported production release. Security fixes are
-made on `main` during pre-1.0 development. Supported-version details will be added
-before the first release candidate.
+graver has published `1.0.0rc1` for release-candidate testing. Security fixes are
+developed on `main`; a reported vulnerability is assessed for a corrected
+prerelease when it affects the published candidate. Versions older than the latest
+published prerelease are not maintained as separate supported lines during pre-1.0
+development. The stable-version support policy will be defined for final 1.0.
 
 The current application is a local, single-researcher CLI with no telemetry,
 accounts, or hosted synchronization. Its boundaries and residual risks are

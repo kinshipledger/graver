@@ -26,8 +26,12 @@ meaning.
 Run the ordinary local baseline with:
 
 ```shell
-make performance
+uv run python benchmarks/performance_baseline.py --sizes 100 10000 --repetitions 7
 ```
+
+On a system with a compatible `make` installation, `make performance` is a
+convenience shortcut for the same baseline. Make is not required by graver or
+installed by uv.
 
 For an occasional capacity probe, explicitly request a larger dataset:
 

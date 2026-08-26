@@ -52,6 +52,26 @@ acquisition tool.
 graver is currently a command-line application intended for local research. It is
 not yet a cross-platform identity-matching or family-tree publishing system.
 
+## Current status and direction
+
+The published `1.0.0rc1` release candidate provides the local Find a Grave
+acquisition, research-queue, provenance, CLI, and typed application foundations
+described above. Final 1.0 work is focused on bounded release feedback,
+decision-safety, documentation, and stabilization—not live FamilySearch
+integration.
+
+After 1.0, the leading direction begins with a production desktop work-queue and
+person-detail workflow over the same application services. An authorized live
+FamilySearch adapter and repeatable candidate discovery may follow that foundation;
+researcher-authored identity conclusions, WikiTree reconciliation, GEDCOM, and
+additional source adapters remain later or conditional work. Internal fictional
+FamilySearch-shaped fixtures validate evidence contracts but are not a live
+FamilySearch integration.
+
+See the concise public [roadmap](ROADMAP.md) for these stages and the detailed
+[project context](docs/project-context.md) for their architectural reasoning. The
+roadmap is directional rather than a dated feature promise.
+
 ## Installation
 
 [uv](https://docs.astral.sh/uv/getting-started/installation/) installs `graver` in
@@ -129,8 +149,12 @@ graver use --clear
 ```
 
 `use` selects an existing database and does not create or upgrade it. An explicit
-`--db` applies to one command without changing the saved selection. Run
-`graver use --show` whenever you need to confirm which database is active.
+global `--db` applies to one command without changing the saved selection, for
+example `graver --db /path/to/client.db work list`. The saved selection is an
+OS-level preference shared by every terminal and working directory for your user
+account; it is not scoped to the current folder or shell session. Run `graver use
+--show` whenever you need to confirm which database is active, and prefer an
+explicit `--db` for commands involving multiple client or research projects.
 Genealogy has enough mysteries; the active database should not be one of them.
 
 ### Upgrade an older database
@@ -211,10 +235,12 @@ Redirects do not merge people or move, complete, or delete research tasks.
 ### Basic CSV export
 
 graver does not yet provide a dedicated export command. The SQLite command-line
-tool can export the current `graves` table to CSV:
+tool can export the current `graves` table to CSV. `sqlite3` is a separate system
+utility and is not installed with graver. Confirm the selected database with
+`graver use --show`, then pass that exact path rather than assuming `graves.db`:
 
 ```shell
-$ sqlite3 graves.db
+$ sqlite3 /absolute/path/reported/by-use-show.db
 sqlite> .headers on
 sqlite> .mode csv
 sqlite> .output graves.csv
@@ -239,6 +265,8 @@ For researchers:
 
 For contributors and maintainers:
 
+- [Public roadmap](ROADMAP.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Contribution guide](CONTRIBUTING.md)
 - [Developer API guide](docs/api.md)
 - [Command-line JSON contract](docs/cli-json.md)
