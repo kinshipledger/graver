@@ -9,8 +9,15 @@ from importlib.metadata import version
 from pathlib import Path
 from shutil import which
 
+from packaging.version import Version
+
 import graver
 import graver.application as application
+
+
+def versions_match(installed_version: str, project_version: str) -> bool:
+    """Return whether two PEP 440 version spellings identify the same release."""
+    return Version(installed_version) == Version(project_version)
 
 
 def main() -> None:
@@ -19,7 +26,7 @@ def main() -> None:
         raise RuntimeError("graver import resolved to an unexpected module")
     installed_version = version("graver-genealogy")
     project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
-    if installed_version != project["project"]["version"]:
+    if not versions_match(installed_version, project["project"]["version"]):
         raise RuntimeError("installed and project versions differ")
     if "open_workspace" not in application.__all__:
         raise RuntimeError("public application facade is incomplete")
