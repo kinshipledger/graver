@@ -14,6 +14,12 @@ The gates below keep professional alignment on the development path without aski
 researchers to review repository refactors, dependency changes, migrations, CI, or
 other infrastructure that does not alter their experience.
 
+Technical-publications review complements these gates but does not replace them.
+A technical writer evaluates whether instructions are findable, consistent, and
+usable; a professional genealogist evaluates whether their meaning remains safe for
+research and evidence. The final-1.0 review described below deliberately uses both
+roles without asking either reviewer to repeat the other's work.
+
 ## Governing rule
 
 > A professional-researcher review gate is complete only when the review occurred
@@ -300,6 +306,37 @@ concrete example and a bounded question.
 Do not engage the professional researcher merely to validate internal refactors,
 dependency changes, migration mechanics, CI, test organization, or adapter changes
 that preserve visible behavior.
+
+## Final-1.0 technical-publications gate
+
+Tracking issue [#95](https://github.com/mcqueary/graver/issues/95) defines a bounded
+professional technical-publications review before final `1.0.0`. It begins only
+after the RC findings for acquisition scope ([#94](https://github.com/mcqueary/graver/issues/94)),
+research-state and network terminology ([#92](https://github.com/mcqueary/graver/issues/92)),
+and first-time onboarding ([#91](https://github.com/mcqueary/graver/issues/91))
+are reflected in the researcher-facing material. If the enrichment change receipt
+in [#93](https://github.com/mcqueary/graver/issues/93) is ready, its terminology and
+instructions join the review packet.
+
+The technical writer reviews only the README installation/getting-started path,
+researcher tutorial, core command help, acquisition-scope and citation guidance,
+and the errors or recovery language encountered in that workflow. Architecture
+documents, historical audits, internal API material, CI, and roadmap prose remain
+out of scope unless ordinary researcher instructions require them.
+
+The review answers whether prerequisites precede actions; terms agree across help
+and prose; offline, network, and database-changing operations are distinguishable;
+safe recovery is findable; content is organized around researcher tasks; and
+capture/citation limitations appear when they matter. Its dated report uses the
+same Blocking, Important, Follow-up, and Observation severities and an explicit
+PASS, PASS WITH FOLLOW-UPS, or BLOCKED disposition. Style preferences alone do not
+become release blockers.
+
+After corrections, a professional genealogist performs a short semantic
+verification limited to evidentiary meaning, capture-scope accuracy, and network
+consequences. The complete RC workflow is repeated only if the review caused a
+material workflow change. Unresolved blocking findings require a recorded risk
+decision before final `1.0.0`.
 
 ## Front-end UX and UI review cadence
 

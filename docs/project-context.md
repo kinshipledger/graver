@@ -1201,7 +1201,7 @@ Pre-1.0 sequence:
    regressions and convert only demonstrated user-visible budgets into later GUI
    acceptance criteria.
 21. **Implemented:** Complete the public API guide, database and 0.1 migration
-   instructions, compatibility mapping, draft `1.0.0rc1` release notes, and the
+   instructions, compatibility mapping, published `1.0.0rc1` release notes, and the
    maintainer release process for the trunk-based, manually gated Release Please
    workflow. Recheck and finalize these living documents at the RC readiness gate.
 22. **Completed:** Build the separate consumer spike against the installed wheel,
@@ -1220,11 +1220,16 @@ Pre-1.0 sequence:
    entrepreneurial analysis in the private outer planning area.
 24. Resolve spike and security findings and prepare `1.0.0rc1` without weakening migration,
    provenance, concurrency, or offline-test guarantees.
-25. Validate the release candidate, re-evaluate whether GEDCOM has demonstrated
-    enough value for later implementation, and release graver `1.0.0` after the core
-    findings are resolved. Reconcile the source-adapter strategy, API guide, access
-    policy, review gates, inventory, roadmap, tutorial, and README; confirm that
-    scope and non-goals remain achievable. GEDCOM is not a release criterion.
+25. Validate the release candidate and resolve its bounded core findings. After the
+    acquisition-scope, research-state, and onboarding corrections stabilize, run
+    the focused professional technical-publications gate in issue #95 against only
+    the ordinary researcher path. Correct blocking findings, then obtain a short
+    professional-genealogist semantic verification rather than repeating the full
+    workflow unless behavior materially changed. Re-evaluate whether GEDCOM has
+    demonstrated enough value for later implementation, and release graver `1.0.0`
+    only after these gates pass. Reconcile the source-adapter strategy, API guide,
+    access policy, review gates, inventory, roadmap, tutorial, and README; confirm
+    that scope and non-goals remain achievable. GEDCOM is not a release criterion.
 
 The evidence contract, integrity invariants, default comparison and ordering
 definitions, citation/provenance projections, approved audit format, synthetic
