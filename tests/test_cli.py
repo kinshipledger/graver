@@ -429,7 +429,15 @@ class TestCliResearchTasks(Test):
         )
 
         assert result.exit_code == 0
+        assert "selected fields" in result.output.lower()
+        assert "not a complete page archive" in result.output.lower()
         assert calls == [selected.findagrave_url]
+        history = helpers.graver_cli(
+            f"work show {selected.memorial_id} --db '{database.name}' --history"
+        )
+        assert history.exit_code == 0
+        assert "only the selected structured fields" in history.output.lower()
+        assert "not a page archive" in history.output.lower()
         shown = graver.api.show_research_task(database.name, selected.memorial_id)
         other_task = graver.api.show_research_task(database.name, other.memorial_id)
         assert shown["task"]["status"] == "full_scrape_complete"
@@ -599,9 +607,16 @@ class TestCliResearcherSurface(Test):
     def test_help_uses_progressive_disclosure(self, helpers):
         root = helpers.graver_cli("--help")
         work = helpers.graver_cli("work --help")
+        enrich = helpers.graver_cli("work enrich --help")
         aliases = helpers.graver_cli("admin aliases --help")
 
-        assert root.exit_code == work.exit_code == aliases.exit_code == 0
+        assert (
+            root.exit_code
+            == work.exit_code
+            == enrich.exit_code
+            == aliases.exit_code
+            == 0
+        )
         assert "work" in root.output
         assert "admin" in root.output
         for legacy in (
@@ -620,7 +635,9 @@ class TestCliResearcherSurface(Test):
             assert legacy not in root.output
         assert "Show the next person needing research" in work.output
         assert "Review one person's current research state" in work.output
-        assert "Retrieve the full Find a Grave memorial" in work.output
+        assert "Observe a memorial's full page" in work.output
+        assert "selected structured fields" in enrich.output
+        assert "one live" in enrich.output
         for command in ("list", "show", "record", "retract"):
             assert command in aliases.output
 
