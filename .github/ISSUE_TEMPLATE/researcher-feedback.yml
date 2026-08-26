@@ -1,0 +1,62 @@
+name: Researcher feedback
+description: Describe unclear terminology, workflow friction, or provenance concerns found while trying the release candidate.
+title: "ux: "
+labels:
+  - ux
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feedback about confusing or untrustworthy behavior is as useful as a software
+        defect. Please describe the research task in your own words and omit private
+        research data.
+  - type: input
+    id: version
+    attributes:
+      label: graver version
+      placeholder: graver v1.0.0rc1
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Your perspective
+      options:
+        - Genealogical researcher
+        - Professional genealogist
+        - Archivist or librarian
+        - Application developer
+        - First-time evaluator
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Research goal
+      description: What were you trying to accomplish?
+    validations:
+      required: true
+  - type: textarea
+    id: friction
+    attributes:
+      label: Where did the workflow become unclear or difficult?
+      description: Include the command or documentation section when useful.
+    validations:
+      required: true
+  - type: textarea
+    id: trust
+    attributes:
+      label: Did anything make the saved data or provenance difficult to trust?
+      description: Tell us what explanation, receipt, citation, or history you expected to see.
+  - type: textarea
+    id: improvement
+    attributes:
+      label: What would have helped?
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed credentials, cookies, private notes, living-person information, and other sensitive research data.
+          required: true
