@@ -1,0 +1,64 @@
+name: Bug report
+description: Report reproducible incorrect behavior in a released version of graver.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing graver. Please remove names, notes, database contents,
+        cookies, credentials, and other sensitive research data before posting.
+  - type: input
+    id: version
+    attributes:
+      label: graver version
+      description: Run `graver --version` and paste the result.
+      placeholder: graver v1.0.0rc1
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: What were you trying to do?
+      description: Describe the research workflow and command without including private research data.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened?
+      description: Include the safe error text and exit status when available.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Use a new or disposable database when possible. Do not upload a real research database.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed credentials, cookies, private notes, living-person information, and other sensitive research data.
+          required: true
+        - label: This is not a security vulnerability requiring private disclosure.
+          required: true

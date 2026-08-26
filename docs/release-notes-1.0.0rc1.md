@@ -1,8 +1,12 @@
-# graver 1.0.0rc1 release notes (draft)
+# graver 1.0.0rc1 release notes
 
-These notes describe the intended first release candidate. They remain a draft
-until the package version is changed, the release gates pass, and Release Please
-creates the reviewed release pull request.
+graver 1.0.0rc1 was published on 25 August 2026 as the project's first supported
+release candidate. It is available from the
+[graver-genealogy project on PyPI](https://pypi.org/project/graver-genealogy/1.0.0rc1/)
+and the [corresponding GitHub prerelease](https://github.com/mcqueary/graver/releases/tag/v1.0.0-rc.1).
+Please report reproducible defects and researcher-workflow friction through the
+repository's guided issue forms, after removing private research data. Report
+security vulnerabilities privately under the project's security policy.
 
 ## Who should try the release candidate
 
@@ -30,6 +34,11 @@ release candidate.
 Install the release candidate from the `graver-genealogy` distribution. The PyPI
 project named only `graver` is unrelated; the installed command and Python import
 for this project nevertheless remain `graver`.
+
+```shell
+uv tool install 'graver-genealogy==1.0.0rc1'
+graver --version
+```
 
 ## Breaking changes from the development-era 0.1 interface
 

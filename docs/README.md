@@ -35,12 +35,12 @@ The [database upgrade and recovery guide](database-upgrades.md) explains the
 explicit backed-up migration workflow, preservation guarantees, safe failure
 behavior, and the limits of manual recovery.
 
-The [draft 1.0.0rc1 release notes](release-notes-1.0.0rc1.md) summarize the intended
+The [1.0.0rc1 release notes](release-notes-1.0.0rc1.md) summarize the published
 researcher and developer changes, compatibility breaks, deferred scope, and known
 limitations. The [maintainer release process](releasing.md) defines the review gates
 and manually triggered Release Please workflow.
-The [1.0.0rc1 readiness audit](rc1-readiness-audit.md) records the frozen public
-surfaces and remaining publication gates.
+The [1.0.0rc1 readiness audit](rc1-readiness-audit.md) preserves the prepublication
+review of the frozen public surfaces and release gates.
 
 The [performance and responsiveness guide](performance.md) defines the generated
 offline baseline, non-blocking weekly/manual measurement workflow, interpretation

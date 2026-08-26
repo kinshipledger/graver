@@ -1,5 +1,6 @@
 [![CI](https://github.com/mcqueary/graver/actions/workflows/python-package.yml/badge.svg)](https://github.com/mcqueary/graver/actions/workflows/python-package.yml)
 [![Coverage Status](https://coveralls.io/repos/github/mcqueary/graver/badge.svg?branch=main)](https://coveralls.io/github/mcqueary/graver?branch=main)
+[![PyPI prerelease](https://img.shields.io/pypi/v/graver-genealogy?label=PyPI&include_prereleases)](https://pypi.org/project/graver-genealogy/)
 [![Python: 3.11–3.14](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -68,11 +69,10 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 Other supported installation methods, including Homebrew and WinGet, are
 listed in the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
 
-Beginning with the first published release candidate, the normal installation will
-be:
+Install the published release candidate explicitly:
 
 ```shell
-uv tool install graver-genealogy
+uv tool install 'graver-genealogy==1.0.0rc1'
 graver --version
 ```
 
@@ -86,8 +86,14 @@ shell path. If uv reports that its tool directory is not on the path, run
 `uv tool update-shell` and follow its instructions. Upgrade a published installation
 with `uv tool upgrade graver-genealogy`.
 
-Until the release candidate is published, install the current source checkout as a
-tool:
+Trying the release candidate? Please report a reproducible
+[software defect](https://github.com/mcqueary/graver/issues/new?template=bug-report.yml)
+or share
+[researcher-workflow feedback](https://github.com/mcqueary/graver/issues/new?template=researcher-feedback.yml).
+Remove private research data before posting; security vulnerabilities belong in a
+[private advisory](https://github.com/mcqueary/graver/security/advisories/new).
+
+To test unreleased source changes instead, install a source checkout as a tool:
 
 ```shell
 git clone https://github.com/mcqueary/graver.git
@@ -240,7 +246,7 @@ For contributors and maintainers:
 - [Developer API guide](docs/api.md)
 - [Command-line JSON contract](docs/cli-json.md)
 - [Pre-1.0 command-line migration](docs/cli-migration.md)
-- [Draft 1.0.0rc1 release notes](docs/release-notes-1.0.0rc1.md)
+- [1.0.0rc1 release notes](docs/release-notes-1.0.0rc1.md)
 - [Maintainer release process](docs/releasing.md)
 - [Performance and responsiveness](docs/performance.md)
 - [Security policy](SECURITY.md)
