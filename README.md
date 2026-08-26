@@ -198,6 +198,8 @@ uv run graver work enrich MEMORIAL_ID
 task is in `ready_for_full_scrape`. Listing, showing, marking, choosing, and
 queueing people make no network requests. Use `work show --history` when detailed
 acquisition provenance is needed; ordinary output keeps that detail summarized.
+The [research-state guide](docs/research-states.md) defines every state, its plain-
+language meaning, and its network consequence.
 
 ### Redirect review
 
