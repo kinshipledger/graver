@@ -8,6 +8,7 @@ import typer
 
 from graver import config as graver_config
 from graver.api import (
+    RESEARCH_TASK_STATUSES,
     Driver,
     Memorial,
     MemorialAliasError,
@@ -89,6 +90,59 @@ def _human_echo(message: object = "", **kwargs) -> None:
 cli_driver = Driver()
 
 DEFAULT_LOG_LEVEL = "INFO"
+
+_RESEARCH_STATUS_GUIDANCE = {
+    "unprocessed": (
+        "Unprocessed",
+        "Queued, but research has not started.",
+        "Offline; does not approve a live retrieval.",
+    ),
+    "researching": (
+        "Research in progress",
+        "The researcher is actively reviewing this person.",
+        "Offline; does not approve a live retrieval.",
+    ),
+    "ready_for_full_scrape": (
+        "Approved for enrichment",
+        "The researcher has approved one later full-page retrieval.",
+        "Setting this state is offline; `work enrich` is the separate live action.",
+    ),
+    "full_scrape_complete": (
+        "Enrichment complete",
+        "Selected fields from a full memorial page have been retained.",
+        "The state itself is offline and does not make another request.",
+    ),
+    "ready_for_review": (
+        "Ready for review",
+        "The current research is ready for a researcher's review.",
+        "Offline; does not approve a live retrieval.",
+    ),
+    "completed": (
+        "Research complete",
+        "The researcher considers the current task complete.",
+        "Offline; does not approve a live retrieval.",
+    ),
+    "unable_to_resolve": (
+        "Unable to resolve",
+        "The available evidence does not currently resolve the research question.",
+        "Offline; does not approve a live retrieval.",
+    ),
+}
+
+assert set(_RESEARCH_STATUS_GUIDANCE) == set(RESEARCH_TASK_STATUSES)
+
+_RESEARCH_STATUS_VALUES = ", ".join(RESEARCH_TASK_STATUSES)
+
+
+def _research_status_label(status: str) -> str:
+    """Return a readable status while retaining its stable machine value."""
+    return f"{_RESEARCH_STATUS_GUIDANCE[status][0]} [{status}]"
+
+
+def _research_status_consequence(status: str) -> str:
+    """Describe the meaning and network consequence of a research status."""
+    label, meaning, network = _RESEARCH_STATUS_GUIDANCE[status]
+    return f"{label} [{status}]: {meaning} {network}"
 
 
 def version_callback(value: bool):
@@ -424,7 +478,8 @@ def _display_work_list(tasks: list) -> None:
         _human_echo(
             f"{task['memorial_id']} | {task['name'] or 'Unknown person'} | "
             f"{task['birth'] or '?'}–{task['death'] or '?'} | "
-            f"{task['status']} | priority {task['priority']} | {detail}{action}"
+            f"{_research_status_label(task['status'])} | "
+            f"priority {task['priority']} | {detail}{action}"
         )
 
 
@@ -443,7 +498,8 @@ def _display_work_task(result: dict, history: bool = False) -> None:
         f"({grave['birth'] or '?'}–{grave['death'] or '?'})"
     )
     _human_echo(
-        f"Research: {task['status']} | priority {task['priority']} | "
+        f"Research: {_research_status_label(task['status'])} | "
+        f"priority {task['priority']} | "
         f"owner {task['owner'] or 'unassigned'}"
     )
     _human_echo(
@@ -463,13 +519,33 @@ def _display_work_task(result: dict, history: bool = False) -> None:
         )
     elif task["status"] == "unprocessed":
         _human_echo(
-            "Next action: begin research or mark this person ready for enrichment."
+            "Next action: begin research, or explicitly approve this person for "
+            "enrichment when appropriate."
+        )
+    elif task["status"] == "researching":
+        _human_echo(
+            "Next action: continue research, then record whether enrichment is "
+            "approved or more review is needed."
         )
     elif task["status"] == "ready_for_full_scrape":
-        _human_echo(f"Next action: run `graver work enrich {grave['memorial_id']}`.")
-    else:
         _human_echo(
-            "Next action: review the current research state and choose a status."
+            f"Next action (live): run `graver work enrich {grave['memorial_id']}` "
+            "to retrieve this one memorial."
+        )
+    elif task["status"] == "full_scrape_complete":
+        _human_echo(
+            "Next action: review the retained observation and its acquisition history."
+        )
+    elif task["status"] == "ready_for_review":
+        _human_echo(
+            "Next action: review the current research and record the resulting decision."
+        )
+    elif task["status"] == "completed":
+        _human_echo("Next action: no action is required unless research is reopened.")
+    elif task["status"] == "unable_to_resolve":
+        _human_echo(
+            "Next action: preserve the unresolved result or resume when new evidence "
+            "is available."
         )
     _human_echo(f"Provenance: {len(result['observations'])} acquisition observations.")
     if history:
@@ -499,7 +575,9 @@ def _display_work_task(result: dict, history: bool = False) -> None:
 def work_list(
     db: str = database_option("Research database to read."),
     status: Optional[str] = typer.Option(
-        None, "--status", help="Filter by research status."
+        None,
+        "--status",
+        help=f"Filter by machine status: {_RESEARCH_STATUS_VALUES}.",
     ),
     cemetery_id: Optional[int] = typer.Option(
         None, "--cemetery-id", help="Show only people from this cemetery ID."
@@ -529,7 +607,9 @@ def work_list(
 def work_next(
     db: str = database_option("Research database to read."),
     status: Optional[str] = typer.Option(
-        "unprocessed", "--status", help="Research status to select."
+        "unprocessed",
+        "--status",
+        help=f"Machine status to select: {_RESEARCH_STATUS_VALUES}.",
     ),
     cemetery_id: Optional[int] = typer.Option(
         None, "--cemetery-id", help="Select only people from this cemetery ID."
@@ -583,7 +663,12 @@ def work_mark(
     ),
     db: str = database_option("Research database to update."),
     status: Optional[str] = typer.Option(
-        None, "--status", help="New research status for this person."
+        None,
+        "--status",
+        help=(
+            f"New machine status: {_RESEARCH_STATUS_VALUES}. Changing status is "
+            "offline; only work enrich makes the later live request."
+        ),
     ),
     priority: Optional[int] = typer.Option(
         None, "--priority", help="New queue priority; higher numbers are shown first."
@@ -619,6 +704,10 @@ def work_mark(
     changed = [label for key, label in labels.items() if before[key] != task[key]]
     if changed:
         _human_echo(f"Updated {', '.join(changed)} for person {memorial_id}.")
+        if "status" in changed:
+            _human_echo(
+                f"Status meaning: {_research_status_consequence(task['status'])}"
+            )
     else:
         _human_echo(f"No changes were needed for person {memorial_id}.")
 

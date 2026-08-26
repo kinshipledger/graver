@@ -670,7 +670,9 @@ class TestCliResearcherSurface(Test):
                 "work list --help",
                 (
                     "Research database to read",
-                    "Filter by research status",
+                    "Filter by machine status",
+                    "ready_for_full_scrape",
+                    "full_scrape_complete",
                     "Maximum people to show",
                     "machine-readable JSON",
                 ),
@@ -685,7 +687,16 @@ class TestCliResearcherSurface(Test):
             (
                 "work mark --help",
                 (
-                    "New research status",
+                    "New machine status",
+                    "unprocessed",
+                    "researching",
+                    "ready_for_full_scrape",
+                    "full_scrape_complete",
+                    "ready_for_review",
+                    "completed",
+                    "unable_to_resolve",
+                    "Changing status is offline",
+                    "work enrich makes the later live request",
                     "higher numbers are shown",
                     "Researcher responsible",
                     "Review note",
@@ -738,6 +749,7 @@ class TestCliResearcherSurface(Test):
 
         assert result.exit_code == 0
         assert result.output.index("Second") < result.output.index("First")
+        assert "Unprocessed [unprocessed]" in result.output
         assert "summary-only" in result.output
         assert "Redirect requires review" in result.output
         assert "alias_path" not in result.output
@@ -800,6 +812,7 @@ class TestCliResearcherSurface(Test):
         )
 
         assert "alias" not in ordinary_result.output.lower()
+        assert "Unprocessed [unprocessed]" in ordinary_result.output
         assert "subject_id" not in ordinary_result.output
         assert "subject_id" not in history_result.output
         assert "payload" not in ordinary_result.output
@@ -844,12 +857,55 @@ class TestCliResearcherSurface(Test):
 
         assert changed.exit_code == noop.exit_code == machine_result.exit_code == 0
         assert "Updated status, note" in changed.output
+        assert "Research in progress [researching]" in changed.output
+        assert "Offline; does not approve a live retrieval" in changed.output
         assert "No changes were needed" in noop.output
         assert after_noop == before_noop
         assert after_noop["priority"] == 6
         assert after_noop["owner"] == "owner"
         assert after_noop["review_note"] == "new"
         assert json.loads(machine_result.output)["command"] == "work.mark"
+
+    @pytest.mark.parametrize(
+        "status, label, next_action",
+        [
+            ("unprocessed", "Unprocessed", "begin research"),
+            ("researching", "Research in progress", "continue research"),
+            (
+                "ready_for_full_scrape",
+                "Approved for enrichment",
+                "Next action (live)",
+            ),
+            (
+                "full_scrape_complete",
+                "Enrichment complete",
+                "review the retained observation",
+            ),
+            ("ready_for_review", "Ready for review", "review the current research"),
+            ("completed", "Research complete", "no action is required"),
+            (
+                "unable_to_resolve",
+                "Unable to resolve",
+                "resume when new evidence is available",
+            ),
+        ],
+    )
+    def test_work_show_explains_every_research_state(
+        self, helpers, database, status, label, next_action
+    ):
+        summary = self.summary().save()
+        graver.api.queue_memorials(database.name)
+        graver.api.update_research_task(
+            database.name, summary.memorial_id, status=status
+        )
+
+        result = helpers.graver_cli(
+            f"work show {summary.memorial_id} --db '{database.name}'"
+        )
+
+        assert result.exit_code == 0
+        assert f"{label} [{status}]" in result.output
+        assert next_action in result.output
 
     def test_work_queue_is_idempotent_and_network_free(
         self, helpers, database, monkeypatch

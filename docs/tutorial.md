@@ -121,6 +121,10 @@ person. `work show` should identify the person, the `unprocessed` research state
 the cemetery context, `summary` acquisition level, and an acquisition-observation
 count.
 
+All research-state changes are offline. See the
+[research-state guide](research-states.md) for every accepted value, its plain-
+language meaning, and what later action it permits.
+
 In the commands that follow, `1075` is literal only if that memorial was acquired.
 In generic examples, `MEMORIAL_ID` is a placeholder and must be replaced with the
 number you selected.
@@ -136,8 +140,9 @@ graver work show 1075
 ```
 
 Success means graver reports that the status and note were updated. The second
-command should show `ready_for_full_scrape` and offer `graver work enrich 1075`
-as the next action. Only this one task was approved.
+command should show `Approved for enrichment [ready_for_full_scrape]` and offer
+the live `graver work enrich 1075` command as the next action. Only this one task
+was approved; marking it did not make a request.
 
 Enrichment is the tutorial's second live Find a Grave operation:
 
