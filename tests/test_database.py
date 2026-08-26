@@ -339,8 +339,10 @@ def test_init_help_has_no_side_effects_and_describes_default(
 
     assert root.exit_code == command.exit_code == 0
     assert "init" in root.output
-    assert "Create and select a new database" in rendered
-    assert "omit DATABASE to create ./graves.db" in rendered
+    assert "Offline: create and select a new database" in rendered
+    assert "without overwriting any path" in rendered
+    assert "New research database to create" in rendered
+    assert "./graves.db" in rendered
     assert not (tmp_path / "graves.db").exists()
     assert not isolate_graver_configuration.exists()
 

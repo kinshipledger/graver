@@ -162,6 +162,9 @@ The command returns a concise acquisition receipt distinguishing new memorials,
 existing memorials, retained dated snapshots, and any current displayed values that
 changed.
 
+Search processes at most 20 summaries by default. Use `--max-results` with another
+positive number when a smaller or larger bounded result set is intentional.
+
 Search is a live operation. Keep queries narrow, stop if the provider reports an
 access restriction, and consult `graver search --help` for the current filters.
 The [researcher tutorial](docs/tutorial.md) explains the complete recommended
