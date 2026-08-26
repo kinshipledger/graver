@@ -549,7 +549,7 @@ class TestCliResearcherSurface(Test):
         rendered = " ".join(result.output.split())
 
         assert result.exit_code == 0
-        assert "Select the database graver should use by default" in rendered
+        assert "Offline: select, show, or forget the default database" in rendered
         assert "Existing graver database to use by default" in rendered
         assert "Show the currently selected default database" in rendered
         assert "without deleting it" in rendered
@@ -633,9 +633,9 @@ class TestCliResearcherSurface(Test):
             "scrape-url",
         ):
             assert legacy not in root.output
-        assert "Show the next person needing research" in work.output
-        assert "Review one person's current research state" in work.output
-        assert "Observe a memorial's full page" in work.output
+        assert "Offline: show the next person needing research" in work.output
+        assert "Offline: review one person's current research state" in work.output
+        assert "Live: observe one approved memorial" in work.output
         assert "selected structured fields" in enrich.output
         assert "one live" in enrich.output
         for command in ("list", "show", "record", "retract"):
@@ -669,6 +669,7 @@ class TestCliResearcherSurface(Test):
             (
                 "work list --help",
                 (
+                    "Offline: list people",
                     "Research database to read",
                     "Filter by machine status",
                     "ready_for_full_scrape",
@@ -713,11 +714,14 @@ class TestCliResearcherSurface(Test):
             (
                 "search --help",
                 (
+                    "Live: find memorial summaries",
                     "First name to search for",
                     "Birth year used with",
                     "Include nicknames",
                     "Filter by grave coordinates",
                     "specific search-results",
+                    "summaries to process during this live search",
+                    "default: 20",
                 ),
             ),
         ],
@@ -985,6 +989,33 @@ class TestCliResearcherSurface(Test):
 
 
 class TestCliSearch(TestCli):
+    def test_search_uses_a_finite_default_result_limit(
+        self, helpers, tmp_path, monkeypatch
+    ) -> None:
+        """A live search is bounded even when the researcher omits the option."""
+        database = tmp_path / "bounded.db"
+        commands = []
+
+        def search(_workspace, command, **_kwargs):
+            commands.append(command)
+            return AcquisitionReceipt(
+                operation="search_memorial_summaries",
+                source="fixture:bounded",
+                memorial_ids=(),
+                observations_appended=0,
+                memorials_created=0,
+                memorials_existing=0,
+                changed_memorials=0,
+                changes=(),
+            )
+
+        monkeypatch.setattr(WorkspaceAcquisition, "search", search)
+
+        result = helpers.graver_cli(f"search --db '{database}' --memorial-id 1075")
+
+        assert result.exit_code == 0
+        assert commands[0].max_results == 20
+
     def test_search_cli_projects_the_workspace_receipt(
         self, helpers, tmp_path, monkeypatch
     ) -> None:

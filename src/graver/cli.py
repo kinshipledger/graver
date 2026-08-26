@@ -252,7 +252,7 @@ def init(
         help="New research database to create; omit to create ./graves.db.",
     ),
 ):
-    """Create and select a new database; omit DATABASE to create ./graves.db."""
+    """Offline: create and select a new database without overwriting any path."""
     try:
         initialized = create_database(database)
     except DatabaseInitializationError as ex:
@@ -282,7 +282,7 @@ def use(
         False, "--clear", help="Forget the selected default without deleting it."
     ),
 ):
-    """Select the database graver should use by default."""
+    """Offline: select, show, or forget the default database without changing it."""
     action_count = int(database is not None) + int(show) + int(clear)
     if action_count != 1:
         raise typer.BadParameter(
@@ -587,7 +587,7 @@ def work_list(
         False, "--json", help="Return complete machine-readable JSON."
     ),
 ):
-    """List people in the research queue and what needs attention."""
+    """Offline: list people in the research queue and what needs attention."""
     try:
         tasks = [
             task.to_compatibility_dict()
@@ -618,7 +618,7 @@ def work_next(
         False, "--json", help="Return complete machine-readable JSON."
     ),
 ):
-    """Show the next person needing research."""
+    """Offline: show the next person needing research."""
     try:
         tasks = ResearchService(db).query_tasks(
             ResearchTaskQuery(status, cemetery_id, 1)
@@ -648,7 +648,7 @@ def work_show(
         False, "--json", help="Return complete machine-readable JSON."
     ),
 ):
-    """Review one person's current research state."""
+    """Offline: review one person's current research state."""
     result = _load_task_or_exit(db, memorial_id)
     if json_output:
         _json_output("work.show", result)
@@ -683,7 +683,7 @@ def work_mark(
         False, "--json", help="Return the updated task as machine-readable JSON."
     ),
 ):
-    """Record a research decision or assignment for one person."""
+    """Offline: record a research decision or assignment for one person."""
     before = _load_task_or_exit(db, memorial_id)["task"]
     try:
         task = ResearchService(db).update_task(
@@ -723,7 +723,7 @@ def work_enrich(
         False, "--json", help="Return the result as machine-readable JSON."
     ),
 ):
-    """Observe a memorial's full page and retain selected structured fields."""
+    """Live: observe one approved memorial and retain selected structured fields."""
     _enrich_task(memorial_id, db, researcher_output=True, json_output=json_output)
 
 
@@ -737,7 +737,7 @@ def work_queue(
         0, "--priority", help="Initial priority assigned only to newly queued people."
     ),
 ):
-    """Add people already acquired to the research queue."""
+    """Offline: add people already acquired to the research queue."""
     result = ResearchService(db).queue_research(
         ResearchQueueRequest(cemetery_id, priority)
     )
@@ -1060,12 +1060,13 @@ def search(
         None, "--page", help="Retrieve one specific search-results page."
     ),
     max_results: int = typer.Option(
-        0,
+        20,
         "--max-results",
-        help="The maximum number of results to process (0 == no limit)",
+        min=1,
+        help="Maximum summaries to process during this live search.",
     ),
 ):
-    """Find memorial summaries and save them to the research database."""
+    """Live: find memorial summaries and save at most 20 by default."""
     try:
         Memorial.create_table(db)
         receipt = open_workspace(db).acquisition.search(

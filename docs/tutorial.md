@@ -56,6 +56,11 @@ graver init tutorial.db
 graver use --show
 ```
 
+`mkdir` creates the new folder inside the folder where the terminal is currently
+located. `cd` moves the terminal into it, so `tutorial.db` is created there. If you
+prefer another location, first navigate to a familiar folder such as Documents, or
+use a full path you recognize and intend to back up.
+
 The `init` success message identifies the absolute path:
 
 ```text
@@ -161,32 +166,33 @@ Inspect the result offline:
 ```shell
 graver work show 1075
 graver work show 1075 --history
-graver work show 1075 --json
 ```
 
-Verify the following semantic facts rather than exact borders, spacing, paths,
-or timestamps:
+Verify the following researcher-facing facts rather than exact borders, spacing,
+paths, or timestamps:
 
-- the research state is `full_scrape_complete`;
-- the acquisition level is `full`;
-- the JSON envelope has `schema_version` 1 and command `work.show`;
-- `data.grave.full_fetched_at` has a timestamp;
-- provenance includes a successful `full` acquisition observation;
-- the original summary observation still exists;
-- the Find a Grave source URL still identifies memorial `1075`;
-- the cemetery ID or cemetery context remains present.
+- the research state is `Enrichment complete [full_scrape_complete]`;
+- the acquisition level says that full-page fields were retained;
+- provenance includes both the earlier summary and successful full acquisition
+  observations; and
+- the memorial and cemetery context still identify the person you approved.
 
-`--history` intentionally reveals immutable observation detail. `--json` wraps the
-complete current machine-readable record in the documented
-[versioned command-line envelope](cli-json.md); the record is under `data` and
-includes fields that ordinary human output summarizes. Optional values such as
-plot, coordinates, biography presence, and birth or death places may legitimately
-be absent. The machine value `full` means that graver observed the full memorial
-page and retained its supported structured fields. It does **not** mean that every
-optional field was populated or that graver saved the page, biography text,
-images, contributor details, or every displayed element. The
+`--history` intentionally reveals immutable observation detail. Optional values
+such as plot, coordinates, biography presence, and birth or death places may
+legitimately be absent. The machine value `full` means that graver observed the
+full memorial page and retained its supported structured fields. It does **not**
+mean that every optional field was populated or that graver saved the page,
+biography text, images, contributor details, or every displayed element. The
 [acquisition-scope guide](acquisition-scope.md) lists the retained categories,
 known exclusions, and responsible citation boundary.
+
+### Optional technical verification
+
+When troubleshooting a script or integration, `graver work show 1075 --json`
+returns the complete machine-readable record. Its envelope uses `schema_version` 1,
+the command identifier is `work.show`, and the record is under `data`. These details
+are documented in the [command-line JSON contract](cli-json.md); researchers do not
+need them for the ordinary workflow.
 
 ## 6. Stop and resume safely
 

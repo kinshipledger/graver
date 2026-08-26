@@ -50,6 +50,8 @@ The [1.0.0rc1 release notes](release-notes-1.0.0rc1.md) summarize the published
 researcher and developer changes, compatibility breaks, deferred scope, and known
 limitations. The [maintainer release process](releasing.md) defines the review gates
 and manually triggered Release Please workflow.
+The [bounded technical-publications review](technical-publications-review-2026-08-25.md)
+records the final-1.0 researcher-documentation gate and its required corrections.
 The [1.0.0rc1 readiness audit](rc1-readiness-audit.md) preserves the prepublication
 review of the frozen public surfaces and release gates.
 
