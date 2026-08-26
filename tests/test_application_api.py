@@ -47,6 +47,7 @@ EXPECTED_PUBLIC_NAMES = {
     "ProgressEvent",
     "ProgressObserver",
     "RankedCandidate",
+    "ResearchEnrichmentFieldChange",
     "ResearchEnrichmentRequest",
     "ResearchEnrichmentResult",
     "ResearchInputError",

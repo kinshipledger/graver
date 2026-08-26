@@ -40,6 +40,7 @@ __all__ = (
     "EnrichmentRedirected",
     "MemorialDetailInput",
     "ResearchEnrichmentRequest",
+    "ResearchEnrichmentFieldChange",
     "ResearchEnrichmentResult",
     "ResearchInputError",
     "ResearchQueueRequest",
@@ -282,12 +283,28 @@ class ResearchEnrichmentRequest:
 
 
 @dataclass(frozen=True)
+class ResearchEnrichmentFieldChange:
+    """Describe one displayed value changed by full memorial acquisition."""
+
+    field: str
+    previous: Optional[str | int | bool]
+    current: Optional[str | int | bool]
+    previous_observation_id: Optional[int]
+    observation_id: Optional[int]
+
+
+@dataclass(frozen=True)
 class ResearchEnrichmentResult:
     """Describe successful persistence of one full memorial observation."""
 
     memorial_id: int
     status: str
     full_observed_at: str
+    previous_observation_id: Optional[int] = None
+    observation_id: Optional[int] = None
+    changes: tuple[ResearchEnrichmentFieldChange, ...] = ()
+    unchanged_fields: tuple[str, ...] = ()
+    displayed_relationship_links: int = 0
 
     @classmethod
     def from_mapping(cls, value: Mapping[str, Any]) -> "ResearchEnrichmentResult":
@@ -885,6 +902,44 @@ class ResearchService:
             progress(ProgressEvent(operation, "persistence", 0, 1))
         result = ResearchEnrichmentResult.from_mapping(
             self.complete_enrichment(command.memorial_id, memorial)
+        )
+        completed = self.get_task(command.memorial_id)
+        previous_observation_id = (
+            current.observations[-1]["observation_id"] if current.observations else None
+        )
+        observation_id = completed.observations[-1]["observation_id"]
+        changes = tuple(
+            ResearchEnrichmentFieldChange(
+                field,
+                current.grave[field],
+                completed.grave[field],
+                previous_observation_id,
+                observation_id,
+            )
+            for field in legacy_api.FULL_FIELDS
+            if field != "memorial_id" and current.grave[field] != completed.grave[field]
+        )
+        unchanged_fields = tuple(
+            field
+            for field in legacy_api.FULL_FIELDS
+            if field != "memorial_id"
+            and current.grave[field] is not None
+            and current.grave[field] == completed.grave[field]
+        )
+        relationship_links = len(
+            completed.observations[-1]["payload"].get(
+                "findagrave_displayed_relationship_links", ()
+            )
+        )
+        result = ResearchEnrichmentResult(
+            memorial_id=result.memorial_id,
+            status=result.status,
+            full_observed_at=result.full_observed_at,
+            previous_observation_id=previous_observation_id,
+            observation_id=observation_id,
+            changes=changes,
+            unchanged_fields=unchanged_fields,
+            displayed_relationship_links=relationship_links,
         )
         if progress is not None:
             progress(ProgressEvent(operation, "completed", 1, 1))

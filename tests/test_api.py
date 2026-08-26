@@ -973,11 +973,75 @@ class TestDatabaseOps(TestApi):
         assert isinstance(result, ResearchEnrichmentResult)
         assert result.memorial_id == summary.memorial_id
         assert result.status == "full_scrape_complete"
+        assert result.previous_observation_id is not None
+        assert result.observation_id is not None
+        assert result.observation_id > result.previous_observation_id
+        assert "name" in result.unchanged_fields
+        assert any(change.field == "birth_place" for change in result.changes)
+        assert all(
+            change.previous_observation_id == result.previous_observation_id
+            and change.observation_id == result.observation_id
+            for change in result.changes
+        )
+        assert result.displayed_relationship_links == len(
+            self.full().findagrave_displayed_relationship_links
+        )
         assert result.to_compatibility_dict() == {
             "memorial_id": summary.memorial_id,
             "status": "full_scrape_complete",
             "full_observed_at": result.full_observed_at,
         }
+
+    def test_typed_enrichment_reports_no_change_and_missing_value_cases(self, database):
+        service = ResearchService(database.name)
+
+        unchanged_summary = self.summary(memorial_id=810001).save()
+        service.queue_research(ResearchQueueRequest())
+        service.apply_task_update(
+            ResearchTaskUpdate(
+                unchanged_summary.memorial_id,
+                1,
+                status="ready_for_full_scrape",
+            )
+        )
+        unchanged = service.enrich_memorial(
+            ResearchEnrichmentRequest(unchanged_summary.memorial_id),
+            acquire=lambda _url: self.full(
+                memorial_id=unchanged_summary.memorial_id,
+                original_name=None,
+                birth_place=None,
+                death_place=None,
+                coords=None,
+                has_bio=None,
+                date_added=None,
+            ),
+        )
+
+        assert unchanged.changes == ()
+        assert "name" in unchanged.unchanged_fields
+
+        missing_summary = self.summary(memorial_id=810002, plot="Section A").save()
+        service.queue_research(ResearchQueueRequest())
+        service.apply_task_update(
+            ResearchTaskUpdate(
+                missing_summary.memorial_id,
+                1,
+                status="ready_for_full_scrape",
+            )
+        )
+        missing = service.enrich_memorial(
+            ResearchEnrichmentRequest(missing_summary.memorial_id),
+            acquire=lambda _url: self.full(
+                memorial_id=missing_summary.memorial_id,
+                plot=None,
+            ),
+        )
+
+        plot_change = next(
+            change for change in missing.changes if change.field == "plot"
+        )
+        assert plot_change.previous == "Section A"
+        assert plot_change.current is None
 
     def test_typed_enrichment_records_failure_and_known_alias_blocks_network(
         self, database

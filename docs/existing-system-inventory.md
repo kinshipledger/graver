@@ -51,7 +51,12 @@ notice is not planned.
   creates a verified deterministic sibling backup, applies ordered migrations in a
   transaction, and validates schema, integrity, and foreign keys. Current databases
   are a no-op; backup collisions, unknown schemas, and newer versions fail safely.
-- `work queue`, `work list`, `work next`, `work show`, and `work mark` provide a person-centered, network-free research workflow. `work enrich` retrieves exactly one explicitly approved memorial.
+- `work queue`, `work list`, `work next`, `work show`, and `work mark` provide a
+  person-centered, network-free research workflow. `work enrich` retrieves exactly
+  one explicitly approved memorial and returns a researcher-readable receipt linking
+  the earlier and full observations, reporting newly populated and changed displayed
+  values, summarizing unchanged populated values, and qualifying displayed
+  relationship links as website observations rather than proven kinship.
 - The pre-1.0 `scrape-url` and `scrape-file` commands have been removed. Summary
   search followed by explicit queueing, approval, and one-person `work enrich` is
   the supported full-record acquisition path. No unattended file loop remains.

@@ -43,6 +43,7 @@ from graver.research import (
     EnrichmentRedirected,
     EnrichmentRedirectInvalid,
     ResearchEnrichmentRequest,
+    ResearchEnrichmentResult,
     ResearchQueueRequest,
     ResearchService,
     ResearchTaskQuery,
@@ -462,6 +463,45 @@ def _enrich_task(
             "retained as a dated observation; this is not a complete page archive. "
             f"Person {memorial_id} is now {result.status}."
         )
+        _display_enrichment_receipt(result)
+
+
+def _display_enrichment_receipt(result: ResearchEnrichmentResult) -> None:
+    """Explain persisted enrichment changes without implying evidentiary truth."""
+    _human_echo("Acquisition receipt:")
+    if result.previous_observation_id is not None:
+        _human_echo(
+            f"  Compared retained observation {result.previous_observation_id} "
+            f"with full observation {result.observation_id}."
+        )
+    else:
+        _human_echo(f"  Retained full observation {result.observation_id}.")
+
+    added = tuple(change for change in result.changes if change.previous is None)
+    changed = tuple(change for change in result.changes if change.previous is not None)
+    for heading, items in (
+        ("Newly populated values", added),
+        ("Changed values", changed),
+    ):
+        if not items:
+            continue
+        _human_echo(f"  {heading}:")
+        for change in items:
+            previous = json.dumps(change.previous, ensure_ascii=False)
+            current = json.dumps(change.current, ensure_ascii=False)
+            _human_echo(f"    {change.field}: {previous} -> {current}")
+
+    if not result.changes:
+        _human_echo("  No supported displayed values changed.")
+    _human_echo(
+        f"  {len(result.unchanged_fields)} previously populated supported "
+        "values were unchanged."
+    )
+    link_label = "link" if result.displayed_relationship_links == 1 else "links"
+    _human_echo(
+        f"  Retained {result.displayed_relationship_links} Find a Grave-displayed "
+        f"relationship {link_label}; website display, not proven kinship."
+    )
 
 
 def _display_work_list(tasks: list) -> None:

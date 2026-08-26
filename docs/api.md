@@ -175,6 +175,16 @@ supports offline consumer tests and authorized adapters without exposing the leg
 parser model. Network-capable clients remain responsible for the project
 [access policy](access-policy.md).
 
+The returned `ResearchEnrichmentResult` identifies the earlier and newly retained
+observation, gives deterministic `ResearchEnrichmentFieldChange` entries for newly
+populated and changed displayed values, summarizes previously populated supported
+fields that were unchanged, and counts Find a Grave-displayed relationship links.
+Every field change carries both observation identifiers. These are acquisition
+differences, not claims that the later value is correct or that a displayed
+relationship is proven. The transitional `work enrich --json` compatibility
+projection intentionally retains its existing three result fields; typed clients
+use the application result for the richer receipt.
+
 ```python
 from graver.application import MemorialDetailInput, ResearchEnrichmentRequest
 

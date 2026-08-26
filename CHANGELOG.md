@@ -10,6 +10,14 @@ compatibility, security, deprecation, or known-issue notes before merging it.
 
 ## [Unreleased]
 
+### Added
+
+- Enrichment now prints a researcher-readable acquisition receipt with retained
+  observation references, newly populated and changed displayed values, an
+  unchanged-value summary, and an explicit non-proof qualification for displayed
+  relationship links. Typed application clients receive the same structured change
+  context while the existing CLI JSON projection remains compatible.
+
 ## [1.0.0-rc.1](https://github.com/mcqueary/graver/compare/v0.1.0...v1.0.0-rc.1) (2026-08-25)
 
 This is graver's first public release candidate. It is intended for careful

@@ -20,7 +20,11 @@ from graver.api import (
     MemorialParseException,
     MemorialSummary,
 )
-from graver.application import AcquisitionReceipt, WorkspaceAcquisition
+from graver.application import (
+    AcquisitionReceipt,
+    ResearchEnrichmentResult,
+    WorkspaceAcquisition,
+)
 from graver.constants import APP_NAME, DISTRIBUTION_NAME
 from graver.transport import TransportAccessBlocked
 
@@ -955,6 +959,67 @@ class TestCliResearcherSurface(Test):
         enriched_json = json.loads(enriched.output)
         assert enriched_json["command"] == "work.enrich"
         assert enriched_json["data"]["status"] == "full_scrape_complete"
+        assert set(enriched_json["data"]) == {
+            "memorial_id",
+            "status",
+            "full_observed_at",
+        }
+
+    def test_work_enrich_explains_changes_and_retained_observations(
+        self, helpers, database, monkeypatch
+    ):
+        summary = self.summary(name="Earlier Name").save()
+        graver.api.queue_memorials(database.name)
+        graver.api.update_research_task(
+            database.name,
+            summary.memorial_id,
+            status="ready_for_full_scrape",
+        )
+        monkeypatch.setattr(
+            Memorial,
+            "parse",
+            lambda _url: self.full(name="Later\nName", birth_place="New place"),
+        )
+
+        result = helpers.graver_cli(
+            f"work enrich {summary.memorial_id} --db '{database.name}'"
+        )
+
+        assert result.exit_code == 0
+        assert "Acquisition receipt:" in result.output
+        assert "Compared retained observation" in result.output
+        assert "with full observation" in result.output
+        assert "Newly populated values:" in result.output
+        assert 'birth_place: null -> "New place"' in result.output
+        assert "Changed values:" in result.output
+        assert 'name: "Earlier Name" -> "Later\\nName"' in result.output
+        assert "previously populated supported values were unchanged" in result.output
+        assert "website display, not proven kinship" in result.output
+
+    def test_enrichment_receipt_handles_no_prior_observation_or_changes(
+        self, monkeypatch
+    ):
+        output = []
+        monkeypatch.setattr(graver_cli_module, "_human_echo", output.append)
+
+        graver_cli_module._display_enrichment_receipt(
+            ResearchEnrichmentResult(
+                memorial_id=1075,
+                status="full_scrape_complete",
+                full_observed_at="observed",
+                observation_id=4,
+                displayed_relationship_links=1,
+            )
+        )
+
+        assert output == [
+            "Acquisition receipt:",
+            "  Retained full observation 4.",
+            "  No supported displayed values changed.",
+            "  0 previously populated supported values were unchanged.",
+            "  Retained 1 Find a Grave-displayed relationship link; "
+            "website display, not proven kinship.",
+        ]
 
     def test_admin_aliases_commands_are_machine_readable(self, helpers, database):
         source = self.summary().save()
