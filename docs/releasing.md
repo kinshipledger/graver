@@ -19,7 +19,8 @@ Before requesting another candidate or the final `1.0.0` release, confirm:
 - the researcher tutorial and installed-wheel consumer workflow pass offline;
 - Python 3.11 through 3.14, macOS, and the Windows portability contract pass;
 - branch coverage remains at or above the documented floor;
-- no known dependency vulnerability remains without a written risk decision;
+- the required CI dependency audit and production security-rule checks pass, and no
+  known vulnerability remains without a written risk decision;
 - release notes identify user changes, developer changes, breaking changes,
   migrations, security implications, known limitations, and deferred scope;
 - professional-researcher review gates required for implemented evidence behavior

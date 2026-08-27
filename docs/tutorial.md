@@ -15,20 +15,21 @@ fallback when graver is installed in the active Python environment.
 ## The workflow
 
 ```text
-Find a Grave search
-  → summary record persisted
-  → research task queued
-  → person inspected
-  → explicit enrichment approval
-  → one approved full-page observation with selected fields retained
-  → immutable acquisition observation
-  → enriched current record
+Choose a research database
+  → search narrowly for a memorial
+  → save the search result and add the person to your work list
+  → review the person before making another request
+  → approve one memorial-page lookup
+  → see which supported details were added or changed
+  → keep both the earlier and later dated snapshots
 ```
 
 graver does not automatically retrieve every full memorial page. Summary
 searches can establish a useful research queue with fewer requests; a researcher
 then decides which one person merits a full retrieval. This reduces load on Find
-a Grave and prevents unattended bulk enrichment.
+a Grave and prevents unattended bulk enrichment. In graver's exact vocabulary, a
+dated saved snapshot is an **observation**, and the summary of what one operation
+stored is an **acquisition receipt**.
 
 ## 1. Verify the installation
 
@@ -94,7 +95,8 @@ result:
 graver search --memorial-id 1075 --max-results 1
 ```
 
-Success prints an acquisition receipt: summaries observed, new and existing
+Success prints an acquisition receipt—a plain summary of what graver just saved:
+summaries observed, new and existing
 memorial counts, and confirmation that dated snapshots were retained without
 replacing earlier snapshots. If a new observation changed the current displayed
 representation of an existing memorial, the receipt lists each changed field with
@@ -181,8 +183,8 @@ paths, or timestamps:
 
 - the research state is `Enrichment complete [full_scrape_complete]`;
 - the acquisition level says that full-page fields were retained;
-- provenance includes both the earlier summary and successful full acquisition
-  observations; and
+- source history (called provenance) includes both the earlier summary and
+  successful full-page observations; and
 - the acquisition receipt identifies those retained observations and explains any
   displayed-value changes without presenting the newer value as verified; and
 - the memorial and cemetery context still identify the person you approved.

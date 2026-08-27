@@ -223,7 +223,8 @@ retains a substantial nested command hierarchy.
 graver 1.0 defines the stable research-engine finish line: core behavior, workflow
 rules, Find a Grave acquisition, research-database lifecycle, CLI, documented Python
 facade, configuration format, explicit migration policy, versioned machine-readable
-output, extension boundaries, and Python 3.11 through 3.14. It does not claim that
+output, the current application boundary and architectural guardrails, and Python
+3.11 through 3.14. It does not claim that
 the later professional desktop product or complete evidence-research experience is
 finished. FamilySearch and WikiTree may follow in compatible 1.x releases when they
 are additive evidence and candidate layers rather than replacements for the
@@ -361,12 +362,12 @@ FamilySearch or WikiTree persistence.
 The canonical name of the research engine, core library, application services, and
 command-line tool is **graver**, styled in lowercase in prose as well as in
 identifiers. Backticks identify literal commands, imports, packages, and other
-code—not the engine name in ordinary prose. Cemetery-to-World-Tree remains the
-broader project context. The future professional desktop application is a separate
-product layer and may use a separate name, which remains an open decision and must
-not alter graver's package or public API identity.
+code—not the engine name in ordinary prose. **Kinship Ledger** is the broader
+project and publishing context. The future professional desktop application is a separate product layer
+and may use a separate name, which remains an open decision and must not alter
+graver's package or public API identity.
 
-Cemetery-to-World-Tree is expected to contain a separate installable,
+Kinship Ledger is expected to contain a separate installable,
 researcher-facing desktop application. PyQt6 is the leading toolkit candidate, but
 the final toolkit, GUI package name, distribution model, and cross-platform
 installer strategy remain open. The GUI may be independently packaged and

@@ -157,22 +157,25 @@ non-goals, review evidence, maintenance owner, and exit criteria. Re-score the
 remaining candidates after each completed adapter because implementation experience
 may change their value or cost.
 
-## Current candidate order
+## Completed learning and remaining candidate order
 
-This is a hypothesis to test, not a delivery commitment:
+The first bounded contract test is complete:
 
-1. A small, internal source-neutral evidence packet exercised with synthetic civil,
-   census, and probate examples. It validates the contract without choosing a live
-   provider or public interchange format.
-2. A template-driven research-log CSV/TSV import, if professional users demonstrate
+1. The internal source-neutral evidence packet used synthetic civil, census, and
+   probate examples to validate the contract without choosing a live provider or
+   public interchange format. Its S1 professional review passed after correction.
+
+The remaining order is a hypothesis to test, not a delivery commitment:
+
+1. A template-driven research-log CSV/TSV import, if professional users demonstrate
    demand. It requires an explicit preview and column-mapping step rather than
    guessing arbitrary schemas.
-3. An offline marriage-record vertical slice, because it exercises identity,
+2. An offline marriage-record vertical slice, because it exercises identity,
    events, relationships, informants, witnesses, original and derivative
    representations, and citations.
-4. Census household observations, preserving co-residence and reported roles
+3. Census household observations, preserving co-residence and reported roles
    without manufacturing kinship.
-5. Multi-document probate packets, after the simpler source contract is proven.
+4. Multi-document probate packets, after the simpler source contract is proven.
 
 FamilySearch remains strategically important as a candidate-discovery and evidence
 surface, subject to its authorization gate. GEDCOM remains a conditional assertion-

@@ -7,6 +7,8 @@ The repository root promotes the public project contracts: the
 [license](../LICENSE). This page maps the supporting researcher, developer,
 architecture, review, and maintenance documents that remain in `docs/`.
 
+## Project orientation
+
 The root [public roadmap](../ROADMAP.md) is the canonical concise stage and feature
 summary. This directory contains the detailed, version-controlled
 [project context and architectural history](project-context.md) and the
@@ -17,6 +19,8 @@ current behavior is recorded in the inventory.
 The [visual identity and documentation graphics guide](visual-identity.md) records
 the brand relationship, icon brief, diagram priorities, asset provenance, and
 visual-review cadence.
+
+## Researcher guides
 
 The [first-time setup guide](first-time-setup.md) explains the terminal, uv,
 command path, installation boundary, and local research database for readers who
@@ -32,6 +36,8 @@ The [acquisition-scope and citation guide](acquisition-scope.md) defines what
 summary and full acquisition retain, what `full` does not promise, and what a
 responsible citation or external research log must still supply.
 
+## Trust, privacy, and responsible access
+
 The [access policy](access-policy.md) defines current project governance for
 responsible acquisition behavior and contributions.
 
@@ -45,8 +51,10 @@ that policy to the `1.0.0rc1` scope: bounded researcher-directed operations rema
 while unattended Find a Grave acquisition, a public job engine, and speculative
 import APIs are deferred pending a concrete authorized workflow.
 
-The [developer API guide](api.md) documents the supported pre-1.0 typed application
-boundary for CLI, future GUI, and other client adapters.
+## Developer and maintainer guides
+
+The [developer API guide](api.md) documents the supported typed application
+boundary for the CLI, future GUI, and other clients.
 
 The [command-line JSON contract](cli-json.md) defines the versioned envelope and
 command identifiers used by supported machine-readable CLI results.
@@ -74,6 +82,12 @@ rules, and provisional targets for the future desktop vertical slice.
 The [live compatibility canary](live-canary.md) documents the explicitly invoked,
 one-request Find a Grave transport/parser check, its safe result categories, and
 the boundary separating it from ordinary offline tests and release automation.
+
+## Architecture, prototypes, and review history
+
+The documents below explain future boundaries and preserve dated validation
+evidence. Prototypes and review reports are not instructions for using the current
+product unless a current guide above links to them for a specific purpose.
 
 The [source-neutral integration strategy](source-adapter-strategy.md) defines graver's
 scope boundary, adapter roles, admission gates, prioritization scorecard, and
@@ -105,8 +119,8 @@ translates that review into product and engineering priorities.
 
 The [evidence assessment and identity conclusion architecture](evidence-assessment-architecture.md)
 defines the boundary between candidate discovery, machine ranking, researcher
-assessment, and reviewed conclusions. It is the governing contract for the planned
-offline evidence vertical slice and later FamilySearch-facing clients.
+assessment, and reviewed conclusions. It governs the implemented offline evidence
+slice and later FamilySearch-facing clients.
 
 The [evidence contract review prototype](evidence-contract-review-prototype.md) is
 the fictional, low-fidelity artifact for professional researcher gate R1. It is not

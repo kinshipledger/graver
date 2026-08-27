@@ -1,6 +1,6 @@
 # Existing system inventory: `graver`
 
-Inspection dates: 2026-08-11; refreshed 2026-08-26
+Inspection dates: 2026-08-11; refreshed 2026-08-27
 
 ## What is present
 
@@ -46,7 +46,11 @@ notice is not planned.
 
 ### Commands
 
-- `search` queries Find a Grave's memorial search, including a cemetery ID option, name/date/location filters, and pagination. Search results are represented as `MemorialSummary` objects and persisted to the selected SQLite database before being emitted to logs.
+- `search` queries Find a Grave's memorial search, including a cemetery ID option,
+  name/date/location filters, and pagination. Search results are represented as
+  `MemorialSummary` objects and persisted to the selected SQLite database before a
+  concise acquisition receipt is presented. graver creates no persistent log by
+  default.
 - `init [DATABASE]` exclusively creates a new complete current-schema database,
   validates it, and saves its absolute path as the default. It defaults to
   `./graves.db`, requires an existing parent directory, and refuses every existing
@@ -208,12 +212,12 @@ memorial type, cemetery ID, burial place, plot, coordinates, biography presence,
 and the acquisition metadata `detail_level`, `summary_fetched_at`, and
 `full_fetched_at`.
 
-New databases contain application-owned schema metadata at version 2. Read-only
-inspection distinguishes the known 0.1 full grave shape, the representative
-summary-only legacy shape, structurally current pre-metadata databases, explicit
-version-1 databases requiring upgrade, current version-2 databases, future versions,
-empty databases, unrelated SQLite files, and unknown or malformed inputs. Required
-structural evidence is necessary before a legacy classification is assigned.
+New databases contain application-owned schema metadata at version 5. Read-only
+inspection distinguishes known 0.1 and unversioned legacy shapes, explicit older
+schema versions 1 through 4 that require administrative upgrade, current version-5
+databases, future versions, empty databases, unrelated SQLite files, and unknown or
+malformed inputs. Required structural evidence is necessary before a legacy
+classification is assigned.
 
 The population originated as 334 cemetery-search summaries. Its current mutable
 state includes the acquisition values and observation counted above; unclassified
@@ -359,10 +363,10 @@ they affect the selected person. Full acquisition payloads require `--history` o
 state in the current task model, and uses the queue's deterministic priority,
 activity, and memorial-ID ordering.
 
-The root package currently re-exports a broad set of models, exceptions, task and
-alias functions, transport infrastructure through `Driver`, and wildcard constants.
-The README does not define that collection as a supported Python API. It is therefore
-an accidental import surface, not yet a suitable 1.0 facade.
+The root package deliberately exports no public application symbols. Supported
+library clients import the explicit, contract-tested surface from
+`graver.application`; CLI, transport, parser, persistence, and compatibility helpers
+remain outside that public boundary.
 
 Supported `--json` paths now wrap application-facing compatibility projections in
 the documented schema-version-1 envelope: `schema_version`, a stable dotted
@@ -383,7 +387,7 @@ that service, while existing root functions remain compatibility projections. Th
 service enforces approval and alias preconditions before injected acquisition and
 maps success, redirect, and recorded failure outcomes to typed results or errors;
 existing acquisition persistence helpers remain internal compatibility boundaries.
-The documented pre-1.0 typed boundary exists at `graver.application`, with
+The documented typed boundary exists at `graver.application`, with
 contract-tested `__all__` exports and no CLI, transport, or SQLite implementation
 types. The package root deliberately exports no application symbols, so clients must
 choose that supported boundary explicitly. The synchronous workspace, optimistic task concurrency, toolkit-neutral
@@ -392,15 +396,16 @@ or toolkit integration has been implemented.
 
 The approved target is a separate installable desktop component, with PyQt6 as the
 leading but not mandated toolkit candidate, depending only on graver's documented
-public application boundary and later workspace facade. In that target design,
+public application boundary and implemented `open_workspace()` façade. In that
+target design,
 SQLite connections and schema
 details remain internal, connections are scoped per operation or unit of work and
 never shared across GUI threads, and CLI and GUI use the same documented application
 contract. That shared contract does not imply equal product roles: the CLI
 is the supported operational, administration, automation, recovery, advanced-use,
 and test surface, while the desktop is intended to become the preferred everyday
-researcher interface. Final frozen
-1.0 names and the complete service surface remain planned work.
+researcher interface. Final 1.0 stabilizes this existing engine boundary without
+freezing future desktop, source-integration, or projection APIs prematurely.
 The completed researcher tutorial supplies a useful behavioral acceptance workflow
 for future CLI/application-API/GUI parity tests.
 
@@ -417,7 +422,7 @@ override provider terms, policies, controls, or instructions.
 
 ## Packaging, CI, and release status
 
-- Package version `0.1.0` and Python support metadata are normalized for Python
+- Package version `1.0.0rc1` and Python support metadata are normalized for Python
   3.11 through 3.14. Commitizen is no longer a dependency.
 - GitHub Actions uses uv for locked installation, offline tests, Black, lock
   consistency, wheel construction, and Python 3.11-through-3.14 validation on
@@ -432,7 +437,8 @@ override provider terms, policies, controls, or instructions.
   Release preparation tool, but remains manually triggered before the 1.0 release
   gates are satisfied.
 - `CHANGELOG.md`, `CONTRIBUTING.md`, and `SECURITY.md` establish the release-note,
-  contribution, and private-reporting practices. No release tags exist yet.
+  contribution, and private-reporting practices. The published release candidate is
+  tagged `v1.0.0-rc.1` and available as `graver-genealogy==1.0.0rc1`.
 
 The baseline coverage run also reported numerous unclosed-SQLite
 `ResourceWarning`s. That lifecycle finding was resolved on 2026-08-23 with a shared
@@ -453,15 +459,16 @@ the optimization does not share mutable SQLite state. The protected Windows reru
 completed pytest in 63.34s and the whole required lane in 1m24s, down from 9m28s
 and 9m51s respectively.
 
-## Approved pre-1.0 direction
+## Current direction after the release candidate
 
 Keep the existing scraper and its `graves` table as the **Find a Grave acquisition component**. The additive `cemeteries`, `memorial_observations`, and `research_tasks` layer now provides provenance and a practical queue.
 
 The task-oriented CLI, explicit database lifecycle, schema-v2 subject ownership,
-additive schema-v4 offline evidence structures, and versioned successful-result JSON
-envelopes and CLI cleanup are complete, but broad exports, dependency boundaries,
-and accidental internal APIs must not be frozen as the 1.0
-contract. Before beginning FamilySearch work, follow the ordered pre-1.0 roadmap in
+additive schema-v4 offline evidence structures, schema-v5 evidence audit
+projections, versioned successful-result JSON envelopes, and CLI cleanup are
+complete. Final 1.0 stabilizes the documented engine API and behavior; it does not
+freeze future source, projection, or desktop contracts. Before beginning live
+FamilySearch work, follow the ordered post-engine roadmap in
 `docs/project-context.md`. The subject-oriented application service now provides
 typed task queries, updates, summaries, records, details, queue requests/results,
 one-person enrichment results, and workflow errors. Every visible `work` command
@@ -470,9 +477,9 @@ compatibility projections. The internal offline evidence-assessment vertical sli
 is implemented without a public CLI or live provider. The first professional review
 gate R2 attempt did not pass; its decision-safety and citation-traceability
 corrections are implemented. Two focused re-reviews verified evidence-selection
-fidelity and negative-search reproducibility, so R2 passes; the public workspace
-facade remains unfrozen for architectural work rather than because of an open R2
-blocker.
+fidelity and negative-search reproducibility, so R2 passes. The public workspace
+façade is implemented; future evidence-service composition and GUI vocabulary remain
+unfrozen for architectural work rather than because of an open R2 blocker.
 `graver init [DATABASE]` now
 creates a new database with the current schema and selects it as the saved default.
 With no argument it creates

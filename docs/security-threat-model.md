@@ -1,11 +1,11 @@
 # Security threat model
 
-This document records graver's pre-`1.0.0rc1` security boundaries, assumptions,
-and known risks. It follows the practical threat-modeling pattern of identifying
+This document records graver's final-`1.0.0` engine security boundaries,
+assumptions, and known risks. It follows the practical threat-modeling pattern of identifying
 assets, trust boundaries, threats, controls, and residual risk. It is a living
 engineering record, not a certification.
 
-**Assessment date:** 2026-08-25
+**Assessment dates:** 2026-08-25; refreshed 2026-08-27
 
 **Scope reviewed:** application source, transport/parser boundaries, SQLite and
 configuration lifecycle, CLI output, dependencies, packaging, GitHub workflows,
@@ -58,7 +58,7 @@ and were manually reviewed for this assessment.
 | SEC-004 | An unexpectedly large provider response could consume excessive memory | Medium | Fixed: the Requests transport streams into a bounded 8 MiB buffer, rejects an oversized declared or observed body with a typed error, closes the response, and persists nothing. Covered by offline boundary tests; tracked in [issue 80](https://github.com/kinshipledger/graver/issues/80). |
 | SEC-005 | Malformed provider HTML reached assertions that disappear under optimized Python | Medium | Fixed before RC: malformed links/counts produce typed parse failures. |
 | SEC-006 | Dynamic SQL construction | Medium | Reviewed: identifiers and clauses come from fixed internal fields; values are bound. Ruff's generic S608 finding is documented rather than silently treated as proof of injection. CodeQL provides an independent check. |
-| SEC-007 | Compromised dependency or build automation | High | Locked dependencies, pinned workflow actions, Dependabot, `pip-audit`, CodeQL, isolated builds, and least-privilege workflow permissions. |
+| SEC-007 | Compromised dependency or build automation | High | Locked dependencies, full-SHA-pinned workflow actions, required CI `pip-audit` and Ruff security checks, Dependabot, CodeQL, isolated builds, least-privilege workflow permissions, and OIDC Trusted Publishing bound to `kinshipledger/graver`. No long-lived publishing token remains. |
 | SEC-008 | Research data accidentally committed or shared | High | Database, GEDCOM, broad generated output, logs, environment, and credential artifacts are ignored; sharing guidance still requires human review. |
 | SEC-009 | Local tampering with research history | Medium | Transactions, foreign keys, immutable-event triggers, backups, and integrity checks detect or prevent many changes. No cryptographic authorship or hostile-local-user protection is claimed. |
 | SEC-010 | Disposable browser-review server misuse | Low | Loopback-only, fictional data, temporary database, not installed as a production interface. Reassess before any production browser or GUI service. |
@@ -80,15 +80,17 @@ and were manually reviewed for this assessment.
 
 ## Release and review gates
 
-Before `1.0.0rc1`, all Critical and High findings must be fixed or have a dated,
-explicit maintainer risk decision with user-facing mitigation. Dependency audit,
-CodeQL, secret scanning where the repository plan permits it, the offline suite,
-and packaging checks must pass. Medium findings must be tracked and assessed for
-RC impact.
+The `1.0.0rc1` gate closed with all Critical and High findings fixed or covered by a
+dated, explicit maintainer risk decision and user-facing mitigation. Dependency
+audit, CodeQL, secret scanning, the offline suite, and packaging checks passed.
 
-Before final `1.0.0`, obtain an independent targeted review of database lifecycle,
-transport/parser boundaries, CLI output, packaging, and privacy documentation.
-A full penetration test is disproportionate for the present local CLI, but becomes
+The focused final-`1.0.0` review on 2026-08-27 rechecked responsible access,
+transport and parser bounds, CLI output, privacy documentation, packaging, workflow
+permissions, action pinning, and the organization/PyPI migration. It found no
+release-blocking defect. It did identify that locally required `pip-audit` and Ruff
+security checks were not repeated by CI; the final-1.0 correction adds them to the
+required quality lane. A full penetration test is disproportionate for the present
+local CLI, but becomes
 necessary before any hosted service, authentication, remote synchronization,
 untrusted plugin execution, or network-accessible production interface.
 
