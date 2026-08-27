@@ -1,5 +1,5 @@
-[![CI](https://github.com/mcqueary/graver/actions/workflows/python-package.yml/badge.svg)](https://github.com/mcqueary/graver/actions/workflows/python-package.yml)
-[![Coverage Status](https://coveralls.io/repos/github/mcqueary/graver/badge.svg?branch=main)](https://coveralls.io/github/mcqueary/graver?branch=main)
+[![CI](https://github.com/kinshipledger/graver/actions/workflows/python-package.yml/badge.svg)](https://github.com/kinshipledger/graver/actions/workflows/python-package.yml)
+[![Coverage Status](https://coveralls.io/repos/github/kinshipledger/graver/badge.svg?branch=main)](https://coveralls.io/github/kinshipledger/graver?branch=main)
 [![PyPI prerelease](https://img.shields.io/pypi/v/graver-genealogy?label=PyPI&include_prereleases)](https://pypi.org/project/graver-genealogy/)
 [![Python: 3.11–3.14](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -119,11 +119,11 @@ provider. If uv reports that its tool directory is not on the path, run
 with `uv tool upgrade graver-genealogy`.
 
 Trying the release candidate? Please report a reproducible
-[software defect](https://github.com/mcqueary/graver/issues/new?template=bug-report.yml)
+[software defect](https://github.com/kinshipledger/graver/issues/new?template=bug-report.yml)
 or share
-[researcher-workflow feedback](https://github.com/mcqueary/graver/issues/new?template=researcher-feedback.yml).
+[researcher-workflow feedback](https://github.com/kinshipledger/graver/issues/new?template=researcher-feedback.yml).
 Remove private research data before posting; security vulnerabilities belong in a
-[private advisory](https://github.com/mcqueary/graver/security/advisories/new).
+[private advisory](https://github.com/kinshipledger/graver/security/advisories/new).
 
 Source checkouts, tests, and unreleased development installations are documented
 separately in the [contribution guide](CONTRIBUTING.md). The installed `graver`

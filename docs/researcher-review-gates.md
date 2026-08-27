@@ -53,9 +53,9 @@ researcher review will happen later does not complete a gate.
 
 | Gate | Tracking issue | Trigger | Review artifact | Blocks |
 |---|---|---|---|---|
-| R1 — Evidence contract review | [#26](https://github.com/mcqueary/graver/issues/26) | Subject-oriented service boundary is stable and low-fidelity evidence workflow artifacts are ready | Terminology, evidence matrix, ranking explanation, decision flow, acquisition receipt, and citation example | Candidate/evidence persistence implementation |
-| R2 — Offline workflow validation | [#27](https://github.com/mcqueary/graver/issues/27) | Fixture-driven evidence slice works end to end | Moderated ambiguous-case workflow and recorded usability report | Public workspace façade freeze and detailed evidence-GUI design |
-| R3 — Evidence-workflow acceptance | [#28](https://github.com/mcqueary/graver/issues/28) | Production GUI supports candidate comparison and reviewed conclusions | Repeat of the original professional usability audit using ordinary installation and documentation | Declaring the evidence workflow production-ready and expanding it into WikiTree/family workflows |
+| R1 — Evidence contract review | [#26](https://github.com/kinshipledger/graver/issues/26) | Subject-oriented service boundary is stable and low-fidelity evidence workflow artifacts are ready | Terminology, evidence matrix, ranking explanation, decision flow, acquisition receipt, and citation example | Candidate/evidence persistence implementation |
+| R2 — Offline workflow validation | [#27](https://github.com/kinshipledger/graver/issues/27) | Fixture-driven evidence slice works end to end | Moderated ambiguous-case workflow and recorded usability report | Public workspace façade freeze and detailed evidence-GUI design |
+| R3 — Evidence-workflow acceptance | [#28](https://github.com/kinshipledger/graver/issues/28) | Production GUI supports candidate comparison and reviewed conclusions | Repeat of the original professional usability audit using ordinary installation and documentation | Declaring the evidence workflow production-ready and expanding it into WikiTree/family workflows |
 
 R1–R3 govern the current evidence workflow. Materially new source families use the
 same governing rule through focused source reviews rather than waiting for another
@@ -84,7 +84,7 @@ projection. It adds no provider, parser, public format, schema, or runtime behav
 
 The [initial S1 report](professional-researcher-s1-review-2026-08-23.md) records
 seven blocking, three important, and one follow-up finding tracked in
-[#56](https://github.com/mcqueary/graver/issues/56). The
+[#56](https://github.com/kinshipledger/graver/issues/56). The
 [focused S1 re-review](professional-researcher-s1-rereview-2026-08-23.md) verified
 all ten corrected requirements, found no new blocker, and passed the gate.
 
@@ -329,13 +329,13 @@ that preserve visible behavior.
 
 ## Final-1.0 technical-publications gate
 
-Tracking issue [#95](https://github.com/mcqueary/graver/issues/95) defines a bounded
+Tracking issue [#95](https://github.com/kinshipledger/graver/issues/95) defines a bounded
 professional technical-publications review before final `1.0.0`. It begins only
-after the RC findings for acquisition scope ([#94](https://github.com/mcqueary/graver/issues/94)),
-research-state and network terminology ([#92](https://github.com/mcqueary/graver/issues/92)),
-and first-time onboarding ([#91](https://github.com/mcqueary/graver/issues/91))
+after the RC findings for acquisition scope ([#94](https://github.com/kinshipledger/graver/issues/94)),
+research-state and network terminology ([#92](https://github.com/kinshipledger/graver/issues/92)),
+and first-time onboarding ([#91](https://github.com/kinshipledger/graver/issues/91))
 are reflected in the researcher-facing material. If the enrichment change receipt
-in [#93](https://github.com/mcqueary/graver/issues/93) is ready, its terminology and
+in [#93](https://github.com/kinshipledger/graver/issues/93) is ready, its terminology and
 instructions join the review packet.
 
 The technical writer reviews only the README installation/getting-started path,

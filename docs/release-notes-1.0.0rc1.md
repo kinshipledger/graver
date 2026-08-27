@@ -3,7 +3,7 @@
 graver 1.0.0rc1 was published on 25 August 2026 as the project's first supported
 release candidate. It is available from the
 [graver-genealogy project on PyPI](https://pypi.org/project/graver-genealogy/1.0.0rc1/)
-and the [corresponding GitHub prerelease](https://github.com/mcqueary/graver/releases/tag/v1.0.0-rc.1).
+and the [corresponding GitHub prerelease](https://github.com/kinshipledger/graver/releases/tag/v1.0.0-rc.1).
 Please report reproducible defects and researcher-workflow friction through the
 repository's guided issue forms, after removing private research data. Report
 security vulnerabilities privately under the project's security policy.

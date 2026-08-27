@@ -8,7 +8,7 @@
   persona applying rigorous evidence-correlation and proof-standard expectations
 - **Facilitator:** None; strict context-reset review
 - **Product version or commit:** Review artifact merged at `7296865`
-- **Issue:** [#26](https://github.com/mcqueary/graver/issues/26)
+- **Issue:** [#26](https://github.com/kinshipledger/graver/issues/26)
 - **Environment and installation path:** Documentation-only review; no installation
 - **Interface and documentation reviewed:**
   [`evidence-contract-review-prototype.md`](evidence-contract-review-prototype.md)

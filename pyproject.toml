@@ -27,11 +27,11 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/mcqueary/graver"
-Documentation = "https://github.com/mcqueary/graver/tree/main/docs"
-Issues = "https://github.com/mcqueary/graver/issues"
-Repository = "https://github.com/mcqueary/graver"
-Changelog = "https://github.com/mcqueary/graver/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/kinshipledger/graver"
+Documentation = "https://github.com/kinshipledger/graver/tree/main/docs"
+Issues = "https://github.com/kinshipledger/graver/issues"
+Repository = "https://github.com/kinshipledger/graver"
+Changelog = "https://github.com/kinshipledger/graver/blob/main/CHANGELOG.md"
 
 [project.scripts]
 graver = "graver.cli:app"
