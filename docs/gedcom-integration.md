@@ -1,6 +1,6 @@
 # GEDCOM integration architecture
 
-Status: exploratory nice-to-have; not implemented and not on the pre-1.0 critical
+Status: exploratory nice-to-have; not implemented and not on the engine 1.0 critical
 path. Re-evaluate after graver's core subject, work, provenance, API, and GUI
 assumptions have been tested through real researcher workflows.
 
@@ -12,7 +12,8 @@ into a general-purpose family-tree editor or make an interchange file authoritat
 GEDCOM contributes portable people, family relationships, events, sources, notes,
 identifiers, and media references. graver contributes source-aware comparison,
 repeatable research queues, discrepancy detection, reviewed mappings, reasoning,
-confidence, and immutable decision history.
+explicit uncertainty, researcher-authored conclusions, and immutable decision
+history.
 
 The central product proposition is:
 

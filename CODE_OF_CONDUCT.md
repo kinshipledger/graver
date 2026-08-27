@@ -70,7 +70,7 @@ to collaborate. Not every conflict represents a Code of Conduct violation, and
 this Code reinforces encouraged behaviors and norms that can help avoid conflicts
 and minimize harm.
 
-Report a possible violation privately to `contact@mcqueary.org` with the subject
+Report a possible violation privately to `contact@kinshipledger.com` with the subject
 “graver Code of Conduct report.” Do not open a public issue. Include only the
 information needed to understand the incident; do not forward private genealogy
 data, credentials, or unrelated personal information. The project maintainer will

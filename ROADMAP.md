@@ -32,8 +32,9 @@ search, or production identity-matching workflow.
 ## Stabilizing the graver engine for final 1.0
 
 Final graver 1.0 is the stable engine finish line: core research behavior, workflow
-rules, database lifecycle, CLI, application API, and extension boundaries. It is not
-a claim that the later professional desktop product is complete.
+rules, database lifecycle, CLI, current application API, and architectural
+guardrails for later integrations. It does not freeze untested source or projection
+APIs, and it is not a claim that the later professional desktop product is complete.
 
 - Resolve bounded release-candidate feedback and decision-safety findings.
 - Establish the first reviewed graver icon and a small visual system before the

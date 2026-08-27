@@ -1,14 +1,14 @@
 # Evidence assessment and identity conclusion architecture
 
-**Status:** R1-approved contract; internal offline vertical slice implemented;
-R2 review pending
+**Status:** R1-approved contract; internal offline vertical slice implemented; R2
+passed after focused correction and verification
 **Decision date:** 2026-08-22
 **Drivers:** Professional Genealogist Usability Review and principal architecture
 analysis
 
 ## Decision summary
 
-graver will model external candidates, source observations, comparison signals,
+graver models external candidates, source observations, comparison signals,
 researcher assessments, and identity conclusions as separate concepts linked to a
 research subject.
 
@@ -17,10 +17,10 @@ It cannot create, modify, or imply an accepted genealogical identity conclusion.
 Only an explicit reviewed decision may establish or withdraw an accepted external
 identity association.
 
-This contract is defined before the public workspace façade is frozen so that CLI,
+This contract was defined before the public workspace façade so that the CLI,
 future GUI, and other clients can share one coherent application model. The first
-implementation slice will be completely offline and use curated provider fixtures.
-It will not add live FamilySearch access or a production GUI.
+implementation slice is complete: it is entirely offline and uses curated provider
+fixtures. It adds neither live FamilySearch access nor a production GUI.
 
 ## Context
 
@@ -106,11 +106,10 @@ research_subject
 Find a Grave redirects remain platform behavior. They do not create candidates,
 subject membership, or identity conclusions.
 
-## Required persistence concepts
+## Implemented persistence concepts
 
-Exact table and class names remain implementation details until the repository and
-public-API milestones define them. The persistence model must nevertheless support
-the following logical records.
+The schema and typed evidence services implement the following logical records.
+Exact table names remain persistence details outside the supported application API.
 
 ### Discovery run
 
@@ -224,9 +223,9 @@ withdrawal refers to the conclusion being withdrawn and does not delete it.
 
 ## Candidate ranking contract
 
-Candidate ranking is optional decision support. It is not proof confidence.
+Candidate ranking is optional decision support. It is not proof or confidence.
 
-If ranking is implemented, it must be:
+The offline slice implements deterministic review ordering under these rules:
 
 - deterministic for the same inputs and algorithm version;
 - versioned and recomputable;
@@ -276,8 +275,7 @@ receive a typed conflict rather than overwrite newer research.
 
 ## Acquisition receipt and citation boundary
 
-Current acquisition improvements may proceed in parallel with the offline evidence
-slice. Search and enrichment services should return a typed receipt containing:
+Search and enrichment services return typed receipts containing:
 
 - database or workspace identity;
 - provider and requested scope;
@@ -294,12 +292,12 @@ collected, outside scope, or unavailable; they must not imply that an image or
 underlying record was examined when it was not. Every displayed acquired fact must
 be traceable to its source observation.
 
-## Offline vertical slice
+## Completed offline vertical slice
 
-The first implementation slice uses curated, deterministic FamilySearch-shaped
-fixtures and no provider authentication or network access.
+The implemented slice uses curated, deterministic FamilySearch-shaped fixtures and
+no provider authentication or network access.
 
-It must demonstrate:
+It demonstrates:
 
 1. An existing research subject in the current schema.
 2. One discovery run returning at least two plausible candidates.
@@ -314,13 +312,13 @@ It must demonstrate:
 8. A later conclusion that supersedes rather than overwrites an earlier decision.
 9. Complete history preserved without an automatic identity association.
 
-The slice should initially be exercised through application-service contract tests
-and a minimal non-public adapter or test harness. It must not expand the primary CLI
-with persistence-shaped commands merely to expose every operation.
+Application-service contract tests and a minimal non-public review adapter exercise
+the slice. The primary CLI was not expanded with persistence-shaped commands merely
+to expose every operation.
 
 ## Interface contract for future clients
 
-The typed comparison projection must support:
+The implemented typed comparison projection supports:
 
 - persistent active-subject identity;
 - stable candidate identity and navigation;
@@ -367,7 +365,7 @@ This is an application contract, not a commitment to PyQt6 or a particular layou
 - A comprehensive citation-style engine
 - Freezing exact public workspace method names before the consumer spike
 
-## Verification strategy
+## Verified behavior
 
 - Curated fixtures include ambiguous names, compatible dates, material relationship
   conflicts, derivative sources, missing facts, and changing provider snapshots.

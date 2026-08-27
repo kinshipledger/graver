@@ -126,8 +126,9 @@ Put disposable JSON and other researcher-generated exports under `scratch/` or
 preparing versions, changelog sections, tags, and GitHub Releases. Its workflow is
 manual while graver is pre-1.0. A maintainer reviews the generated release pull
 request for meaningful user and developer notes before merging it. Package-index
-publication uses a separate trusted PyPI workflow; the release-candidate package is
-published as `graver-genealogy` while the command and import package remain `graver`.
+publication uses a separate OIDC trusted-publishing job in that manually triggered
+workflow; the release-candidate package is published as `graver-genealogy` while the
+command and import package remain `graver`.
 
 ## Project name and terminology
 
@@ -137,10 +138,10 @@ module, or another code identifier—for example, `graver init`—but ordinary p
 does not need code styling simply because it names graver.
 
 The name graver covers the research engine, core library, application services, and
-command-line tool. Cemetery-to-World-Tree is the broader project context. The future
-professional desktop application is a separate product layer and may have a separate
-name; do not assume or establish that name in graver documentation before it is
-chosen.
+command-line tool. Kinship Ledger is the broader project and publishing context.
+The future professional desktop application is a separate product layer and may
+have a separate name; do not assume or establish that name in graver documentation
+before it is chosen.
 
 ## Documentation voice
 
