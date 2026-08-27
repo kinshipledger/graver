@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="900" viewBox="0 0 720 900" role="img" aria-labelledby="title desc">
+  <title id="title">One graver engine with purpose-built interfaces</title>
+  <desc id="desc">The available command line and planned preferred desktop application both use a documented graver application boundary. Shared services enforce research rules over a local database and provider-governed source access.</desc>
+  <style>
+    text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:#29261f}.title{font-size:28px;font-weight:750}.sub{font-size:16px;fill:#605a52}.layer{font-size:13px;font-weight:800;letter-spacing:1px;fill:#605a52}.head{font-size:19px;font-weight:750}.copy{font-size:15px;fill:#605a52}.status{font-size:13px;font-weight:800}.service{font-size:15px;font-weight:700;text-anchor:middle}.guard{font-size:14px;font-weight:750}.guardcopy{font-size:13px;fill:#605a52}
+  </style>
+  <rect width="720" height="900" rx="18" fill="#f3efe6"/>
+  <text class="title" x="34" y="48">One graver engine, purpose-built interfaces</text>
+  <text class="sub" x="34" y="76">Current operations and the future desktop use the same research rules.</text>
+  <text class="layer" x="34" y="112">INTERFACES</text>
+  <g transform="translate(34 128)">
+    <rect width="652" height="92" rx="12" fill="#e8eff4" stroke="#a8c0d1" stroke-width="2"/><rect width="652" height="6" rx="3" fill="#3d6483"/>
+    <text class="head" x="18" y="36">Command line</text><text class="copy" x="18" y="60">Supported for operations, administration, automation, recovery, and testing.</text><text class="status" x="18" y="80" fill="#315772">AVAILABLE NOW</text>
+  </g>
+  <g transform="translate(34 236)">
+    <rect width="652" height="92" rx="12" fill="#ece9e2" stroke="#c9c6bf" stroke-width="2"/><rect width="652" height="6" rx="3" fill="#77736b"/>
+    <text class="head" x="18" y="36">Desktop application</text><text class="copy" x="18" y="60">Planned as the preferred everyday researcher experience after engine 1.0.</text><text class="status" x="18" y="80" fill="#5f5c55">PLANNED</text>
+  </g>
+  <text x="360" y="368" text-anchor="middle" font-size="30" fill="#6b645a">↓</text>
+  <g transform="translate(34 387)">
+    <rect width="652" height="86" rx="12" fill="#f3e5e1" stroke="#8c3f35" stroke-width="2.5"/>
+    <text class="head" x="326" y="34" text-anchor="middle" fill="#7a3730">Documented graver application boundary</text>
+    <text class="copy" x="326" y="61" text-anchor="middle">Typed requests, results, progress, cancellation, and errors</text>
+  </g>
+  <text x="360" y="509" text-anchor="middle" font-size="30" fill="#6b645a">↓</text>
+  <text class="layer" x="34" y="536">SHARED RESEARCH BEHAVIOR</text>
+  <g transform="translate(34 552)">
+    <rect width="652" height="153" rx="12" fill="#e5eee8" stroke="#b8cabb" stroke-width="2"/><rect width="652" height="6" rx="3" fill="#47765a"/>
+    <text class="head" x="18" y="37">graver application services</text>
+    <rect x="18" y="55" width="294" height="34" rx="7" fill="#fff" stroke="#bfd0c3"/><text class="service" x="165" y="77">Open a workspace and manage work</text>
+    <rect x="340" y="55" width="294" height="34" rx="7" fill="#fff" stroke="#bfd0c3"/><text class="service" x="487" y="77">Acquire and compare observations</text>
+    <rect x="18" y="102" width="294" height="34" rx="7" fill="#fff" stroke="#bfd0c3"/><text class="service" x="165" y="124">Evaluate evidence and decisions</text>
+    <rect x="340" y="102" width="294" height="34" rx="7" fill="#fff" stroke="#bfd0c3"/><text class="service" x="487" y="124">Protect history and stale edits</text>
+  </g>
+  <text x="360" y="744" text-anchor="middle" font-size="30" fill="#6b645a">↓</text>
+  <g transform="translate(34 763)">
+    <rect width="652" height="91" rx="12" fill="#fff" stroke="#c8c0b2" stroke-width="2"/><rect width="652" height="6" rx="3" fill="#47765a"/>
+    <text class="head" x="18" y="35">Local database and provider-governed source access</text>
+    <text class="copy" x="18" y="61">graver owns transactions and dated history. Sources return observations; they never create conclusions.</text>
+  </g>
+  <text class="guard" x="34" y="884">Thin interfaces · toolkit-neutral core · source-neutral identity</text>
+</svg>

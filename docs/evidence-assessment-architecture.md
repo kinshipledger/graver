@@ -17,6 +17,28 @@ It cannot create, modify, or imply an accepted genealogical identity conclusion.
 Only an explicit reviewed decision may establish or withdraw an accepted external
 identity association.
 
+![A fictional research question correlated with supporting, conflicting, and unclear evidence before a researcher-authored conclusion](assets/evidence-reasoning.svg)
+
+The fictional example demonstrates the contract in researcher language. It does
+not assign proof weight by counting sources: dependence, informant knowledge,
+conflicts, and missing evidence remain part of the researcher's analysis.
+
+### Diagram in words
+
+The example asks who Eleanor May Carter's father was. It keeps two possible answers
+visible: Henry Carter and Thomas Carter.
+
+| Source observation | Bearing on Henry | Bearing on Thomas | Limitation to retain |
+| --- | --- | --- | --- |
+| Marriage register | Supports: names Henry. | Conflicts: names a different father. | Informant is not stated. |
+| Death certificate | Supports: repeats Henry. | Conflicts: names a different father. | Eleanor's husband supplied personal details, so it may not be independent of another record. |
+| Memorial page | Conflicts: names a different father. | Supports: displays Thomas. | No underlying source was captured. |
+| 1900 census household | Unclear. | Unclear. | Household presence does not establish parentage. |
+
+The fictional conclusion is **unresolved**: the records favor Henry, but the
+conflicting memorial statement has not been adequately explained. That is a valid
+research conclusion, not a failed attempt to produce one.
+
 This contract was defined before the public workspace façade so that the CLI,
 future GUI, and other clients can share one coherent application model. The first
 implementation slice is complete: it is entirely offline and uses curated provider

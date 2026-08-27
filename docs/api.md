@@ -19,6 +19,21 @@ policy; any correction required before publication will be called out in release
 notes. The package root deliberately re-exports no application symbols; clients
 must choose the documented `graver.application` boundary explicitly.
 
+![The command line and planned desktop application sharing the documented graver application boundary](assets/client-architecture.svg)
+
+The desktop layer is planned as the preferred everyday researcher interface after
+engine 1.0. The command line remains the supported operational, administration,
+automation, recovery, and testing interface.
+
+The diagram's layers mean:
+
+- Interfaces call the documented application boundary; they do not recreate
+  research, evidence, or database rules.
+- Shared services open workspaces, manage the queue, acquire and compare
+  observations, support evidence evaluation, and preserve history.
+- graver owns local database transactions and receives observations through
+  provider-governed source access. A provider never creates a research conclusion.
+
 Pre-1.0 code that imported parser or persistence objects directly from `graver`
 must migrate to the typed application API. For example, replace
 `from graver import queue_memorials` with `open_workspace(...).work.queue(...)`.

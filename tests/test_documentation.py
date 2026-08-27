@@ -1,6 +1,7 @@
 """Documentation contract tests."""
 
 import re
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,7 @@ pytestmark = pytest.mark.unit
 
 REPOSITORY_ROOT = Path(__file__).parents[1]
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+SVG_ASSET = re.compile(r"!\[[^\]]*\]\((assets/[^)]+\.svg)\)")
 
 
 def test_local_markdown_links_resolve() -> None:
@@ -68,3 +70,39 @@ def test_first_time_setup_is_researcher_facing_and_bounded() -> None:
 
     for contributor_only in ("git clone", "uv sync", "pytest", "make lint"):
         assert contributor_only not in guide
+
+
+def test_documentation_svg_assets_are_safe_and_well_formed() -> None:
+    """Keep embedded documentation graphics local, simple, and inspectable."""
+    documents = [
+        REPOSITORY_ROOT / "README.md",
+        *sorted((REPOSITORY_ROOT / "docs").rglob("*.md")),
+    ]
+    referenced_assets: set[Path] = set()
+
+    for document in documents:
+        for target in SVG_ASSET.findall(document.read_text(encoding="utf-8")):
+            referenced_assets.add(document.parent / target)
+
+    assert referenced_assets == {
+        REPOSITORY_ROOT / "docs" / "assets" / "researcher-journey.svg",
+        REPOSITORY_ROOT / "docs" / "assets" / "evidence-reasoning.svg",
+        REPOSITORY_ROOT / "docs" / "assets" / "client-architecture.svg",
+    }
+
+    forbidden = (
+        "<script",
+        "<image",
+        "foreignobject",
+        "data:image",
+        'href="http',
+        "href='http",
+    )
+    for asset in referenced_assets:
+        content = asset.read_text(encoding="utf-8")
+        ET.fromstring(content)
+        normalized = content.lower()
+        assert all(marker not in normalized for marker in forbidden)
+        assert 'role="img"' in content
+        assert "<title" in content
+        assert "<desc" in content
