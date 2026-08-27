@@ -41,7 +41,7 @@ and must not become a release criterion, schema dependency, public API promise, 
 reason to delay core researcher workflows.
 
 GEDCOM is one candidate import/export adapter under the broader
-[source-neutral adapter strategy](source-adapter-strategy.md). It must pass the same
+[source-neutral integration strategy](source-adapter-strategy.md). It must pass the same
 admission gates and scoring process as other candidates; its popularity does not
 grant it roadmap priority.
 

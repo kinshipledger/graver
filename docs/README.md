@@ -75,7 +75,7 @@ The [live compatibility canary](live-canary.md) documents the explicitly invoked
 one-request Find a Grave transport/parser check, its safe result categories, and
 the boundary separating it from ordinary offline tests and release automation.
 
-The [source-neutral adapter strategy](source-adapter-strategy.md) defines graver's
+The [source-neutral integration strategy](source-adapter-strategy.md) defines graver's
 scope boundary, adapter roles, admission gates, prioritization scorecard, and
 professional-review cadence. It is a guardrail against both source-specific core
 design and unfocused expansion into a universal genealogy application.

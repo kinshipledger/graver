@@ -136,10 +136,11 @@ of a sentence. Use backticks when referring to the literal command, package,
 module, or another code identifier—for example, `graver init`—but ordinary prose
 does not need code styling simply because it names graver.
 
-The name graver covers the core library, application services, and command-line
-tool. Cemetery-to-World-Tree is the broader project context. A future desktop
-application may have a separate product name; do not assume or establish that
-name in graver documentation before it is chosen.
+The name graver covers the research engine, core library, application services, and
+command-line tool. Cemetery-to-World-Tree is the broader project context. The future
+professional desktop application is a separate product layer and may have a separate
+name; do not assume or establish that name in graver documentation before it is
+chosen.
 
 ## Documentation voice
 
@@ -148,6 +149,12 @@ detail. Prefer plain, warm, direct language; define necessary genealogy and soft
 terms, and move specialist material behind clear links or advanced command groups.
 Claims must distinguish current behavior from planned work and must not overstate
 evidence, identity, provenance, provider authorization, or data completeness.
+
+Prefer functional-role names in researcher-facing headings, diagrams, navigation,
+and concepts: name what something helps the researcher do before naming the module,
+storage mechanism, framework, or internal status that implements it. Preserve exact
+commands and stable machine values in secondary detail when readers need them for
+operation, troubleshooting, automation, or compatibility.
 
 Occasional restrained humor, wordplay, or self-awareness is welcome when it makes
 an unfamiliar workflow feel more approachable. Keep it sparse and never use it to

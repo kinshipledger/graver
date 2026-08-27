@@ -1,8 +1,31 @@
-# Source-neutral adapter strategy
+# Source-neutral integration strategy
 
 Status: architectural guardrail and selection process. This document does not
 commit graver to a particular provider, record class, import format, or new
 pre-1.0 feature.
+
+## Integration architecture terminology
+
+**Integration architecture** is the umbrella term for the post-1.0 contracts that
+connect graver's research engine to other components. It contains three boundaries
+that must not be collapsed into a generic “adapter layer”:
+
+1. The **client boundary** serves command-line, desktop, and other user experiences
+   through the documented application API. Clients present and operate research;
+   they do not reimplement domain rules or persistence.
+2. The **source boundary** admits discovery results, captured observations, and
+   researcher-controlled imports while preserving provenance, attribution, and
+   uncertainty.
+3. The **projection boundary** produces purpose-specific reports, exports, and
+   interchange views from deliberately selected research without becoming another
+   source of truth.
+
+An individual connector may still be called an adapter when that implementation
+term is useful. The architecture as a whole is not one adapter layer. After engine
+1.0, define the smallest common contracts, exercise them with real vertical slices,
+and promote them from internal to public only after implementation evidence and
+the appropriate professional review. Do not freeze speculative abstractions merely
+to make future diagrams look tidy.
 
 ## Product boundary
 
@@ -17,6 +40,13 @@ the first proven workflow. The core application model should nevertheless avoid
 assuming that every subject originates in a cemetery or that every useful source
 arrives through a live provider. Source neutrality is an incremental design
 constraint, not a promise to support every conceivable genealogical source.
+
+The engine name records graver's origin; it does not grant memorials permanent
+priority in the research model. Any admitted discovery, observation, or import
+adapter may provide the first useful lead for a new or existing subject. Once
+captured, every representation is evaluated under the same provenance, attribution,
+conflict, dependence, and human-conclusion rules. Adapter order, provider branding,
+and ease of access do not determine evidentiary weight.
 
 New integration work must begin with a demonstrated researcher problem. Popularity
 of a platform, format, or record class is not by itself sufficient justification.
@@ -38,7 +68,36 @@ A platform is where a representation was encountered; it is not necessarily the
 record creator, repository, original source, or authority for every displayed
 assertion. A file format transports assertions; it does not establish their truth.
 
-## Adapter roles
+## Source-neutral research journeys
+
+The durable research spine should organize work around a subject and a research
+question rather than around the provider that supplied the first lead:
+
+```text
+source lead or researcher entry
+  -> research subject
+  -> research question
+  -> one or more candidate hypotheses
+  -> correlated evidence and conflicts
+  -> researcher-authored analysis
+  -> the researcher's reviewed conclusion
+  -> purpose-specific projections
+```
+
+Questions may involve one subject, several subjects, a relationship, an event, or
+the identity of an external profile. Hypotheses are provisional candidate answers,
+not accepted facts. A researcher records how particular evidence bears on a
+hypothesis, with reasoning and uncertainty preserved; the software does not reduce
+that work to an unexplained confidence number.
+
+Research reports, evidence matrices, proof arguments, tree or pedigree views,
+WikiTree drafts, GEDCOM, and similar outputs are projections of deliberately
+selected reviewed research. They do not become competing truth stores. Each
+projection must identify its purpose, underlying research state and date, selection
+and transformation rules, unresolved conflicts, and material omissions or loss.
+The first projection work should remain bounded to demonstrated researcher needs.
+
+## Source and projection roles
 
 Adapters may implement more than one role, but the operations and results remain
 separate:
@@ -52,7 +111,8 @@ separate:
    identities.
 4. **Export adapters** project deliberately selected research for another consumer
    and disclose omissions, transformations, privacy filtering, and representational
-   loss.
+   loss. They preserve researcher authorship and must not make graver appear to own
+   the conclusions being projected.
 
 Provider, parser, OCR, SQLite, terminal, and GUI types do not cross the public
 application boundary. Adapters return graver-owned typed results and errors. The

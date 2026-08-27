@@ -21,7 +21,7 @@ research databases and report unclear behavior as well as defects.
 
 ## Researcher highlights
 
-- A first-class `graver` command and supported `python -m graver` fallback.
+- A supported `graver` command and `python -m graver` fallback.
 - Explicit database creation, selection, inspection, and backed-up upgrades.
 - Narrow Find a Grave summary acquisition followed by an explicit person-at-a-time
   queue, approval, and full enrichment workflow.

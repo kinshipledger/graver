@@ -1,15 +1,17 @@
 # Visual identity and documentation graphics
 
-graver's visual system should make research flow, provenance, and human decision
-points easier to understand. Graphics are part of the product contract when they
-teach workflow or evidence meaning; they are not decoration applied after the text
-is finished.
+graver's visual system should make engine behavior, research flow, provenance, and
+human decision points easier to understand. Graphics are part of the documented
+contract when they teach workflow or evidence meaning; they are not decoration
+applied after the text is finished.
 
 ## Brand relationship
 
 - **Kinship Ledger** is the publishing and community identity.
-- **graver** is the product, command, Python package, and distinct application
-  identity.
+- **graver** is the research engine, command, Python package, and distinct
+  application identity.
+- The future professional desktop experience is a separate product layer over the
+  graver engine and earns its own readiness claim and acceptance gates.
 - The graver mark should support the name's “digger” sense: patient research that
   uncovers and preserves evidence. It should not imply that graver proves facts,
   manages cemeteries, or limits its future to grave records.
@@ -51,13 +53,14 @@ Human judgment owns the final geometry, meaning, licensing decision, and approva
 
 The first visual slice should contain three small, purposeful diagrams:
 
-1. **Research workflow:** summary acquisition → queue → inspect → approve → enrich →
-   retain dated provenance.
+1. **The researcher journey:** the current Find a Grave path from choosing a research
+   file through bounded acquisition, review, and researcher-directed next actions.
 2. **Evidence reasoning:** source observation → comparison → assessment →
    researcher-authored conclusion, with ordering explicitly separated from
    confidence and proof.
-3. **Client architecture:** CLI and future desktop GUI as peer adapters over the
-   typed graver application layer.
+3. **Client architecture:** the supported operational CLI and future preferred
+   desktop product sharing the typed graver engine application layer without
+   implying equal user-experience roles.
 
 Use Mermaid for diagrams whose structure changes frequently and reviewed SVG for
 stable researcher-facing graphics. Every diagram requires nearby explanatory text,

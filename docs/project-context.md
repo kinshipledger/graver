@@ -91,7 +91,7 @@ requirement that every research subject originate with a cemetery memorial. grav
 should become source-neutral only where demonstrated researcher workflows require
 it. It is not intended to become a universal genealogy suite, tree editor, document
 repository, or adapter for every available provider and format. The governing
-[source-neutral adapter strategy](source-adapter-strategy.md) separates source
+[source-neutral integration strategy](source-adapter-strategy.md) separates source
 class, carrier format, access surface, and workflow role, and requires explicit
 admission gates, scoring, non-goals, and professional review before expansion.
 Professional adoption also depends on the
@@ -99,6 +99,14 @@ Professional adoption also depends on the
 researchers must be able to inspect source fidelity, comparison transformations,
 workflow decisions, and conclusion evidence without treating source availability or
 configurable rules as substitutes for genealogical reproducibility.
+
+The `graver` name records the engine's cemetery origin but does not make Find a Grave
+the permanent root of every research journey. Any admitted discovery, observation,
+or import adapter may supply the first lead. The durable model should converge on
+subjects, researcher questions, candidate hypotheses, correlated evidence,
+researcher-authored analysis, reviewed conclusions, and purpose-specific
+projections. Every source follows the same evidence and provenance standards; its
+position in the workflow does not determine its weight.
 
 ## Identity and family research
 
@@ -212,12 +220,14 @@ retains a substantial nested command hierarchy.
 
 ## graver 1.0 contract decisions
 
-graver 1.0 will define a stable Find a Grave acquisition and research-database
-foundation. FamilySearch and WikiTree may follow in compatible 1.x releases when
-they are additive evidence and candidate layers rather than replacements for the
-foundation. The 1.0 compatibility promise will cover the documented researcher CLI,
-documented Python facade, configuration format, explicit database migration policy,
-versioned machine-readable output, and Python 3.11 through 3.14.
+graver 1.0 defines the stable research-engine finish line: core behavior, workflow
+rules, Find a Grave acquisition, research-database lifecycle, CLI, documented Python
+facade, configuration format, explicit migration policy, versioned machine-readable
+output, extension boundaries, and Python 3.11 through 3.14. It does not claim that
+the later professional desktop product or complete evidence-research experience is
+finished. FamilySearch and WikiTree may follow in compatible 1.x releases when they
+are additive evidence and candidate layers rather than replacements for the
+foundation.
 
 The installed `graver` command and `python -m graver` are both supported through the
 console entry point and `graver.__main__`. Direct execution of the implementation
@@ -348,12 +358,13 @@ FamilySearch or WikiTree persistence.
 
 ### Naming convention
 
-The canonical name of the core library, application services, and command-line
-tool is **graver**, styled in lowercase in prose as well as in identifiers. Backticks
-identify literal commands, imports, packages, and other code—not the product name
-in ordinary prose. Cemetery-to-World-Tree remains the broader project context.
-The future desktop application may use a separate product name, which remains an
-open decision and must not alter graver's package or public API identity.
+The canonical name of the research engine, core library, application services, and
+command-line tool is **graver**, styled in lowercase in prose as well as in
+identifiers. Backticks identify literal commands, imports, packages, and other
+code—not the engine name in ordinary prose. Cemetery-to-World-Tree remains the
+broader project context. The future professional desktop application is a separate
+product layer and may use a separate name, which remains an open decision and must
+not alter graver's package or public API identity.
 
 Cemetery-to-World-Tree is expected to contain a separate installable,
 researcher-facing desktop application. PyQt6 is the leading toolkit candidate, but
@@ -379,11 +390,25 @@ Other clients    ┘        → domain rules
                           → SQLite persistence
 ```
 
-The CLI and GUI are peer adapters. Domain rules, transactions, provenance, and
-acquisition semantics must not be reimplemented independently in either adapter.
-The production GUI should begin after graver 1.0 with a stable database and work-
-queue vertical slice, then grow as compatible FamilySearch and WikiTree services
+The CLI and GUI share the graver application contract; this does not imply equal
+product or usability roles. Domain rules,
+transactions, provenance, and acquisition semantics must not be reimplemented
+independently in either adapter. The CLI remains a supported administration,
+automation, recovery, advanced-use, and API-parity surface; it is not intended to be
+the preferred everyday professional-researcher experience. The professional desktop
+product should begin after graver engine 1.0 with a stable database and work-queue
+vertical slice, then grow as compatible evidence, FamilySearch, and WikiTree services
 arrive. Another desktop toolkit or non-desktop client must remain possible.
+
+The post-1.0 umbrella for these connections is the **integration architecture**,
+not a single generic adapter layer. It keeps three contracts distinct: the client
+boundary used by the CLI, desktop, and other experiences; the source boundary used
+for discovery, observation capture, and import; and the projection boundary used
+for reports, exports, and interchange views. Their interfaces and stability stages
+must be reviewed after engine 1.0 and before substantial GUI or provider expansion.
+Each boundary begins internally, is exercised by a bounded vertical slice, and
+becomes public only after its behavior, evidence semantics, failure model, and
+consumer needs have been demonstrated.
 
 ### Workspace facade
 
@@ -500,6 +525,8 @@ Application services should follow researcher goals rather than mirror tables:
 
 - database lifecycle and workspace opening;
 - research-subject lookup;
+- researcher questions, candidate hypotheses, evidence correlation, and reviewed
+  conclusions;
 - work selection, listing, inspection, and mutation;
 - memorial summary/full acquisition and provenance;
 - alias diagnostics and reviewed maintenance;
@@ -514,7 +541,7 @@ concepts without creating accepted facts or conclusions. This is an incremental
 compatibility requirement for the public boundary, not a commitment to design a
 universal source ontology or implement the candidate adapters now. The detailed
 selection and review rules live in the
-[source-neutral adapter strategy](source-adapter-strategy.md).
+[source-neutral integration strategy](source-adapter-strategy.md).
 
 Acquisition remains memorial-specific; person-level work belongs to subjects. The
 CLI owns option parsing, database-precedence resolution, terminal and Rich
@@ -1269,7 +1296,14 @@ verifiable.
 
 Post-1.0 compatible sequence:
 
-25. Begin the production desktop GUI with workspace/database lifecycle, work queue,
+25. Define and stage the integration architecture. Inventory the existing public
+   application API and internal extension seams; separate client, source, and
+   projection contracts; specify ownership, typed inputs and results, errors,
+   cancellation, transactions, provenance, versioning, and compatibility; and use
+   bounded contract tests to identify what is experimental, supported, or stable.
+   Do not create a universal plugin framework or freeze abstractions without a
+   demonstrated consumer.
+26. Begin the production desktop GUI with workspace/database lifecycle, work queue,
    subject detail, and one-person acquisition/provenance review. Apply the formal
    front-end review cadence: information architecture before navigation freeze,
    interaction/continuity review on a clickable prototype, and visual-system and
@@ -1277,23 +1311,27 @@ Post-1.0 compatible sequence:
    toolkit or binding, complete a dependency-license, packaging, distribution, and
    supported-platform compliance review; record only the resulting public technical
    constraints in the development project.
-26. Connect an authorized live FamilySearch adapter to the already validated
+27. Define and professionally review the bounded source-neutral question,
+   hypothesis, evidence-correlation, analysis, conclusion, and projection contract.
+   Start with researcher-readable research reports and evidence matrices as
+   candidate projection exercises; do not commit to every destination format.
+28. Connect an authorized live FamilySearch adapter to the already validated
    candidate, evidence, assessment, and conclusion application services. Live data
    must not redefine the offline-tested domain semantics.
-27. Implement import-first bulk acquisition for the smallest demonstrated authorized
+29. Implement import-first bulk acquisition for the smallest demonstrated authorized
    formats not already supported in 1.0.
-28. Add provider-authorized background acquisition only after a repeated policy and
+30. Add provider-authorized background acquisition only after a repeated policy and
    permission review; production GUI scheduling uses the same durable job service.
-29. Extend GUI and CLI evidence-research workflows over those services.
-30. Complete professional review gate R3 by repeating the original professional
+31. Extend GUI and CLI evidence-research workflows over those services.
+32. Complete professional review gate R3 by repeating the original professional
    usability audit against the production evidence workflow. Resolve or explicitly
    accept every blocking finding before claiming production readiness or expanding
    into WikiTree and family workflows. Pair R3 with a broader pre-release UX and
    accessibility review rather than treating genealogical acceptance as the only
    front-end quality gate.
-31. Add WikiTree reconciliation, evidence summaries, and family work packets.
-32. Extend the production GUI across the complete reviewed research workflow.
-33. After the GUI work-queue vertical slice has been road-tested, re-evaluate GEDCOM
+33. Add WikiTree reconciliation, evidence summaries, and family work packets.
+34. Extend the production GUI across the complete reviewed research workflow.
+35. After the GUI work-queue vertical slice has been road-tested, re-evaluate GEDCOM
     using concrete researcher needs. Only if justified, begin immutable GEDCOM 7 and
     5.5.1 inspection and repeatable comparison; reviewed mappings, relationships,
     and privacy-filtered selective export remain separately approved later stages.
