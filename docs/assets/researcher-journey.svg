@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1010" viewBox="0 0 720 1010" role="img" aria-labelledby="title desc">
+  <title id="title">The researcher journey in graver</title>
+  <desc id="desc">A six-step current workflow: choose a research file, find a memorial through a deliberate Find a Grave request, review the dated observation, add it to the research list, deliberately retrieve one approved memorial, and evaluate the findings. graver does not decide identity or kinship.</desc>
+  <style>
+    text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:#29261f}.title{font-size:28px;font-weight:750}.sub{font-size:16px;fill:#605a52}.head{font-size:19px;font-weight:750}.copy{font-size:15px;fill:#605a52}.note{font-size:13px;font-weight:800}.num{font-size:17px;font-weight:800;fill:#fff;text-anchor:middle}.arrow{font-size:26px;fill:#6b645a;text-anchor:middle}.boundary-head{font-size:16px;font-weight:750}.boundary-copy{font-size:14px;fill:#605a52}
+  </style>
+  <rect width="720" height="1010" rx="18" fill="#f3efe6"/>
+  <text class="title" x="34" y="48">The researcher journey</text>
+  <text class="sub" x="34" y="76">You decide when graver contacts the website and what the information means.</text>
+  <g transform="translate(34 105)">
+    <rect width="652" height="104" rx="12" fill="#fffdf8" stroke="#c8c0b2" stroke-width="2"/><rect width="652" height="6" rx="3" fill="#3d6483"/>
+    <circle cx="33" cy="39" r="18" fill="#3d6483"/><text class="num" x="33" y="45">1</text><text class="head" x="68" y="44">Choose your research file</text>
+    <text class="copy" x="18" y="72">Confirm exactly where graver will save this work.</text><text class="note" x="18" y="92" fill="#315772">LOCAL — NOTHING GOES ONLINE</text>
+  </g>
+  <text class="arrow" x="360" y="238">↓</text>
+  <g transform="translate(34 255)">
+    <rect width="652" height="104" rx="12" fill="#fffdf8" stroke="#c8c0b2" stroke-width="2"/><rect width="652" height="6" rx="3" fill="#9a641f"/>
+    <circle cx="33" cy="39" r="18" fill="#9a641f"/><text class="num" x="33" y="45">2</text><text class="head" x="68" y="44">Find a memorial</text>
+    <text class="copy" x="18" y="72">Search narrowly, or look up a memorial you already know.</text><text class="note" x="18" y="92" fill="#754a16">LIVE — CONTACTS FIND A GRAVE</text>
+  </g>
+  <text class="arrow" x="360" y="388">↓</text>
+  <g transform="translate(34 405)">
+    <rect width="652" height="104" rx="12" fill="#fffdf8" stroke="#c8c0b2" stroke-width="2"/><rect width="652" height="6" rx="3" fill="#47765a"/>
+    <circle cx="33" cy="39" r="18" fill="#47765a"/><text class="num" x="33" y="45">3</text><text class="head" x="68" y="44">Review what was found</text>
+    <text class="copy" x="18" y="72">See the summary, where it came from, and when graver found it.</text><text class="note" x="18" y="92" fill="#3a684d">A DATED OBSERVATION IS RETAINED</text>
+  </g>
+  <text class="arrow" x="360" y="538">↓</text>
+  <g transform="translate(34 555)">
+    <rect width="652" height="104" rx="12" fill="#fffdf8" stroke="#c8c0b2" stroke-width="2"/><rect width="652" height="6" rx="3" fill="#3d6483"/>
+    <circle cx="33" cy="39" r="18" fill="#3d6483"/><text class="num" x="33" y="45">4</text><text class="head" x="68" y="44">Add it to your research list</text>
+    <text class="copy" x="18" y="72">Inspect the person, record notes, and choose the next research question.</text><text class="note" x="18" y="92" fill="#315772">LOCAL — APPROVAL IS NOT A WEBSITE REQUEST</text>
+  </g>
+  <text class="arrow" x="360" y="688">↓</text>
+  <g transform="translate(34 705)">
+    <rect width="652" height="104" rx="12" fill="#fffdf8" stroke="#c8c0b2" stroke-width="2"/><rect width="652" height="6" rx="3" fill="#9a641f"/>
+    <circle cx="33" cy="39" r="18" fill="#9a641f"/><text class="num" x="33" y="45">5</text><text class="head" x="68" y="44">Retrieve one approved memorial</text>
+    <text class="copy" x="18" y="72">graver retrieves selected supported details and stops if access is blocked.</text><text class="note" x="18" y="92" fill="#754a16">LIVE — CONTACTS FIND A GRAVE</text>
+  </g>
+  <text class="arrow" x="360" y="838">↓</text>
+  <g transform="translate(34 855)">
+    <rect width="652" height="104" rx="12" fill="#fffdf8" stroke="#c8c0b2" stroke-width="2"/><rect width="652" height="6" rx="3" fill="#8c3f35"/>
+    <circle cx="33" cy="39" r="18" fill="#8c3f35"/><text class="num" x="33" y="45">6</text><text class="head" x="68" y="44">Review and record your findings</text>
+    <text class="copy" x="18" y="72">Compare the newer details with the earlier observation and decide what comes next.</text><text class="note" x="18" y="92" fill="#7a3730">GRAVER DOES NOT DECIDE IDENTITY OR KINSHIP</text>
+  </g>
+  <text class="boundary-copy" x="34" y="990">Earlier observations remain available; selected details are not a complete page archive.</text>
+</svg>

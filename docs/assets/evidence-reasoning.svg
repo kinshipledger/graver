@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="900" viewBox="0 0 720 900" role="img" aria-labelledby="title desc">
+  <title id="title">How evidence answers a research question</title>
+  <desc id="desc">A researcher begins with a question, compares possible answers against supporting, conflicting, and unclear source observations, then evaluates the evidence and writes an evidence-based conclusion. A conflict stays visible and unresolved remains a valid result.</desc>
+  <style>
+    text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:#29261f}.title{font-size:28px;font-weight:750}.sub{font-size:16px;fill:#605a52}.tag{font-size:13px;font-weight:800;letter-spacing:1px;fill:#fff}.head{font-size:19px;font-weight:750}.copy{font-size:15px;fill:#605a52}.small{font-size:14px;fill:#605a52}.choice{font-size:17px;font-weight:750}.state{font-size:16px;font-weight:800}.note-head{font-size:16px;font-weight:750}.note{font-size:14px;fill:#605a52}
+  </style>
+  <rect width="720" height="900" rx="18" fill="#f3efe6"/>
+  <text class="title" x="34" y="48">How evidence answers a research question</text>
+  <text class="sub" x="34" y="76">The researcher evaluates the whole body of evidence and writes the conclusion.</text>
+  <g transform="translate(34 104)">
+    <rect width="652" height="88" rx="12" fill="#e8eff4" stroke="#a8c0d1" stroke-width="2"/>
+    <rect width="652" height="32" rx="11" fill="#3d6483"/><text class="tag" x="18" y="22">RESEARCH QUESTION</text>
+    <text class="head" x="18" y="65">Who was Eleanor May Carter's father?</text>
+  </g>
+  <text class="small" x="34" y="224">Consider more than one possible answer</text>
+  <g transform="translate(34 240)">
+    <rect width="652" height="106" rx="12" fill="#fff" stroke="#c8c0b2" stroke-width="2"/>
+    <text class="small" x="18" y="27">POSSIBLE ANSWER A</text><text class="choice" x="18" y="55">Henry Carter was Eleanor's father.</text>
+    <text class="small" x="18" y="83">POSSIBLE ANSWER B</text><text class="choice" x="18" y="104">Thomas Carter was Eleanor's father.</text>
+  </g>
+  <text class="small" x="34" y="382">For each source, record how it bears on the possible answers</text>
+  <g transform="translate(34 398)">
+    <rect width="652" height="202" rx="12" fill="#fffdf8" stroke="#c8c0b2" stroke-width="2"/>
+    <rect x="0" y="0" width="652" height="50" rx="11" fill="#e5eee8"/><text class="state" x="18" y="30" fill="#3a684d">SUPPORTS</text><text class="small" x="150" y="30">A source statement favors a possible answer.</text>
+    <rect x="0" y="51" width="652" height="50" fill="#f3e5e1"/><text class="state" x="18" y="81" fill="#7a3730">CONFLICTS</text><text class="small" x="150" y="81">A source statement points to a different answer.</text>
+    <rect x="0" y="102" width="652" height="50" fill="#f5ead7"/><text class="state" x="18" y="132" fill="#6b471c">UNCLEAR</text><text class="small" x="150" y="132">A source does not answer the question clearly.</text>
+    <rect x="0" y="153" width="652" height="49" rx="11" fill="#e8eff4"/><text class="state" x="18" y="183" fill="#315772">RECORD THE WHY</text><text class="small" x="202" y="183">Keep supplier, timing, dependence, and limits visible.</text>
+  </g>
+  <text x="360" y="641" text-anchor="middle" font-size="30" fill="#6b645a">↓</text>
+  <g transform="translate(34 663)">
+    <rect width="652" height="102" rx="12" fill="#fff" stroke="#c8c0b2" stroke-width="2"/>
+    <rect width="652" height="6" rx="3" fill="#3d6483"/>
+    <text class="head" x="18" y="35">Evaluate the evidence together</text>
+    <text class="copy" x="18" y="61">Ask who supplied each statement, whether records depend on one another,</text>
+    <text class="copy" x="18" y="82">and what conflict or missing evidence still needs research.</text>
+  </g>
+  <text x="360" y="799" text-anchor="middle" font-size="30" fill="#6b645a">↓</text>
+  <g transform="translate(34 820)">
+    <rect width="652" height="52" rx="12" fill="#f3e5e1" stroke="#d7b9b2" stroke-width="2"/>
+    <text class="head" x="18" y="31" fill="#7a3730">Researcher-authored conclusion — including “unresolved” when warranted</text>
+  </g>
+</svg>
