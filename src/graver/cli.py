@@ -43,6 +43,7 @@ from graver.research import (
     EnrichmentRedirected,
     EnrichmentRedirectInvalid,
     ResearchEnrichmentRequest,
+    ResearchEnrichmentResult,
     ResearchQueueRequest,
     ResearchService,
     ResearchTaskQuery,
@@ -460,8 +461,69 @@ def _enrich_task(
         _human_echo(
             "Selected fields from the memorial's full page were retrieved and "
             "retained as a dated observation; this is not a complete page archive. "
-            f"Person {memorial_id} is now {result.status}."
+            f"Its enrichment workflow status is {result.status}; this does not mean "
+            "the identity was verified or the research is complete."
         )
+        _display_enrichment_receipt(result)
+
+
+def _display_enrichment_receipt(result: ResearchEnrichmentResult) -> None:
+    """Explain persisted enrichment changes without implying evidentiary truth."""
+    _human_echo("Acquisition receipt:")
+    if result.previous_observation_id is not None:
+        _human_echo(
+            f"  Compared retained observation {result.previous_observation_id} "
+            f"with new selected-field observation {result.observation_id}."
+        )
+    else:
+        _human_echo(f"  Retained selected-field observation {result.observation_id}.")
+
+    added = tuple(change for change in result.changes if change.previous is None)
+    changed = tuple(change for change in result.changes if change.previous is not None)
+    for heading, items in (
+        ("Newly retained values", added),
+        ("Different retained values", changed),
+    ):
+        if not items:
+            continue
+        _human_echo(f"  {heading}:")
+        for change in items:
+            previous = json.dumps(change.previous, ensure_ascii=False)
+            current = json.dumps(change.current, ensure_ascii=False)
+            _human_echo(f"    {change.field}: {previous} -> {current}")
+
+    if result.unretained_values:
+        _human_echo(
+            "  No value retained in the new observation (reason indeterminate):"
+        )
+        for change in result.unretained_values:
+            previous = json.dumps(change.previous, ensure_ascii=False)
+            _human_echo(f"    {change.field}: earlier retained value {previous}")
+        _human_echo(
+            "    This receipt cannot distinguish not displayed, not collected, "
+            "not retained, or not examined."
+        )
+    if not result.changes and not result.unretained_values:
+        _human_echo("  No value differences were detected in supported fields.")
+    _human_echo(
+        f"  {len(result.equal_fields)} supported fields had equal non-null values "
+        "in the two retained representations; equality is not corroboration or "
+        "verification."
+    )
+    link_label = "link" if result.displayed_relationship_links == 1 else "links"
+    _human_echo(
+        f"  Retained {result.displayed_relationship_links} Find a Grave-displayed "
+        f"relationship {link_label}; website display, not proven kinship."
+    )
+    if result.displayed_relationship_links == 0:
+        _human_echo(
+            "  A zero retained-link count does not by itself prove that none were "
+            "displayed."
+        )
+    _human_echo(
+        "  Differences do not supersede earlier values; evaluate both observations "
+        "and underlying sources before changing a research conclusion."
+    )
 
 
 def _display_work_list(tasks: list) -> None:

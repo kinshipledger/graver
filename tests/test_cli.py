@@ -20,7 +20,12 @@ from graver.api import (
     MemorialParseException,
     MemorialSummary,
 )
-from graver.application import AcquisitionReceipt, WorkspaceAcquisition
+from graver.application import (
+    AcquisitionReceipt,
+    ResearchEnrichmentFieldChange,
+    ResearchEnrichmentResult,
+    WorkspaceAcquisition,
+)
 from graver.constants import APP_NAME, DISTRIBUTION_NAME
 from graver.transport import TransportAccessBlocked
 
@@ -955,6 +960,98 @@ class TestCliResearcherSurface(Test):
         enriched_json = json.loads(enriched.output)
         assert enriched_json["command"] == "work.enrich"
         assert enriched_json["data"]["status"] == "full_scrape_complete"
+        assert set(enriched_json["data"]) == {
+            "memorial_id",
+            "status",
+            "full_observed_at",
+        }
+
+    def test_work_enrich_explains_changes_and_retained_observations(
+        self, helpers, database, monkeypatch
+    ):
+        summary = self.summary(name="Earlier Name").save()
+        graver.api.queue_memorials(database.name)
+        graver.api.update_research_task(
+            database.name,
+            summary.memorial_id,
+            status="ready_for_full_scrape",
+        )
+        monkeypatch.setattr(
+            Memorial,
+            "parse",
+            lambda _url: self.full(name="Later\nName", birth_place="New place"),
+        )
+
+        result = helpers.graver_cli(
+            f"work enrich {summary.memorial_id} --db '{database.name}'"
+        )
+
+        assert result.exit_code == 0
+        assert "Acquisition receipt:" in result.output
+        assert "Compared retained observation" in result.output
+        assert "with new selected-field observation" in result.output
+        assert "Newly retained values:" in result.output
+        assert 'birth_place: null -> "New place"' in result.output
+        assert "Different retained values:" in result.output
+        assert 'name: "Earlier Name" -> "Later\\nName"' in result.output
+        assert "equal non-null values" in result.output
+        assert "equality is not corroboration or verification" in result.output
+        assert "website display, not proven kinship" in result.output
+        assert "Differences do not supersede earlier values" in result.output
+
+    def test_enrichment_receipt_handles_no_prior_observation_or_changes(
+        self, monkeypatch
+    ):
+        output = []
+        monkeypatch.setattr(graver_cli_module, "_human_echo", output.append)
+
+        graver_cli_module._display_enrichment_receipt(
+            ResearchEnrichmentResult(
+                memorial_id=1075,
+                status="full_scrape_complete",
+                full_observed_at="observed",
+                observation_id=4,
+                displayed_relationship_links=1,
+            )
+        )
+
+        assert output == [
+            "Acquisition receipt:",
+            "  Retained selected-field observation 4.",
+            "  No value differences were detected in supported fields.",
+            "  0 supported fields had equal non-null values in the two retained "
+            "representations; equality is not corroboration or verification.",
+            "  Retained 1 Find a Grave-displayed relationship link; "
+            "website display, not proven kinship.",
+            "  Differences do not supersede earlier values; evaluate both "
+            "observations and underlying sources before changing a research "
+            "conclusion.",
+        ]
+
+    def test_enrichment_receipt_marks_missing_later_value_as_indeterminate(
+        self, monkeypatch
+    ):
+        output = []
+        monkeypatch.setattr(graver_cli_module, "_human_echo", output.append)
+
+        graver_cli_module._display_enrichment_receipt(
+            ResearchEnrichmentResult(
+                memorial_id=1075,
+                status="full_scrape_complete",
+                full_observed_at="observed",
+                previous_observation_id=3,
+                observation_id=4,
+                unretained_values=(
+                    ResearchEnrichmentFieldChange("plot", "Section A", None, 3, 4),
+                ),
+            )
+        )
+
+        rendered = "\n".join(output)
+        assert "No value retained in the new observation" in rendered
+        assert 'plot: earlier retained value "Section A"' in rendered
+        assert "cannot distinguish not displayed, not collected" in rendered
+        assert "A zero retained-link count does not by itself prove" in rendered
 
     def test_admin_aliases_commands_are_machine_readable(self, helpers, database):
         source = self.summary().save()

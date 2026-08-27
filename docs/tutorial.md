@@ -158,8 +158,16 @@ graver work enrich 1075
 ```
 
 Success reports that selected fields from the memorial's full page were retained as
-a dated observation and that this is not a complete page archive. graver retrieves
-only the approved memorial—no related memorials and no other queued people.
+a dated observation and that this is not a complete page archive. Its acquisition
+receipt links the earlier and new selected-field observations, lists newly retained
+and different retained values, separately identifies earlier values for which
+nothing was retained in the new observation, summarizes equal non-null values
+without treating equality as corroboration, and counts retained Find a
+Grave-displayed relationship links with an explicit non-proof warning. A missing
+later value does not establish whether the information was not displayed, not
+collected, not retained, or not examined, and a difference does not supersede the
+earlier value. graver retrieves only the approved memorial—no related memorials and
+no other queued people.
 
 Inspect the result offline:
 
@@ -175,6 +183,8 @@ paths, or timestamps:
 - the acquisition level says that full-page fields were retained;
 - provenance includes both the earlier summary and successful full acquisition
   observations; and
+- the acquisition receipt identifies those retained observations and explains any
+  displayed-value changes without presenting the newer value as verified; and
 - the memorial and cemetery context still identify the person you approved.
 
 `--history` intentionally reveals immutable observation detail. Optional values
