@@ -22,6 +22,7 @@ from graver.api import (
 )
 from graver.application import (
     AcquisitionReceipt,
+    ResearchEnrichmentFieldChange,
     ResearchEnrichmentResult,
     WorkspaceAcquisition,
 )
@@ -988,13 +989,15 @@ class TestCliResearcherSurface(Test):
         assert result.exit_code == 0
         assert "Acquisition receipt:" in result.output
         assert "Compared retained observation" in result.output
-        assert "with full observation" in result.output
-        assert "Newly populated values:" in result.output
+        assert "with new selected-field observation" in result.output
+        assert "Newly retained values:" in result.output
         assert 'birth_place: null -> "New place"' in result.output
-        assert "Changed values:" in result.output
+        assert "Different retained values:" in result.output
         assert 'name: "Earlier Name" -> "Later\\nName"' in result.output
-        assert "previously populated supported values were unchanged" in result.output
+        assert "equal non-null values" in result.output
+        assert "equality is not corroboration or verification" in result.output
         assert "website display, not proven kinship" in result.output
+        assert "Differences do not supersede earlier values" in result.output
 
     def test_enrichment_receipt_handles_no_prior_observation_or_changes(
         self, monkeypatch
@@ -1014,12 +1017,41 @@ class TestCliResearcherSurface(Test):
 
         assert output == [
             "Acquisition receipt:",
-            "  Retained full observation 4.",
-            "  No supported displayed values changed.",
-            "  0 previously populated supported values were unchanged.",
+            "  Retained selected-field observation 4.",
+            "  No value differences were detected in supported fields.",
+            "  0 supported fields had equal non-null values in the two retained "
+            "representations; equality is not corroboration or verification.",
             "  Retained 1 Find a Grave-displayed relationship link; "
             "website display, not proven kinship.",
+            "  Differences do not supersede earlier values; evaluate both "
+            "observations and underlying sources before changing a research "
+            "conclusion.",
         ]
+
+    def test_enrichment_receipt_marks_missing_later_value_as_indeterminate(
+        self, monkeypatch
+    ):
+        output = []
+        monkeypatch.setattr(graver_cli_module, "_human_echo", output.append)
+
+        graver_cli_module._display_enrichment_receipt(
+            ResearchEnrichmentResult(
+                memorial_id=1075,
+                status="full_scrape_complete",
+                full_observed_at="observed",
+                previous_observation_id=3,
+                observation_id=4,
+                unretained_values=(
+                    ResearchEnrichmentFieldChange("plot", "Section A", None, 3, 4),
+                ),
+            )
+        )
+
+        rendered = "\n".join(output)
+        assert "No value retained in the new observation" in rendered
+        assert 'plot: earlier retained value "Section A"' in rendered
+        assert "cannot distinguish not displayed, not collected" in rendered
+        assert "A zero retained-link count does not by itself prove" in rendered
 
     def test_admin_aliases_commands_are_machine_readable(self, helpers, database):
         source = self.summary().save()

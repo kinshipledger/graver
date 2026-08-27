@@ -177,13 +177,16 @@ parser model. Network-capable clients remain responsible for the project
 
 The returned `ResearchEnrichmentResult` identifies the earlier and newly retained
 observation, gives deterministic `ResearchEnrichmentFieldChange` entries for newly
-populated and changed displayed values, summarizes previously populated supported
-fields that were unchanged, and counts Find a Grave-displayed relationship links.
-Every field change carries both observation identifiers. These are acquisition
-differences, not claims that the later value is correct or that a displayed
-relationship is proven. The transitional `work enrich --json` compatibility
-projection intentionally retains its existing three result fields; typed clients
-use the application result for the richer receipt.
+retained and different retained values, separately reports earlier values for which
+no value was retained in the new observation, summarizes equal non-null supported
+fields, and counts retained Find a Grave-displayed relationship links. Every field
+difference carries both observation identifiers. A missing later value does not say
+whether information was not displayed, not collected, not retained, or not examined;
+equal values are not corroboration or verification; and differences do not supersede
+earlier evidence. These are acquisition differences, not claims that the later value
+is correct or that a displayed relationship is proven. The transitional
+`work enrich --json` compatibility projection intentionally retains its existing
+three result fields; typed clients use the application result for the richer receipt.
 
 ```python
 from graver.application import MemorialDetailInput, ResearchEnrichmentRequest

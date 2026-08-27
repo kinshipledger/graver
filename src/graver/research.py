@@ -284,7 +284,7 @@ class ResearchEnrichmentRequest:
 
 @dataclass(frozen=True)
 class ResearchEnrichmentFieldChange:
-    """Describe one displayed value changed by full memorial acquisition."""
+    """Describe one retained-value difference from memorial enrichment."""
 
     field: str
     previous: Optional[str | int | bool]
@@ -303,7 +303,8 @@ class ResearchEnrichmentResult:
     previous_observation_id: Optional[int] = None
     observation_id: Optional[int] = None
     changes: tuple[ResearchEnrichmentFieldChange, ...] = ()
-    unchanged_fields: tuple[str, ...] = ()
+    unretained_values: tuple[ResearchEnrichmentFieldChange, ...] = ()
+    equal_fields: tuple[str, ...] = ()
     displayed_relationship_links: int = 0
 
     @classmethod
@@ -908,7 +909,7 @@ class ResearchService:
             current.observations[-1]["observation_id"] if current.observations else None
         )
         observation_id = completed.observations[-1]["observation_id"]
-        changes = tuple(
+        differences = tuple(
             ResearchEnrichmentFieldChange(
                 field,
                 current.grave[field],
@@ -919,7 +920,11 @@ class ResearchService:
             for field in legacy_api.FULL_FIELDS
             if field != "memorial_id" and current.grave[field] != completed.grave[field]
         )
-        unchanged_fields = tuple(
+        changes = tuple(change for change in differences if change.current is not None)
+        unretained_values = tuple(
+            change for change in differences if change.current is None
+        )
+        equal_fields = tuple(
             field
             for field in legacy_api.FULL_FIELDS
             if field != "memorial_id"
@@ -938,7 +943,8 @@ class ResearchService:
             previous_observation_id=previous_observation_id,
             observation_id=observation_id,
             changes=changes,
-            unchanged_fields=unchanged_fields,
+            unretained_values=unretained_values,
+            equal_fields=equal_fields,
             displayed_relationship_links=relationship_links,
         )
         if progress is not None:

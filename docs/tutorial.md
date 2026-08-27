@@ -159,11 +159,15 @@ graver work enrich 1075
 
 Success reports that selected fields from the memorial's full page were retained as
 a dated observation and that this is not a complete page archive. Its acquisition
-receipt links the earlier and full observations, lists newly populated and changed
-displayed values, summarizes previously populated supported values that stayed the
-same, and counts any Find a Grave-displayed relationship links with an explicit
-non-proof warning. graver retrieves only the approved memorial—no related memorials
-and no other queued people.
+receipt links the earlier and new selected-field observations, lists newly retained
+and different retained values, separately identifies earlier values for which
+nothing was retained in the new observation, summarizes equal non-null values
+without treating equality as corroboration, and counts retained Find a
+Grave-displayed relationship links with an explicit non-proof warning. A missing
+later value does not establish whether the information was not displayed, not
+collected, not retained, or not examined, and a difference does not supersede the
+earlier value. graver retrieves only the approved memorial—no related memorials and
+no other queued people.
 
 Inspect the result offline:
 

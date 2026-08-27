@@ -976,7 +976,7 @@ class TestDatabaseOps(TestApi):
         assert result.previous_observation_id is not None
         assert result.observation_id is not None
         assert result.observation_id > result.previous_observation_id
-        assert "name" in result.unchanged_fields
+        assert "name" in result.equal_fields
         assert any(change.field == "birth_place" for change in result.changes)
         assert all(
             change.previous_observation_id == result.previous_observation_id
@@ -1018,7 +1018,8 @@ class TestDatabaseOps(TestApi):
         )
 
         assert unchanged.changes == ()
-        assert "name" in unchanged.unchanged_fields
+        assert unchanged.unretained_values == ()
+        assert "name" in unchanged.equal_fields
 
         missing_summary = self.summary(memorial_id=810002, plot="Section A").save()
         service.queue_research(ResearchQueueRequest())
@@ -1038,7 +1039,7 @@ class TestDatabaseOps(TestApi):
         )
 
         plot_change = next(
-            change for change in missing.changes if change.field == "plot"
+            change for change in missing.unretained_values if change.field == "plot"
         )
         assert plot_change.previous == "Section A"
         assert plot_change.current is None
