@@ -47,6 +47,10 @@ Live FamilySearch integration is not required for final 1.0.
 
 ## Early post-1.0 direction
 
+- Publish a minimal, accessible static project website that directs researchers to
+  authoritative installation, tutorial, release, feedback, security, privacy, and
+  responsible-access resources without duplicating the documentation source of
+  truth or introducing visitor tracking.
 - Begin the production desktop workflow with database/workspace selection, the
   research queue, person detail, acquisition receipts, and provenance review.
 - Run information-architecture, interaction-continuity, accessibility, visual,
