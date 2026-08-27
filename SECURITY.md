@@ -18,7 +18,8 @@ local data behavior is documented in [privacy and data handling](docs/privacy-an
 Please do not open a public issue for a suspected vulnerability. Use GitHub's
 private vulnerability-reporting feature from the repository's **Security** tab.
 Include the affected version or commit, impact, reproduction details, and any known
-mitigation. If private reporting is unavailable, contact `contact@mcqueary.org`.
+mitigation. If private reporting is unavailable, contact
+`contact@kinshipledger.com`.
 
 Do not include credentials, cookies, private genealogy data, or other sensitive
 material in reports unless a secure exchange method has been agreed upon.

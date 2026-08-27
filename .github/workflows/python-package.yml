@@ -58,6 +58,10 @@ jobs:
       - run: uv sync --locked --group test --group dev
       - run: uv run black --check src/graver tests review consumer_spike benchmarks maintenance
       - run: uv run ruff check src/graver tests review consumer_spike benchmarks maintenance
+      - name: Audit locked dependencies
+        run: uv run pip-audit
+      - name: Check production security rules
+        run: uv run ruff check --select S --ignore S608 src/graver maintenance
       - run: uv run mypy
       - run: uv run ruff check --select D --ignore D105,D107 src/graver/acquisition.py src/graver/application.py src/graver/database.py src/graver/errors.py src/graver/evidence.py src/graver/progress.py src/graver/research.py src/graver/workspace.py
       - run: uv build

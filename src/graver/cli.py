@@ -130,7 +130,8 @@ _RESEARCH_STATUS_GUIDANCE = {
     ),
 }
 
-assert set(_RESEARCH_STATUS_GUIDANCE) == set(RESEARCH_TASK_STATUSES)
+if set(_RESEARCH_STATUS_GUIDANCE) != set(RESEARCH_TASK_STATUSES):
+    raise RuntimeError("research status guidance must cover every task status")
 
 _RESEARCH_STATUS_VALUES = ", ".join(RESEARCH_TASK_STATUSES)
 
