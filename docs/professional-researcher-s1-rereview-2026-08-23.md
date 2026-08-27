@@ -8,7 +8,7 @@
   and reproducibility expectations
 - **Artifact:** [Source-neutral evidence packet review prototype](source-neutral-evidence-packet-prototype.md)
 - **Prior review:** [Initial S1 review](professional-researcher-s1-review-2026-08-23.md)
-- **Tracking issue:** [#56](https://github.com/mcqueary/graver/issues/56)
+- **Tracking issue:** [#56](https://github.com/kinshipledger/graver/issues/56)
 - **Method:** Strict context reset; artifact-only focused verification without source
   code, schema, roadmap, or implementation knowledge
 

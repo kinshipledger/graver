@@ -7,7 +7,7 @@
 - **Reviewer role:** Independent Professional Genealogist persona
 - **Review method:** Strict context reset; focused verification only
 - **Product version or commit:** Revised artifact merged at `d08a918`
-- **Issue:** [#26](https://github.com/mcqueary/graver/issues/26)
+- **Issue:** [#26](https://github.com/kinshipledger/graver/issues/26)
 - **Artifact reviewed:**
   [`evidence-contract-review-prototype.md`](evidence-contract-review-prototype.md)
 - **Material excluded:** Source code, schemas, tests, roadmaps, architecture,

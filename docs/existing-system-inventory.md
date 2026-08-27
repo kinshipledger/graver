@@ -33,7 +33,7 @@ retired by the release-workflow transition. The published release candidate is
 tagged `v1.0.0-rc.1` and distributed as `graver-genealogy==1.0.0rc1`.
 
 The only configured Git remote is `origin`, pointing to
-`https://github.com/mcqueary/graver.git`. The obsolete local `upstream` remote to
+`https://github.com/kinshipledger/graver.git`. The obsolete local `upstream` remote to
 `pirtleshell/scrape-a-grave` was removed on 2026-08-22, and GitHub presents graver as
 an independent repository rather than a fork. The Git history nevertheless begins
 with Robert Pirtle's 2016 MIT-licensed commits and later refactors descend from that

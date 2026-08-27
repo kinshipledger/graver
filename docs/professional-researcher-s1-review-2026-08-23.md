@@ -7,7 +7,7 @@
 - **Reviewer role:** Professional Genealogist, reviewing under professional evidence
   and reproducibility expectations
 - **Product version or commit:** Artifact merged at `77fad3f`
-- **Tracking issue:** [#56](https://github.com/mcqueary/graver/issues/56)
+- **Tracking issue:** [#56](https://github.com/kinshipledger/graver/issues/56)
 - **Artifact:** [Source-neutral evidence packet review prototype](source-neutral-evidence-packet-prototype.md)
 - **Method:** Strict context reset; artifact-only review without source code, schema,
   roadmap, or implementation knowledge

@@ -3,7 +3,7 @@
 ## Resume checkpoint — 2026-08-22
 
 The repository is on the single long-lived `main` branch with only
-`https://github.com/mcqueary/graver.git` configured as `origin`. The obsolete
+`https://github.com/kinshipledger/graver.git` configured as `origin`. The obsolete
 `pirtleshell/scrape-a-grave` upstream remote has been removed. Historical MIT
 copyright provenance remains preserved, while the README makes clear that graver is
 independently maintained and has no ongoing upstream affiliation.
