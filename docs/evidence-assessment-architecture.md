@@ -268,7 +268,7 @@ These names demonstrate ownership only and do not freeze the final public API.
 
 Services return typed requests and results. They do not return SQLite rows, render
 terminal content, emit Qt signals, or serialize CLI JSON. CLI and future GUI are
-peer adapters over the same services.
+clients of the same services, with distinct product and usability roles.
 
 All meaningful mutations use optimistic concurrency or an equivalent stale-update
 guard. A client that attempts to save an assessment based on an older version must

@@ -25,6 +25,21 @@ confidence, identity, kinship, provenance, or a consequential action is part of 
 review packet. The reviewer evaluates what the visual implies as well as what its
 caption says; a diagram cannot quietly claim more than the underlying workflow.
 
+Researcher-facing reviews also test plain-language comprehension. At least one
+review perspective must represent a capable genealogist who is not highly technical,
+does not know graver's internal vocabulary, and describes ordinary research without
+software or database terminology. The reviewer first explains the workflow in their
+own words without a supplied glossary, then identifies unfamiliar, ambiguous, or
+needlessly technical language and the action they believe each control or step will
+perform. Correct implementation terminology does not excuse researcher-facing copy
+that requires technical translation.
+
+Every reviewed diagram or instruction set must declare its intended audience. A
+researcher-facing artifact must lead with familiar research actions and consequences;
+machine values and implementation concepts belong in secondary detail. Developer-
+facing artifacts may use precise technical vocabulary but must not be mistaken for
+onboarding material.
+
 ## Governing rule
 
 > A professional-researcher review gate is complete only when the review occurred
@@ -57,7 +72,7 @@ large numbered gate:
 These focused reviews follow the same artifact, report, severity, and blocking-
 finding rules as the numbered gates. The canonical selection criteria and scope
 guardrails are in the
-[source-neutral adapter strategy](source-adapter-strategy.md).
+[source-neutral integration strategy](source-adapter-strategy.md).
 
 ### S1 — Source-neutral evidence packet contract review
 
@@ -332,10 +347,13 @@ out of scope unless ordinary researcher instructions require them.
 The review answers whether prerequisites precede actions; terms agree across help
 and prose; offline, network, and database-changing operations are distinguishable;
 safe recovery is findable; content is organized around researcher tasks; and
-capture/citation limitations appear when they matter. Its dated report uses the
-same Blocking, Important, Follow-up, and Observation severities and an explicit
-PASS, PASS WITH FOLLOW-UPS, or BLOCKED disposition. Style preferences alone do not
-become release blockers.
+capture/citation limitations appear when they matter. It also asks a low-technical-
+literacy reviewer to paraphrase the ordinary workflow without a glossary, predict
+what each consequential action will do, and flag wording that is accurate only to a
+software specialist. Its dated report uses the same Blocking, Important, Follow-up,
+and Observation severities and an explicit PASS, PASS WITH FOLLOW-UPS, or BLOCKED
+disposition. Style preferences alone do not become release blockers; language that
+causes a reasonable researcher to misunderstand an action or its consequence may.
 
 After corrections, a professional genealogist performs a short semantic
 verification limited to evidentiary meaning, capture-scope accuracy, and network
@@ -352,7 +370,9 @@ internal refactors do not trigger these reviews.
 
 1. **Information architecture and content review:** before navigation, terminology,
    subject/candidate context, or evidence hierarchy is frozen. Use low-fidelity
-   flows and include a professional researcher and UX lead.
+   flows and include a professional researcher, a low-technical-literacy usability
+   perspective, and a UX lead. Require unaided paraphrase of the primary workflow;
+   do not teach the product vocabulary before measuring comprehension.
 2. **Interaction and continuity review:** after the primary workflow is clickable
    but before production widget implementation is expensive to change. Exercise
    interruption, resumption, conflicts, errors, empty states, and stale edits.

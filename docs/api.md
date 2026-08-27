@@ -1,9 +1,9 @@
 # Developer API guide
 
-`graver.application` is the supported typed import boundary for application clients
-during pre-1.0 development. It gives the CLI, future desktop GUI, and other adapters
-one domain vocabulary without exposing SQLite connections, SQL rows, Typer, terminal
-rendering, parsers, Requests objects, or transport implementations.
+`graver.application` is the supported typed import boundary for application clients.
+It gives the CLI, future desktop GUI, and other adapters one domain vocabulary
+without exposing SQLite connections, SQL rows, Typer, terminal rendering, parsers,
+Requests objects, or transport implementations.
 
 The boundary is intentionally synchronous. Each service opens short-lived database
 connections for an operation and closes them before returning. Clients supply an
@@ -11,12 +11,13 @@ explicit database path; CLI default-database resolution remains a CLI responsibi
 
 ## Stability
 
-The names in `graver.application.__all__` are intentional and contract-tested, but
-the project is still pre-1.0. Changes will be documented in release notes, and the
-1.0 compatibility contract will be frozen only after the workspace façade and GUI
-consumer spike validate this design. The package root deliberately re-exports no
-application symbols; clients must choose the documented `graver.application`
-boundary explicitly.
+The names in `graver.application.__all__` are the supported release-candidate
+surface and are contract-tested. The installed-wheel consumer spike has validated
+the workspace façade without private imports or direct SQLite access. The final
+1.0 release will freeze this documented surface under the project's compatibility
+policy; any correction required before publication will be called out in release
+notes. The package root deliberately re-exports no application symbols; clients
+must choose the documented `graver.application` boundary explicitly.
 
 Pre-1.0 code that imported parser or persistence objects directly from `graver`
 must migrate to the typed application API. For example, replace
@@ -84,7 +85,8 @@ versions. Reload the task, show the researcher the intervening state, and let th
 decide whether to reapply their edit. A stale request is rejected even when its
 requested values happen to match the newer state.
 
-Lower-level typed services remain supported during pre-1.0 development:
+The lower-level typed services exported through `graver.application.__all__` are
+also part of the supported release-candidate surface:
 
 ```python
 from graver.application import (
@@ -177,7 +179,7 @@ parser model. Network-capable clients remain responsible for the project
 
 The returned `ResearchEnrichmentResult` identifies the earlier and newly retained
 observation, gives deterministic `ResearchEnrichmentFieldChange` entries for newly
-retained and different retained values, separately reports earlier values for which
+retained and changed values, separately reports earlier values for which
 no value was retained in the new observation, summarizes equal non-null supported
 fields, and counts retained Find a Grave-displayed relationship links. Every field
 difference carries both observation identifiers. A missing later value does not say

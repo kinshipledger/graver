@@ -35,7 +35,7 @@ of production stability.
 - Added explicit database creation, read-only schema inspection, and transactional,
   backed-up upgrades from recognized legacy databases.
 - Added a typed public application API for future graphical and other clients while
-  retaining `graver` as a first-class command-line tool.
+  retaining `graver` as a supported command-line tool.
 - Added professional-researcher evidence reviews, security and privacy guidance,
   offline performance baselines, and fail-closed network testing.
 

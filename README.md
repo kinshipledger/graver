@@ -10,9 +10,10 @@
 graver
 ======
 
-Build a local, provenance-aware research database from
-[Find a Grave](https://www.findagrave.com/) memorials, then review and enrich records
-one person at a time.
+graver is a local, provenance-aware research engine with a supported command-line
+interface and a documented Python application API. Its current workflow builds a
+research database from [Find a Grave](https://www.findagrave.com/) memorials, then
+lets researchers review and enrich records one person at a time.
 
 graver preserves summary and selected full-page observations separately, maintains
 a durable research queue, and records acquisition history without treating a
@@ -49,24 +50,28 @@ acquisition tool.
 - Records Find a Grave redirects for review without silently merging people or
   transferring research.
 
-graver is currently a command-line application intended for local research. It is
-not yet a cross-platform identity-matching or family-tree publishing system.
+The command line is the current researcher and maintenance interface to the graver
+engine. It is useful for technically comfortable researchers, scripting,
+administration, recovery, and precise API-parity testing. It is not presented as the
+complete graphical workspace intended for everyday professional-research use, nor
+is graver yet a cross-platform identity-matching or family-tree publishing system.
 
 ## Current status and direction
 
 The published `1.0.0rc1` release candidate provides the local Find a Grave
 acquisition, research-queue, provenance, CLI, and typed application foundations
-described above. Final 1.0 work is focused on bounded release feedback,
-decision-safety, documentation, and stabilization—not live FamilySearch
-integration.
-
-After 1.0, the leading direction begins with a production desktop work-queue and
-person-detail workflow over the same application services. An authorized live
-FamilySearch adapter and repeatable candidate discovery may follow that foundation;
-researcher-authored identity conclusions, WikiTree reconciliation, GEDCOM, and
-additional source adapters remain later or conditional work. Internal fictional
-FamilySearch-shaped fixtures validate evidence contracts but are not a live
+described above. Final 1.0 stabilizes the **graver engine**: its core behavior,
+workflow rules, database lifecycle, CLI, application API, and extension boundaries.
+It does not claim completion of the later professional desktop product or live
 FamilySearch integration.
+
+After the engine reaches 1.0, the professional researcher product begins its own
+development and acceptance path with a desktop work queue and person-detail workflow
+over the same application services. An authorized live FamilySearch adapter and
+repeatable candidate discovery may follow that foundation; researcher-authored
+identity conclusions, WikiTree reconciliation, GEDCOM, and additional source
+adapters remain later or conditional work. Internal fictional FamilySearch-shaped
+fixtures validate evidence contracts but are not a live FamilySearch integration.
 
 See the concise public [roadmap](ROADMAP.md) for these stages and the detailed
 [project context](docs/project-context.md) for their architectural reasoning. The

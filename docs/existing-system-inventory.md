@@ -1,31 +1,36 @@
 # Existing system inventory: `graver`
 
-Inspection dates: 2026-08-11; refreshed 2026-08-22
+Inspection dates: 2026-08-11; refreshed 2026-08-26
 
 ## What is present
 
 `src/graver/` is an independently versioned Python distribution named
-`graver-genealogy`, currently at normalized package version `0.1.0`. The product,
-repository, console command, and import package remain `graver`. The distinct
+`graver-genealogy`, currently at normalized package version `1.0.0rc1`. The research
+engine, repository, console command, and import package remain `graver`. The distinct
 distribution name is required because the PyPI project `graver` was published by
 an unrelated prompt-versioning project in May 2026. Build metadata, version lookup,
 Release Please, CI, and installation documentation explicitly use
 `graver-genealogy`; ordinary users still run `graver` and application clients still
 import `graver.application`.
 
-It is a Find a Grave scraper/library with a Typer command-line interface, SQLite
-persistence, and fixture-backed tests.
+It is a local, provenance-aware research engine with current Find a Grave
+acquisition, a Typer command-line interface, a documented typed application API,
+SQLite persistence, and offline fixture-backed tests. The CLI is the current
+researcher, administration, automation, recovery, and testing interface; no desktop
+product currently exists.
 
 The current architecture includes `MemorialSummary`, immutable
 acquisitions, the durable queue, explicit person-at-a-time task handling,
 progressive-disclosure commands, alias provenance, and default-database selection.
-Schema version 2 adds stable research subjects, subject-owned tasks, immutable
-subject/task events, and memorial-ID compatibility for existing researcher workflows.
+Schema version 5 contains stable research subjects, subject-owned tasks, immutable
+subject/task and evidence histories, and memorial-ID compatibility for existing
+researcher workflows.
 
 `main` is the sole long-lived release and integration branch. Short-lived branches
 use pull requests and squash merges. The obsolete `master` branch was never a
 formal release or supported production state and has been retired. `develop` is
-retired by the release-workflow transition. No release tags exist yet.
+retired by the release-workflow transition. The published release candidate is
+tagged `v1.0.0-rc.1` and distributed as `graver-genealogy==1.0.0rc1`.
 
 The only configured Git remote is `origin`, pointing to
 `https://github.com/mcqueary/graver.git`. The obsolete local `upstream` remote to
@@ -390,7 +395,11 @@ leading but not mandated toolkit candidate, depending only on graver's documente
 public application boundary and later workspace facade. In that target design,
 SQLite connections and schema
 details remain internal, connections are scoped per operation or unit of work and
-never shared across GUI threads, and CLI and GUI remain peer adapters. Final frozen
+never shared across GUI threads, and CLI and GUI use the same documented application
+contract. That shared contract does not imply equal product roles: the CLI
+is the supported operational, administration, automation, recovery, advanced-use,
+and test surface, while the desktop is intended to become the preferred everyday
+researcher interface. Final frozen
 1.0 names and the complete service surface remain planned work.
 The completed researcher tutorial supplies a useful behavioral acceptance workflow
 for future CLI/application-API/GUI parity tests.
@@ -568,9 +577,9 @@ exposes one-person enrichment with synchronous neutral progress events and
 cooperative cancellation before retrieval and persistence. Its public injection
 seam accepts immutable `MemorialDetailInput` values and separately labeled
 `DisplayedRelationshipInput` observations rather than the legacy parser model.
-Evidence remains available through the supported lower-level `EvidenceService`;
-workspace evidence composition and the final 1.0 surface freeze remain pending the
-RC-readiness contract audit.
+Evidence remains available through the supported lower-level `EvidenceService`.
+The completed contract audit treats the documented `graver.application.__all__`
+exports as the release-candidate surface to be frozen by final engine 1.0.
 
 The researcher-directed summary `search` command delegates to
 `workspace.acquisition.search()` using a typed provider-specific request. The
@@ -624,14 +633,14 @@ discovery, comparison, and review ordering while confirming that no conclusion i
 created automatically. The researcher tutorial remains separate from this developer
 API reference.
 
-Before the release candidate, the planned facade must define typed requests,
-results, exceptions, progress, cancellation, threading, transaction ownership,
-stale-update handling, deterministic ordering, identifier and enum policies,
-injectable transport and nondeterminism, logging, supported imports, and public
-documentation. The separate top-level consumer spike now validates the implemented
-workspace contract against the built wheel; it is not a production GUI. Production
-GUI work follows graver 1.0 and begins with the stable workspace/work-queue vertical
-slice before expanding alongside FamilySearch, reviewed identity, WikiTree, and
+The released candidate facade defines typed requests, results, exceptions, progress,
+cancellation, threading, transaction ownership, stale-update handling,
+deterministic ordering, identifier and enum policies, injectable acquisition,
+supported imports, and public documentation. The separate top-level consumer spike
+validates the implemented workspace contract against the built wheel; it is not a
+production GUI. The professional desktop product follows graver engine 1.0 and
+begins with the stable workspace/work-queue vertical slice before expanding alongside
+question-centered evidence work, FamilySearch, reviewed identity, WikiTree, and
 family-work services.
 
 The accepted
@@ -692,7 +701,7 @@ export, GEDZIP, and broader compatibility remain separately gated possibilities 
 the canonical
 [GEDCOM integration architecture](gedcom-integration.md).
 
-The planned [source-neutral adapter strategy](source-adapter-strategy.md) now
+The planned [source-neutral integration strategy](source-adapter-strategy.md) now
 governs future source expansion. It separates source class, carrier format, access
 surface, and workflow role; defines discovery, observation, import, and export
 adapter roles; and requires authorization, provenance, privacy, offline-fixture,
