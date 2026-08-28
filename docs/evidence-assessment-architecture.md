@@ -17,6 +17,39 @@ It cannot create, modify, or imply an accepted genealogical identity conclusion.
 Only an explicit reviewed decision may establish or withdraw an accepted external
 identity association.
 
+### Availability at engine 1.0
+
+- **Available to researchers now:** provenance-aware Find a Grave acquisition,
+  dated observations, and the researcher-directed work queue through the supported
+  command line.
+- **Implemented internally but not yet exposed as a primary researcher workflow:**
+  candidate discovery, comparison, assessment, and identity conclusions exercised
+  through curated offline fixtures and typed application services.
+- **Future or outside this milestone:** live FamilySearch access, a production
+  desktop interface, automatic conclusions, and general-purpose family-tree writes.
+
+![A fictional research question correlated with supporting, conflicting, and unclear evidence before a researcher-authored conclusion](assets/evidence-reasoning.svg)
+
+The fictional example demonstrates the contract in researcher language. It does
+not assign proof weight by counting sources: dependence, informant knowledge,
+conflicts, and missing evidence remain part of the researcher's analysis.
+
+### Diagram in words
+
+The example asks who Eleanor May Carter's father was. It keeps two possible answers
+visible: Henry Carter and Thomas Carter.
+
+| Source observation | Bearing on Henry | Bearing on Thomas | Limitation to retain |
+| --- | --- | --- | --- |
+| Marriage register | Supports: names Henry. | Conflicts: names a different father. | Informant is not stated. |
+| Death certificate | Supports: repeats Henry. | Conflicts: names a different father. | Eleanor's husband supplied personal details, so it may not be independent of another record. |
+| Memorial page | Conflicts: names a different father. | Supports: displays Thomas. | No underlying source was captured. |
+| 1900 census household | Unclear. | Unclear. | Household presence does not establish parentage. |
+
+The fictional conclusion is **unresolved**: the records favor Henry, but the
+conflicting memorial statement has not been adequately explained. That is a valid
+research conclusion, not a failed attempt to produce one.
+
 This contract was defined before the public workspace façade so that the CLI,
 future GUI, and other clients can share one coherent application model. The first
 implementation slice is complete: it is entirely offline and uses curated provider
@@ -24,9 +57,10 @@ fixtures. It adds neither live FamilySearch access nor a production GUI.
 
 ## Context
 
-The research subject introduced in schema v2 is an opaque owner of person-level
-research. Find a Grave memorials remain source records associated with that subject;
-their presence does not by itself constitute a cross-platform identity conclusion.
+The research subject introduced in schema v2 is an organizational container for
+one person's research. Find a Grave memorials remain source records associated with
+that subject; their presence does not by itself constitute a cross-platform
+identity conclusion.
 
 The professional usability review found that the visible workflow ends after Find a
 Grave acquisition. It also found that a generic status, note, or unexplained
@@ -237,7 +271,9 @@ The offline slice implements deterministic review ordering under these rules:
 The typed result contains the rank, candidate count, algorithm version, signal
 summary, material-conflict count, unknown count, and complete signal explanations.
 A raw score may exist internally or in an expanded diagnostic result, but ordinary
-presentation leads with evidence counts and conflicts rather than a percentage.
+presentation leads with a comparison summary: material conflicts, unknowns,
+dependence and source limitations, and the explanations behind each signal. Counts,
+when shown, are an inventory and never a substitute for evidentiary weight.
 
 The complete comparison context also identifies the exact input snapshots and
 assertions, original and normalized representations, applied rule identifiers and

@@ -31,6 +31,11 @@ a Grave and prevents unattended bulk enrichment. In graver's exact vocabulary, a
 dated saved snapshot is an **observation**, and the summary of what one operation
 stored is an **acquisition receipt**.
 
+![The researcher journey from choosing a research file through deliberate retrieval and researcher evaluation](assets/researcher-journey.svg)
+
+Step labels and notes distinguish local work, live website contact, retained history,
+and researcher decisions. Color is only a visual aid.
+
 ## 1. Verify the installation
 
 These commands are offline:

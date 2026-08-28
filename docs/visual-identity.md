@@ -51,7 +51,7 @@ Human judgment owns the final geometry, meaning, licensing decision, and approva
 
 ## First documentation diagrams
 
-The first visual slice should contain three small, purposeful diagrams:
+The first visual slice contains three small, purposeful diagrams:
 
 1. **The researcher journey:** the current Find a Grave path from choosing a research
    file through bounded acquisition, review, and researcher-directed next actions.
@@ -61,6 +61,11 @@ The first visual slice should contain three small, purposeful diagrams:
 3. **Client architecture:** the supported operational CLI and future preferred
    desktop product sharing the typed graver engine application layer without
    implying equal user-experience roles.
+
+The SVG sources live in `docs/assets/` and are embedded beside their
+fuller text explanations in the tutorial, evidence architecture, and developer API
+guide. Their text alternatives describe the material relationships without relying
+on color or visual layout.
 
 Use Mermaid for diagrams whose structure changes frequently and reviewed SVG for
 stable researcher-facing graphics. Every diagram requires nearby explanatory text,
