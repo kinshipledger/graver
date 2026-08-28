@@ -36,6 +36,12 @@ The [acquisition-scope and citation guide](acquisition-scope.md) defines what
 summary and full acquisition retain, what `full` does not promise, and what a
 responsible citation or external research log must still supply.
 
+The [advanced research model](evidence-assessment-architecture.md) explains how
+candidate hypotheses, comparisons, conflicts, researcher assessments, and identity
+conclusions remain separate. Its opening availability summary distinguishes the
+current researcher workflow from an implemented internal contract and future work;
+it is not an additional engine-1.0 tutorial step.
+
 ## Trust, privacy, and responsible access
 
 The [access policy](access-policy.md) defines current project governance for
