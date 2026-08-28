@@ -17,6 +17,17 @@ It cannot create, modify, or imply an accepted genealogical identity conclusion.
 Only an explicit reviewed decision may establish or withdraw an accepted external
 identity association.
 
+### Availability at engine 1.0
+
+- **Available to researchers now:** provenance-aware Find a Grave acquisition,
+  dated observations, and the researcher-directed work queue through the supported
+  command line.
+- **Implemented internally but not yet exposed as a primary researcher workflow:**
+  candidate discovery, comparison, assessment, and identity conclusions exercised
+  through curated offline fixtures and typed application services.
+- **Future or outside this milestone:** live FamilySearch access, a production
+  desktop interface, automatic conclusions, and general-purpose family-tree writes.
+
 ![A fictional research question correlated with supporting, conflicting, and unclear evidence before a researcher-authored conclusion](assets/evidence-reasoning.svg)
 
 The fictional example demonstrates the contract in researcher language. It does
@@ -46,9 +57,10 @@ fixtures. It adds neither live FamilySearch access nor a production GUI.
 
 ## Context
 
-The research subject introduced in schema v2 is an opaque owner of person-level
-research. Find a Grave memorials remain source records associated with that subject;
-their presence does not by itself constitute a cross-platform identity conclusion.
+The research subject introduced in schema v2 is an organizational container for
+one person's research. Find a Grave memorials remain source records associated with
+that subject; their presence does not by itself constitute a cross-platform
+identity conclusion.
 
 The professional usability review found that the visible workflow ends after Find a
 Grave acquisition. It also found that a generic status, note, or unexplained
@@ -259,7 +271,9 @@ The offline slice implements deterministic review ordering under these rules:
 The typed result contains the rank, candidate count, algorithm version, signal
 summary, material-conflict count, unknown count, and complete signal explanations.
 A raw score may exist internally or in an expanded diagnostic result, but ordinary
-presentation leads with evidence counts and conflicts rather than a percentage.
+presentation leads with a comparison summary: material conflicts, unknowns,
+dependence and source limitations, and the explanations behind each signal. Counts,
+when shown, are an inventory and never a substitute for evidentiary weight.
 
 The complete comparison context also identifies the exact input snapshots and
 assertions, original and normalized representations, applied rule identifiers and
