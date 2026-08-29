@@ -21,7 +21,11 @@ acquisition and stores research in a local SQLite database.
 The current model trusts the operating-system account that runs graver. It does
 not defend a database from an attacker who already controls that account or the
 machine. Hosted services, shared databases, untrusted plugin execution, and a GUI
-would create new boundaries and require a new review before release.
+would create new boundaries and require a new review before release. Any future
+small-team or shared-workspace capability must separately re-threat-model identity
+and authentication, organization/workspace/case isolation, role authorization,
+provider-credential ownership, auditability, concurrent edits, sharing and export,
+remote synchronization, and incident response before it is offered to researchers.
 
 ## Assets
 

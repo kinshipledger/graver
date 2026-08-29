@@ -40,6 +40,27 @@ machine values and implementation concepts belong in secondary detail. Developer
 facing artifacts may use precise technical vocabulary but must not be mistaken for
 onboarding material.
 
+## Future full-workflow governance
+
+Before graver freezes post-engine case, question, target, conclusion, deliverable,
+or decision-support contracts, the project must validate them against real
+professional research work rather than derive them only from software, standards,
+or provider records. The review must examine how researchers frame and prioritize
+work, move among tools and artifacts, recover after interruption, record uncertainty
+and negative work, determine next actions, and prepare client-facing outcomes.
+
+The resulting artifacts must distinguish observed workflow evidence, explicitly
+tested product hypotheses, and unvalidated aspirations. Future GUI and engine
+acceptance requires evidence that a proposed flow reduces material friction without
+obscuring provenance, source limitations, uncertainty, professional judgment, or
+researcher control.
+
+Any future shared-workspace or small-team workflow adds a focused review of roles,
+case and client boundaries, audit history, conflict handling, external-provider
+credentials, and accountable review. A multi-user capability cannot be inferred to
+be safe merely because the solo workflow uses immutable history or stale-write
+protection.
+
 ## Governing rule
 
 > A professional-researcher review gate is complete only when the review occurred

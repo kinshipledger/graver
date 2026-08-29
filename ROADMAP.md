@@ -63,6 +63,12 @@ for graver engine 1.0.
   operate research work; sources that discover, observe, or import material; and
   projections that produce purpose-specific outputs. Validate each contract through
   a bounded vertical slice before declaring it public and stable.
+- Research and validate the real professional workflow before freezing the next
+  engine or GUI vocabulary. Model work around cases, research questions,
+  question-defined targets, durable source observations, researcher assessment,
+  conclusions, next actions, and later deliverables—not around whichever provider
+  record happens to be found first. Test proposed flows against ordinary
+  professional context-switching, interruption, resumption, and client-work needs.
 - Begin the production desktop product with database/workspace selection, the
   research queue, person detail, acquisition receipts, and provenance review.
 - Define a bounded source-neutral research-reasoning foundation for researcher
@@ -80,6 +86,10 @@ for graver engine 1.0.
   application services used by the desktop interface. The CLI remains useful for
   administration, automation, recovery, advanced use, and testing; the desktop is
   intended to become the preferred everyday researcher experience.
+- Keep the solo-researcher experience first class while preserving a path to small,
+  trusted research teams. Do not build accounts or shared hosting until justified,
+  but do not freeze ownership, audit, authorization, credential, or concurrency
+  assumptions that make case-scoped collaboration unsafe to add later.
 
 ## Later compatible development
 
@@ -93,6 +103,10 @@ for graver engine 1.0.
   earlier snapshots.
 - Keep machine ordering explainable and separate from confidence, proof, and
   researcher-authored same-person conclusions.
+- Evaluate researcher-controlled, explainable **best-next-action** support after
+  the workflow model and evidence contract are validated. Recommendations must
+  expose their basis, uncertainty, expected cost or consequence, and alternatives;
+  they may not silently acquire data, change research state, or create conclusions.
 - Consider WikiTree reconciliation only after the FamilySearch research workflow
   demonstrates value and preserves evidence and decision history.
 
@@ -106,6 +120,9 @@ for graver engine 1.0.
 - Additional purpose-specific projections, family work packets, and broader
   relationship-aware workflows after the question-centered person-level research
   journey is proven usable.
+- Small-team collaboration only after a dedicated security, privacy, authorization,
+  audit, ownership, and concurrency review demonstrates a safe professional-workflow
+  value proposition.
 
 These items are deliberately conditional. graver is not trying to become a
 universal genealogy suite or infer relationships merely because software can draw
