@@ -182,7 +182,13 @@ print(receipt.observations_appended, receipt.memorials_created)
 Tests and authorized adapters may inject a callable returning a
 `MemorialSummaryBatch` of `MemorialSummaryInput` values. Persistence remains owned
 by graver and occurs only after acquisition and cancellation checks succeed. A
-batch containing duplicate memorial IDs is rejected before mutation.
+batch containing duplicate memorial IDs raises
+`MemorialSearchResultConflict` before mutation. Its bounded context reports result
+and unique-result counts, repeated IDs, requested ordering, and result limit. This
+can occur when a mutable provider changes or returns an unstable order across page
+boundaries. The client should preserve the failure and let the researcher choose a
+different ordering or a smaller bound; silently discarding repeated rows could hide
+other memorials skipped by the same traversal.
 
 `workspace.acquisition.enrich()` performs one explicitly approved memorial operation.
 Its optional acquisition callable returns a `MemorialDetailInput`, including any

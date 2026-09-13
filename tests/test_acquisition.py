@@ -14,6 +14,7 @@ from graver.application import (
     CancellationToken,
     DatabaseBusy,
     MemorialSearchFailed,
+    MemorialSearchResultConflict,
     MemorialSummaryBatch,
     MemorialSummaryInput,
     MemorialSummarySearchRequest,
@@ -119,14 +120,55 @@ def test_summary_search_rejects_duplicate_batch_before_persistence(tmp_path) -> 
     workspace = open_workspace(database)
     summary = _george_summary()
 
-    with pytest.raises(ResearchInputError):
+    command = MemorialSummarySearchRequest(order_by="dc", max_results=40)
+    with pytest.raises(MemorialSearchResultConflict) as failure:
         workspace.acquisition.search(
-            MemorialSummarySearchRequest(),
+            command,
             acquire=lambda _command: MemorialSummaryBatch((summary, summary)),
         )
 
+    assert failure.value.code == "acquisition_result_conflict"
+    assert failure.value.context == {
+        "operation": "search_memorial_summaries",
+        "result_count": 2,
+        "unique_result_count": 1,
+        "duplicate_row_count": 1,
+        "duplicate_memorial_ids": (1075,),
+        "duplicate_memorial_ids_truncated": False,
+        "order_by": "dc",
+        "max_results": 40,
+        "page": None,
+    }
+    assert "no summaries were saved" in failure.value.summary
+
     with connect_database(database) as connection:
         assert connection.execute("SELECT COUNT(*) FROM graves").fetchone()[0] == 0
+
+
+def test_summary_search_bounds_duplicate_context(tmp_path) -> None:
+    """A malformed large result cannot create an unbounded error payload."""
+    database = create_database(str(tmp_path / "research.db"))
+    workspace = open_workspace(database)
+    first = _george_summary()
+    summaries = tuple(
+        dataclasses.replace(
+            first,
+            memorial_id=memorial_id,
+            findagrave_url=f"https://example.invalid/memorial/{memorial_id}",
+        )
+        for memorial_id in range(1, 22)
+        for _ in range(2)
+    )
+
+    with pytest.raises(MemorialSearchResultConflict) as failure:
+        workspace.acquisition.search(
+            MemorialSummarySearchRequest(max_results=42),
+            acquire=lambda _command: MemorialSummaryBatch(summaries),
+        )
+
+    assert len(failure.value.context["duplicate_memorial_ids"]) == 20
+    assert failure.value.context["duplicate_memorial_ids_truncated"] is True
+    assert len(failure.value.duplicate_memorial_ids) == 21
 
 
 def test_summary_search_rolls_back_the_complete_batch_on_persistence_failure(

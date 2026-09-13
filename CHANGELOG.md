@@ -18,6 +18,12 @@ compatibility, security, deprecation, or known-issue notes before merging it.
   summary, and an explicit non-proof qualification for displayed relationship
   links. Typed application clients receive the same structured context while the
   existing CLI JSON projection remains compatible.
+- Multi-page summary acquisition now returns a bounded, typed result-conflict error
+  when provider pagination repeats memorial IDs. The complete batch remains
+  unpersisted, and clients receive the counts, repeated IDs, ordering, and result
+  limit needed for an explicit recovery choice.
+- Summary parsing accepts the current provider's plot label with or without a space
+  after the colon, preventing presentation text from entering the stored plot value.
 
 ## [1.0.0-rc.1](https://github.com/kinshipledger/graver/compare/v0.1.0...v1.0.0-rc.1) (2026-08-25)
 

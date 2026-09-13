@@ -2321,9 +2321,14 @@ class _SearchWorker:
                     cem_location = " ".join(cem_location.split())
                     mem["burial_place"] = f"{cem_name}, {cem_location}"
                 if (p := p.find_next_sibling("p")) is not None:
-                    mem["plot"] = p.get_text(strip=True).replace("Plot info:", "")
+                    mem["plot"] = self.normalize_summary_plot(p.get_text(strip=True))
         elif tag.p is not None:
-            mem["plot"] = tag.p.get_text(strip=True).replace("Plot info: ", "")
+            mem["plot"] = self.normalize_summary_plot(tag.p.get_text(strip=True))
+
+    @staticmethod
+    def normalize_summary_plot(value: str) -> str:
+        """Remove the provider's plot label with or without following space."""
+        return re.sub(r"^Plot info:\s*", "", value)
 
     def scrape_results_page(
         self, page_soup: BeautifulSoup, cemetery=None, max_results=0
