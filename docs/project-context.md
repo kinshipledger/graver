@@ -1302,37 +1302,44 @@ Post-1.0 compatible sequence:
    projection contracts; specify ownership, typed inputs and results, errors,
    cancellation, transactions, provenance, versioning, and compatibility; and use
    bounded contract tests to identify what is experimental, supported, or stable.
-   Do not create a universal plugin framework or freeze abstractions without a
-   demonstrated consumer.
+   Timebox the pass around the first GUI and source consumers; avoid a universal
+   plugin framework or abstractions that lack a demonstrated consumer.
 26. Begin the production desktop GUI with workspace/database lifecycle, work queue,
-   subject detail, and one-person acquisition/provenance review. Apply the formal
+   intake review, subject detail, source/provenance inspection, case or question
+   linkage, researcher disposition, visible refresh status, and durable pause/resume
+   context. The first synthetic slice must be followed by a real inbound lane before
+   the GUI is called an everyday-researcher MVP. Apply the formal
    front-end review cadence: information architecture before navigation freeze,
    interaction/continuity review on a clickable prototype, and visual-system and
    accessibility review before production layout freeze. Before adopting a GUI
    toolkit or binding, complete a dependency-license, packaging, distribution, and
    supported-platform compliance review; record only the resulting public technical
    constraints in the development project.
-27. Define and professionally review the bounded source-neutral question,
+27. Compose the minimum source-neutral intake and evidence services required by the
+   GUI. Exercise Ancestry correspondence and the existing Find a Grave workflow as
+   the leading heterogeneous source slices while keeping provider behavior in
+   bounded adapters.
+28. Define and professionally review the bounded source-neutral question,
    hypothesis, evidence-correlation, analysis, conclusion, and projection contract.
    Start with researcher-readable research reports and evidence matrices as
    candidate projection exercises; do not commit to every destination format.
-28. Connect an authorized live FamilySearch adapter to the already validated
+29. Connect an authorized live FamilySearch adapter to the already validated
    candidate, evidence, assessment, and conclusion application services. Live data
    must not redefine the offline-tested domain semantics.
-29. Implement import-first bulk acquisition for the smallest demonstrated authorized
+30. Implement import-first bulk acquisition for the smallest demonstrated authorized
    formats not already supported in 1.0.
-30. Add provider-authorized background acquisition only after a repeated policy and
+31. Add provider-authorized background acquisition only after a repeated policy and
    permission review; production GUI scheduling uses the same durable job service.
-31. Extend GUI and CLI evidence-research workflows over those services.
-32. Complete professional review gate R3 by repeating the original professional
+32. Extend GUI and CLI evidence-research workflows over those services.
+33. Complete professional review gate R3 by repeating the original professional
    usability audit against the production evidence workflow. Resolve or explicitly
    accept every blocking finding before claiming production readiness or expanding
    into WikiTree and family workflows. Pair R3 with a broader pre-release UX and
    accessibility review rather than treating genealogical acceptance as the only
    front-end quality gate.
-33. Add WikiTree reconciliation, evidence summaries, and family work packets.
-34. Extend the production GUI across the complete reviewed research workflow.
-35. After the GUI work-queue vertical slice has been road-tested, re-evaluate GEDCOM
+34. Add WikiTree reconciliation, evidence summaries, and family work packets.
+35. Extend the production GUI across the complete reviewed research workflow.
+36. After the GUI work-queue vertical slice has been road-tested, re-evaluate GEDCOM
     using concrete researcher needs. Only if justified, begin immutable GEDCOM 7 and
     5.5.1 inspection and repeatable comparison; reviewed mappings, relationships,
     and privacy-filtered selective export remain separately approved later stages.
