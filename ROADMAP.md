@@ -37,10 +37,13 @@ guardrails for later integrations. It does not freeze untested source or project
 APIs, and it is not a claim that the later professional desktop product is complete.
 
 - Resolve bounded release-candidate feedback and decision-safety findings.
-- Establish the first reviewed graver icon and a small visual system before the
-  project identity is propagated across organization and distribution surfaces.
+- Preserve a bounded graver icon workstream with its own human and production gates.
+  Engine 1.0 may retain its text identity while an unvalidated custom icon remains
+  private; later icon adoption requires the recorded review and rights checks.
 - Add the initial researcher workflow, evidence reasoning, and client-architecture
-  diagrams without making the documentation dependent on graphics alone.
+  diagrams without making the documentation dependent on graphics alone. Record
+  the validation level accurately and revisit independent comprehension evidence
+  when qualified reviewers or material user feedback become available.
 - Make database targeting, acquisition receipts, recovery guidance, and retained
   data scope unmistakable to researchers.
 - Stabilize the documented CLI, Python API, JSON, database migration, packaging,
@@ -54,28 +57,32 @@ for graver engine 1.0.
 
 ## Professional researcher product after engine 1.0
 
-- Publish a minimal, accessible static project website that directs researchers to
-  authoritative installation, tutorial, release, feedback, security, privacy, and
-  responsible-access resources without duplicating the documentation source of
-  truth or introducing visitor tracking.
 - Define and stage graver's **integration architecture** before substantial desktop
   or provider expansion. Keep three boundaries distinct: clients that present and
   operate research work; sources that discover, observe, or import material; and
   projections that produce purpose-specific outputs. Validate each contract through
-  a bounded vertical slice before declaring it public and stable.
+  a bounded vertical slice before declaring it public and stable. Keep this pass
+  timeboxed and driven by the first graphical client and source consumer.
+- Make a minimum viable graphical workspace the first everyday-researcher product
+  milestone. It should cover workspace selection, an intake and research queue,
+  source and provenance inspection, case or question linkage, researcher
+  disposition, a durable pause/resume state, and visible bounded import or refresh
+  status.
 - Research and validate the real professional workflow before freezing the next
   engine or GUI vocabulary. Model work around cases, research questions,
   question-defined targets, durable source observations, researcher assessment,
-  conclusions, next actions, and later deliverables—not around whichever provider
-  record happens to be found first. Test proposed flows against ordinary
+  conclusions, next actions, and later deliverables. Prevent any provider record
+  type from becoming the default research model. Test proposed flows against ordinary
   professional context-switching, interruption, resumption, and client-work needs.
-- Begin the production desktop product with database/workspace selection, the
-  research queue, person detail, acquisition receipts, and provenance review.
 - Define a bounded source-neutral research-reasoning foundation for researcher
   questions, candidate hypotheses, evidence correlation, conflicts, authored
   analysis, and the researcher's reviewed conclusions. Validate the contract with
   realistic professional-research scenarios before freezing persistence or GUI
   vocabulary.
+- Admit source-specific discovery, correspondence, observation, and import through
+  bounded adapters over the source contract. Use Ancestry correspondence and the
+  existing Find a Grave workflow as the leading heterogeneous real-world slices;
+  expand to FamilySearch and WikiTree one validated surface at a time.
 - Prototype purpose-specific projections from that durable research record, starting
   with the highest-value researcher needs rather than committing immediately to
   every tree, report, interchange, or publishing format.
@@ -84,8 +91,12 @@ for graver engine 1.0.
   develops.
 - Preserve the command line as a supported operational client over the same
   application services used by the desktop interface. The CLI remains useful for
-  administration, automation, recovery, advanced use, and testing; the desktop is
-  intended to become the preferred everyday researcher experience.
+  administration, automation, recovery, advanced use, and testing. The graphical
+  workspace carries the everyday researcher workflow.
+- Publish a minimal, accessible static project website when it can direct
+  researchers to authoritative product, installation, feedback, security, privacy,
+  and responsible-access resources without duplicating their sources of truth or
+  delaying the graphical research milestone.
 - Keep the solo-researcher experience first class while preserving a path to small,
   trusted research teams. Do not build accounts or shared hosting until justified,
   but do not freeze ownership, audit, authorization, credential, or concurrency
