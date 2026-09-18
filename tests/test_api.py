@@ -1539,6 +1539,21 @@ class TestMemorialAliases:
 
 class TestSearch(TestApi):
     @pytest.mark.parametrize(
+        "provider_text, expected",
+        [("Plot info: F5182", "F5182"), ("Plot info:F5182", "F5182")],
+    )
+    def test_summary_plot_accepts_current_label_spacing(
+        self, provider_text, expected
+    ) -> None:
+        worker = graver.api._SearchWorker()
+        tag = BeautifulSoup(f"<div><p>{provider_text}</p></div>", "html.parser").div
+        memorial = {"plot": None}
+
+        worker.scrape_memorial_cemetery_info(tag, memorial)
+
+        assert memorial["plot"] == expected
+
+    @pytest.mark.parametrize(
         "html, message",
         [
             ("<div></div>", "no memorial link"),

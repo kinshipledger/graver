@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from collections import Counter
 from dataclasses import dataclass
 from typing import Callable, Optional
 
@@ -22,6 +23,7 @@ __all__ = (
     "AcquisitionFieldChange",
     "AcquisitionReceipt",
     "MemorialSearchFailed",
+    "MemorialSearchResultConflict",
     "MemorialSummaryBatch",
     "MemorialSummaryInput",
     "MemorialSummarySearchRequest",
@@ -52,6 +54,50 @@ class MemorialSearchFailed(ApplicationError):
             context={
                 "operation": "search_memorial_summaries",
                 "error_type": self.error_type,
+            },
+        )
+
+
+class MemorialSearchResultConflict(ApplicationError):
+    """Report repeated memorial IDs in one acquired summary result.
+
+    Multi-page provider searches can repeat a memorial across unstable page
+    boundaries. The complete batch remains unpersisted because dropping the
+    repeated rows could conceal other memorials skipped by the same traversal.
+    """
+
+    code = "acquisition_result_conflict"
+    _MAX_REPORTED_IDS = 20
+
+    def __init__(
+        self,
+        memorial_ids: tuple[int, ...],
+        command: "MemorialSummarySearchRequest",
+    ) -> None:
+        counts = Counter(memorial_ids)
+        duplicate_ids = tuple(
+            sorted(memorial_id for memorial_id, count in counts.items() if count > 1)
+        )
+        reported_ids = duplicate_ids[: self._MAX_REPORTED_IDS]
+        self.result_count = len(memorial_ids)
+        self.unique_result_count = len(counts)
+        self.duplicate_row_count = self.result_count - self.unique_result_count
+        self.duplicate_memorial_ids = duplicate_ids
+        super().__init__(
+            "The search returned repeated memorial IDs; no summaries were saved. "
+            "Choose a different result order or a smaller maximum before trying "
+            "again.",
+            context={
+                "operation": "search_memorial_summaries",
+                "result_count": self.result_count,
+                "unique_result_count": self.unique_result_count,
+                "duplicate_row_count": self.duplicate_row_count,
+                "duplicate_memorial_ids": reported_ids,
+                "duplicate_memorial_ids_truncated": len(duplicate_ids)
+                > len(reported_ids),
+                "order_by": command.order_by,
+                "max_results": command.max_results,
+                "page": command.page,
             },
         )
 
@@ -323,7 +369,7 @@ class SummaryAcquisitionService:
             raise MemorialSearchFailed(error) from error
         memorial_ids = tuple(item.memorial_id for item in retrieved.batch.memorials)
         if len(memorial_ids) != len(set(memorial_ids)):
-            raise ResearchInputError("A summary search returned duplicate memorial IDs")
+            raise MemorialSearchResultConflict(memorial_ids, command)
         token.raise_if_cancelled(operation, "persistence")
         if progress is not None:
             progress(ProgressEvent(operation, "persistence", 0, len(memorial_ids)))

@@ -40,6 +40,7 @@ EXPECTED_PUBLIC_NAMES = {
     "EvidenceService",
     "GraverWorkspace",
     "MemorialSearchFailed",
+    "MemorialSearchResultConflict",
     "MemorialDetailInput",
     "MemorialSummaryBatch",
     "MemorialSummaryInput",

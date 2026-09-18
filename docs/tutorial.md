@@ -271,6 +271,7 @@ network access, and never contacts Find a Grave.
 | Database requires explicit upgrade | Preserve the reported path and run `graver admin database upgrade DATABASE` only when you intend to create a backup and migrate that database. |
 | Backup collision during upgrade | Stop and inspect the reported database and backup paths. graver will not overwrite the existing backup or begin migration. Preserve both files and consult the upgrade guide before deliberately changing either one. |
 | No search results | Recheck the current `graver search --help`, try a known memorial ID or narrow cemetery query, and keep the result limit small. Do not loop rapid retries. |
+| Search reports repeated memorial IDs | No summaries were saved. A mutable provider order may have crossed page boundaries. Preserve the error, then deliberately choose a different `--order-by` value or a smaller `--max-results`; do not assume that dropping repeated rows would yield a complete result. |
 | Cloudflare challenge or access block | Stop. Wait and use Find a Grave normally in a browser if appropriate; do not repeatedly automate retries. |
 | Timeout or Find a Grave outage | Stop and try later. Offline commands can still inspect already persisted work. |
 | Empty work queue | Confirm the search persisted a summary, confirm the selected database with `use --show`, then run `work queue`. |
