@@ -11,8 +11,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 SCOPE_PATH = ROOT / "docs" / "documentation-scope.json"
-PASS_FIXTURE = "maintenance/vale-fixtures/pass.md"
-FAIL_FIXTURE = "maintenance/vale-fixtures/fail.md"
+POSITIVE_FIXTURE = "maintenance/vale-fixtures/pass.md"
+NEGATIVE_FIXTURE = "maintenance/vale-fixtures/fail.md"
 VALE_REPOSITORY = "https://github.com/vale-cli/vale"
 VALE_RELEASE = "3.22.0"
 VALE_REVISION = "e109c06297dc58a513f10691a275f3a9465584a1"
@@ -21,7 +21,9 @@ EXPECTED_FAILURE_RULES = {"Graver.Headings", "Graver.Terms"}
 
 def run(*args: str, expect_success: bool = True) -> subprocess.CompletedProcess[str]:
     """Run a repository command and return its captured result."""
-    result = subprocess.run(
+    # Every executable and argument source is fixed below or comes from the
+    # checked-in documentation inventory; no user input reaches this boundary.
+    result = subprocess.run(  # noqa: S603
         args,
         cwd=ROOT,
         check=False,
@@ -116,7 +118,9 @@ def check_vale_pin() -> None:
             f"{VALE_REVISION}."
         )
 
-    result = run_hook("vale-version", PASS_FIXTURE, hook_stage="manual", verbose=True)
+    result = run_hook(
+        "vale-version", POSITIVE_FIXTURE, hook_stage="manual", verbose=True
+    )
     if result.returncode != 0 or not re.search(
         r"(?m)^vale version \S+\s*$", result.stdout
     ):
@@ -126,12 +130,12 @@ def check_vale_pin() -> None:
 
 def check_fixtures() -> None:
     """Prove legitimate examples pass and violations exercise every rule."""
-    passing = run_hook("vale-fixture", PASS_FIXTURE, hook_stage="manual")
+    passing = run_hook("vale-fixture", POSITIVE_FIXTURE, hook_stage="manual")
     if passing.returncode != 0:
         print(passing.stdout, end="")
         raise SystemExit("Vale positive fixture failed.")
 
-    failing = run_hook("vale-fixture", FAIL_FIXTURE, hook_stage="manual")
+    failing = run_hook("vale-fixture", NEGATIVE_FIXTURE, hook_stage="manual")
     observed = {rule for rule in EXPECTED_FAILURE_RULES if rule in failing.stdout}
     if failing.returncode == 0 or observed != EXPECTED_FAILURE_RULES:
         print(failing.stdout, end="")
