@@ -1,6 +1,6 @@
-# graver roadmap
+# Graver roadmap
 
-This roadmap shows the public direction of the graver research engine and the later
+This roadmap shows the public direction of the Graver research engine and the later
 professional researcher product in broad stages. It is not a calendar or a promise
 that every later idea will ship. Researcher feedback, professional review, security
 and privacy findings, provider authorization, and measured implementation evidence
@@ -29,15 +29,15 @@ outside this repository.
 The fixtures above do **not** constitute a live FamilySearch connection, candidate
 search, or production identity-matching workflow.
 
-## Stabilizing the graver engine for final 1.0
+## Stabilizing the Graver engine for final 1.0
 
-Final graver 1.0 is the stable engine finish line: core research behavior, workflow
+Final Graver 1.0 is the stable engine finish line: core research behavior, workflow
 rules, database lifecycle, CLI, current application API, and architectural
 guardrails for later integrations. It does not freeze untested source or projection
 APIs, and it is not a claim that the later professional desktop product is complete.
 
 - Resolve bounded release-candidate feedback and decision-safety findings.
-- Preserve a bounded graver icon workstream with its own human and production gates.
+- Preserve a bounded Graver icon workstream with its own human and production gates.
   Engine 1.0 may retain its text identity while an unvalidated custom icon remains
   private; later icon adoption requires the recorded review and rights checks.
 - Add the initial researcher workflow, evidence reasoning, and client-architecture
@@ -53,11 +53,11 @@ APIs, and it is not a claim that the later professional desktop product is compl
   workflow or evidence meaning.
 
 The production desktop product and live FamilySearch integration are not required
-for graver engine 1.0.
+for Graver engine 1.0.
 
 ## Professional researcher product after engine 1.0
 
-- Define and stage graver's **integration architecture** before substantial desktop
+- Define and stage Graver's **integration architecture** before substantial desktop
   or provider expansion. Keep three boundaries distinct: clients that present and
   operate research work; sources that discover, observe, or import material; and
   projections that produce purpose-specific outputs. Validate each contract through
@@ -135,7 +135,7 @@ for graver engine 1.0.
   audit, ownership, and concurrency review demonstrates a safe professional-workflow
   value proposition.
 
-These items are deliberately conditional. graver is not trying to become a
+These items are deliberately conditional. Graver is not trying to become a
 universal genealogy suite or infer relationships merely because software can draw
 an enthusiastic line between two names.
 

@@ -9,7 +9,7 @@ decision, not legal advice or a claim that any particular use is legally permitt
 
 ## Decision
 
-graver will retain its bounded, researcher-directed Find a Grave operations:
+Graver will retain its bounded, researcher-directed Find a Grave operations:
 
 - one explicitly submitted summary search; and
 - one full-record enrichment for a memorial whose research task the researcher has
@@ -19,12 +19,12 @@ These operations remain fail-closed and subject to the provider's current terms,
 technical controls, and the researcher's responsibilities. Their presence does not
 create permission for systematic collection.
 
-graver will **not** implement or enable unattended, scheduled, or background Find a
+Graver will **not** implement or enable unattended, scheduled, or background Find a
 Grave acquisition for `1.0.0rc1`. The project has no documented official API,
 written permission, licensed dataset, or other authorization basis for that
 operation. Request spacing, jitter, budgets, and retries would not cure that gap.
 
-graver will also defer a public background-job engine and public import API until a
+Graver will also defer a public background-job engine and public import API until a
 concrete, authorized workflow needs them. Freezing provider-neutral abstractions in
 the absence of a permitted adapter would create speculative compatibility rather
 than user value. This deferral does not prevent the current database upgrade path,

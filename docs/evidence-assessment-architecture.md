@@ -8,7 +8,7 @@ analysis
 
 ## Decision summary
 
-graver models external candidates, source observations, comparison signals,
+Graver models external candidates, source observations, comparison signals,
 researcher assessments, and identity conclusions as separate concepts linked to a
 research subject.
 

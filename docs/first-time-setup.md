@@ -1,18 +1,18 @@
 # First-time setup for researchers
 
-This guide is for genealogical researchers who want to use graver locally and do
+This guide is for genealogical researchers who want to use Graver locally and do
 not routinely work with Python or command-line tools. You do not need to understand
 Python, SQLite, or software development to follow it.
 
 ## Four terms before you begin
 
-**Terminal** means the text-based application where you type graver commands. On
+**Terminal** means the text-based application where you type Graver commands. On
 macOS, open **Terminal**; on Windows, open **PowerShell**; on Linux, open your usual
 terminal application. A command runs only after you type or paste it and press
 Enter.
 
-**uv** is the installer and tool manager used to install graver. It can obtain a
-compatible Python runtime for graver, keep graver separate from other applications,
+**uv** is the installer and tool manager used to install Graver. It can obtain a
+compatible Python runtime for Graver, keep Graver separate from other applications,
 and place the `graver` command where your terminal can find it. You do not otherwise
 need to use or learn Python.
 
@@ -22,20 +22,20 @@ PowerShell says that `graver` is not recognized, uv can add its tool directory t
 that list. Run `uv tool update-shell`, follow its message, close the terminal, and
 open it again.
 
-**Local database** means the single file where graver stores the acquired memorial
+**Local database** means the single file where Graver stores the acquired memorial
 records, dated observations, research queue, notes, and history for that project.
 The database uses SQLite internally, but you do not need SQLite software for the
-ordinary graver workflow. Treat this file as research material: know where it is,
+ordinary Graver workflow. Treat this file as research material: know where it is,
 back it up, and do not publish it without reviewing it for private information.
 
 ## What installation changes
 
 Installing the release candidate with uv:
 
-- installs graver for your user account in an isolated tool environment;
+- installs Graver for your user account in an isolated tool environment;
 - installs or selects a compatible Python runtime for that environment when needed;
 - makes the `graver` command available to your terminal; and
-- records enough tool information for uv to upgrade or uninstall graver later.
+- records enough tool information for uv to upgrade or uninstall Graver later.
 
 Installation does **not**:
 
@@ -43,7 +43,7 @@ Installation does **not**:
 - contact Find a Grave or another genealogy provider;
 - upload genealogy data, create an account, or enable cloud synchronization;
 - change an existing family tree, GEDCOM file, or research database; or
-- install the graver source code and contributor test tools in your working folder.
+- install the Graver source code and contributor test tools in your working folder.
 
 The first database file is created only when you deliberately run `graver init`.
 Live provider access occurs only when you later run a live acquisition command such
@@ -64,7 +64,7 @@ uv --version
 If the command is not found, return to the uv installation instructions before
 continuing.
 
-## Install and verify graver
+## Install and verify Graver
 
 Install the published release candidate:
 
@@ -95,7 +95,7 @@ intend to back up. For a practice run, the tutorial uses a new folder named
 graver init tutorial.db
 ```
 
-creates `tutorial.db` in that folder and selects it as the active database. graver
+creates `tutorial.db` in that folder and selects it as the active database. Graver
 prints the full path after creation. Confirm it at any time with:
 
 ```shell

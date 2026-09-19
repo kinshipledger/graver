@@ -34,7 +34,7 @@ tagged `v1.0.0-rc.1` and distributed as `graver-genealogy==1.0.0rc1`.
 
 The only configured Git remote is `origin`, pointing to
 `https://github.com/kinshipledger/graver.git`. The obsolete local `upstream` remote to
-`pirtleshell/scrape-a-grave` was removed on 2026-08-22, and GitHub presents graver as
+`pirtleshell/scrape-a-grave` was removed on 2026-08-22, and GitHub presents Graver as
 an independent repository rather than a fork. The Git history nevertheless begins
 with Robert Pirtle's 2016 MIT-licensed commits and later refactors descend from that
 work. The applicable historical copyright notice therefore remains in `LICENSE`;
@@ -49,7 +49,7 @@ notice is not planned.
 - `search` queries Find a Grave's memorial search, including a cemetery ID option,
   name/date/location filters, and pagination. Search results are represented as
   `MemorialSummary` objects and persisted to the selected SQLite database before a
-  concise acquisition receipt is presented. graver creates no persistent log by
+  concise acquisition receipt is presented. Graver creates no persistent log by
   default.
 - `init [DATABASE]` exclusively creates a new complete current-schema database,
   validates it, and saves its absolute path as the default. It defaults to
@@ -78,7 +78,7 @@ notice is not planned.
   the same application for supported `python -m graver` execution. Direct
   execution of the implementation module `graver.cli` is not a public contract.
 
-graver currently has no durable background-job engine, scheduler, or unattended
+Graver currently has no durable background-job engine, scheduler, or unattended
 bulk-enrichment mode. Full memorial enrichment is intentionally person-at-a-time and
 requires the current task approval. Search-summary acquisition does not authorize or
 enable mass full-page enrichment. Provider permission for unattended Find a Grave
@@ -115,11 +115,11 @@ version 2.7.0 artifacts published 2025-05-27 and transitive dependencies on Requ
 requests-toolbelt, js2py, PyCryptodome, pyOpenSSL, pyparsing, and websocket-client.
 The package metadata advertises challenge and Turnstile handling, browser/user-agent
 emulation, stealth and proxy features, fingerprint behavior, JavaScript
-interpreters, and CAPTCHA-service integrations. graver does not configure those
+interpreters, and CAPTCHA-service integrations. Graver does not configure those
 features explicitly, but default scraper construction enables automatic challenge
 handling.
 
-Current graver tests require only a Requests-compatible injectable session and
+Current Graver tests require only a Requests-compatible injectable session and
 ordinary retry, error, response, and parser behavior. They do not demonstrate a
 need for challenge handling, proxy rotation, browser impersonation, CAPTCHA support,
 fingerprint manipulation, or any other unique package capability. The installed
@@ -159,13 +159,13 @@ not evidence normalization.
 The live Requests transport now bounds every final and redirect response body to
 8 MiB. It checks a valid declared length before reading and otherwise streams in
 64 KiB chunks, stops as soon as the limit is exceeded, closes the response, and
-raises a graver-owned typed transport error before parsing or persistence.
+raises a Graver-owned typed transport error before parsing or persistence.
 No hosted service, account system, telemetry, remote synchronization, database
 encryption, or secure-erasure facility exists.
 
 The approved audit result, **remove**, is now implemented. `cloudscraper25` is no
 longer a runtime dependency or production/test import. Requests is an explicit
-runtime dependency behind a small graver-owned transport protocol and response
+runtime dependency behind a small Graver-owned transport protocol and response
 model; third-party session, response, and exception types do not form the planned
 public application contract. Tests can inject the internal transport directly or
 continue supplying Requests-compatible Betamax sessions. The replacement does not
@@ -221,7 +221,7 @@ classification is assigned.
 
 The population originated as 334 cemetery-search summaries. Its current mutable
 state includes the acquisition values and observation counted above; unclassified
-legacy rows remain unclassified because graver does not infer their acquisition
+legacy rows remain unclassified because Graver does not infer their acquisition
 origin. This supports staged enrichment rather than scraping every individual page
 immediately.
 
@@ -395,7 +395,7 @@ progress events, and cooperative cancellation token are implemented. No desktop 
 or toolkit integration has been implemented.
 
 The approved target is a separate installable desktop component, with PyQt6 as the
-leading but not mandated toolkit candidate, depending only on graver's documented
+leading but not mandated toolkit candidate, depending only on Graver's documented
 public application boundary and implemented `open_workspace()` façade. In that
 target design,
 SQLite connections and schema
@@ -609,7 +609,7 @@ composition is exercised concurrently from multiple worker threads; every call o
 and closes its connection in the calling thread.
 
 The dedicated **API hygiene and documentation** milestone is complete: explicit
-imports, a deliberately empty package-root export surface, typed graver-owned
+imports, a deliberately empty package-root export surface, typed Graver-owned
 results and exceptions, bounded mypy/docstring gates, offline developer guidance,
 canonical-document indexing, and installed-wheel consumer validation are
 implemented. Typer, Rich, SQLite connections and rows, SQL helpers, parsers,
@@ -645,7 +645,7 @@ cancellation, threading, transaction ownership, stale-update handling,
 deterministic ordering, identifier and enum policies, injectable acquisition,
 supported imports, and public documentation. The separate top-level consumer spike
 validates the implemented workspace contract against the built wheel; it is not a
-production GUI. The professional desktop product follows graver engine 1.0 and
+production GUI. The professional desktop product follows Graver engine 1.0 and
 begins with the stable workspace/work-queue vertical slice before expanding alongside
 question-centered evidence work, FamilySearch, reviewed identity, WikiTree, and
 family-work services.
@@ -691,7 +691,7 @@ invoke bounded work and exit rather than requiring a permanent daemon at first.
 These are deferred architectural constraints, not implemented acquisition behavior
 or pre-1.0 compatibility promises.
 
-graver currently has no GEDCOM parser, import snapshot, family-relationship model,
+Graver currently has no GEDCOM parser, import snapshot, family-relationship model,
 GEDCOM comparison service, subject-mapping workflow, or export capability. Current
 schema-version-2 subjects and tasks are therefore not yet a family graph. No current
 database or CLI behavior should be described as GEDCOM-compatible.

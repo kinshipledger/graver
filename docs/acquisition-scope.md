@@ -1,13 +1,13 @@
 # Acquisition scope and citation limits
 
-graver retains dated, structured observations from Find a Grave. It does not make
+Graver retains dated, structured observations from Find a Grave. It does not make
 an archival copy of a memorial page and does not turn a website statement into an
 accepted genealogical fact. This guide explains what the acquisition levels mean,
 what the current record can support, and what researchers must preserve elsewhere.
 
 ## What the acquisition levels mean
 
-`summary` means graver observed a memorial in Find a Grave search results. The
+`summary` means Graver observed a memorial in Find a Grave search results. The
 retained observation can contain:
 
 - memorial ID and memorial URL;
@@ -16,9 +16,9 @@ retained observation can contain:
 - famous and veteran indicators;
 - memorial type;
 - cemetery ID, displayed burial place, and plot; and
-- the observation time, outcome, and graver parser version.
+- the observation time, outcome, and Graver parser version.
 
-`full` means graver requested and observed the individual memorial page, then
+`full` means Graver requested and observed the individual memorial page, then
 retained the supported structured fields. It contains the summary categories plus:
 
 - displayed original name;
@@ -35,7 +35,7 @@ does not erase full-only fields or replace earlier observations.
 
 ## What `full` does not mean
 
-`full` does not mean complete, exhaustive, verified, or accepted. graver 1.0.0rc1
+`full` does not mean complete, exhaustive, verified, or accepted. Graver 1.0.0rc1
 does not retain:
 
 - the memorial page's HTML or a visual snapshot;
@@ -48,7 +48,7 @@ does not retain:
   support statements on the memorial.
 
 Observing a relationship link does not retrieve the linked page and does not prove
-the displayed relationship. `has_bio: true` records only that graver detected a
+the displayed relationship. `has_bio: true` records only that Graver detected a
 biography section. It does not preserve, quote, or evaluate the biography.
 
 ## Four different kinds of missing information
@@ -56,13 +56,13 @@ biography section. It does not preserve, quote, or evaluate the biography.
 Use these distinctions in notes and citations:
 
 - **Not displayed:** the examined representation affirmatively showed that an
-  element was absent. graver's current structured observation usually cannot prove
+  element was absent. Graver's current structured observation usually cannot prove
   this for page elements outside its supported fields.
-- **Not collected:** the page may have displayed the element, but graver did not
+- **Not collected:** the page may have displayed the element, but Graver did not
   extract it. Contributor details are an example in this release.
-- **Not retained:** graver used or observed content transiently but did not store
+- **Not retained:** Graver used or observed content transiently but did not store
   it. The page HTML and biography text are examples.
-- **Not examined:** graver did not request or inspect the representation. Linked
+- **Not examined:** Graver did not request or inspect the representation. Linked
   memorial pages, images, and underlying records are examples unless the researcher
   examines them separately.
 
@@ -77,11 +77,11 @@ or did not display. Do not use a null structured field as negative evidence.
 
 A retained acquisition provides useful citation ingredients: the website and
 memorial URL, memorial ID, displayed person and cemetery information, observation
-date, acquisition level, and graver version. A conservative citation draft can use
+date, acquisition level, and Graver version. A conservative citation draft can use
 this pattern, adapted to the citation style required by the research project:
 
 > Find a Grave, memorial page for “[displayed name]” ([displayed lifespan]),
-> memorial [ID], [displayed cemetery and locality], [URL] (observed [date]); graver
+> memorial [ID], [displayed cemetery and locality], [URL] (observed [date]); Graver
 > structured [summary/full] observation. Selected fields retained; not a complete
 > page archive.
 
@@ -102,6 +102,6 @@ For professional work, continue recording as applicable:
   and
 - whether missing material was absent, uncollected, unretained, or unexamined.
 
-graver's observation is a provenance foundation, not a substitute for a research
+Graver's observation is a provenance foundation, not a substitute for a research
 log, source analysis, or proof argument. Where family history keeps its receipts,
 the receipt still needs to say what was—and was not—in the bag.

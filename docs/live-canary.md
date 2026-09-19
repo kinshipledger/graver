@@ -1,11 +1,11 @@
 # Live compatibility canary
 
-graver's ordinary test suite is deliberately offline. Recorded fixtures tell us
+Graver's ordinary test suite is deliberately offline. Recorded fixtures tell us
 whether known page representations still parse; they cannot tell us whether the
 provider's current public page still satisfies the same minimum contract.
 
 The live canary answers that narrow question for maintainers. It retrieves the
-designated public George Washington memorial, parses it with graver's default
+designated public George Washington memorial, parses it with Graver's default
 Requests transport and current memorial parser, and reports whether the expected
 identity and burial linkage remain recognizable.
 
@@ -33,7 +33,7 @@ tests, pull-request checks, or unattended scheduled CI. Review the
 Each invocation:
 
 - targets only `https://www.findagrave.com/memorial/1075/george-washington`;
-- permits exactly one top-level request attempt and disables graver retries;
+- permits exactly one top-level request attempt and disables Graver retries;
 - uses short, explicit connection and read timeouts;
 - uses no authentication and reads no user configuration;
 - creates or changes no research database;

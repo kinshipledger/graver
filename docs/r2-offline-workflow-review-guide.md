@@ -8,7 +8,7 @@ final narrow verification. This guide preserves the validated scenario for futur
 regression reviews. A future reviewer should not be coached with the historical
 answers below; provide only the visible workflow and applicable review questions.
 
-This local review workspace exercises graver's real offline evidence service through
+This local review workspace exercises Graver's real offline evidence service through
 a deliberately temporary browser interface. It is not the future GUI, a supported
 command, or the public workspace API. Its database is created in a temporary
 directory and deleted when the facilitator stops the session.
@@ -22,7 +22,7 @@ uv run python -m review.r2_adapter
 ```
 
 The adapter binds only to the local loopback interface and opens a browser. It makes
-no provider request and does not read graver's configured database. Stop it with
+no provider request and does not read Graver's configured database. Stop it with
 Control-C. Use a fresh session for each reviewer.
 
 ## Moderation discipline

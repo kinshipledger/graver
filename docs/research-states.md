@@ -1,6 +1,6 @@
 # Research states and network activity
 
-graver keeps research workflow separate from network acquisition. Changing a
+Graver keeps research workflow separate from network acquisition. Changing a
 research state records an offline decision in the selected database; it does not
 contact Find a Grave. Only an explicit acquisition command, such as `search` or
 `work enrich`, makes a live request.
@@ -24,8 +24,8 @@ memorial. It does not establish identity, validate facts, or authorize related o
 queued memorials.
 
 The `full_scrape_complete` machine value is retained for compatibility. In
-researcher language, “full” means that graver observed the full memorial page and
-retained its supported structured fields; it does not mean that graver archived
+researcher language, “full” means that Graver observed the full memorial page and
+retained its supported structured fields; it does not mean that Graver archived
 the entire page. See the [acquisition-scope guide](acquisition-scope.md) for the
 precise capture boundary.
 

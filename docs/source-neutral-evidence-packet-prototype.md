@@ -7,7 +7,7 @@
 ## Purpose and review boundary
 
 This artifact asks whether one small evidence packet preserves distinctions shared
-by several genealogical source classes without turning graver into a universal tree
+by several genealogical source classes without turning Graver into a universal tree
 editor, record ontology, or document repository. It tests researcher understanding,
 not a database schema, public file format, scoring formula, or screen layout.
 
@@ -29,7 +29,7 @@ The packet must not:
 - flatten conflicting assertions into one preferred fact;
 - infer relationships merely from a household, surname, or estate appearance;
 - expose a numeric probability or proof-confidence score; or
-- commit graver to supporting these source classes or this packet structure.
+- commit Graver to supporting these source classes or this packet structure.
 
 ## 1. Keep the research question and subject distinct from sources
 
@@ -395,7 +395,7 @@ content contained within the packet or to a fully cited external representation.
 Local subject, snapshot, assertion, conflict, rule, conclusion, and supersession
 identifiers supplement that content; they never substitute for it. A packet includes
 the cited values, roles, transformations, explanations, analyses, conclusions, and
-history needed to understand each link without a graver installation or database.
+history needed to understand each link without a Graver installation or database.
 
 When copyright, privacy, availability, or selection prevents inclusion, the packet
 identifies the omitted or inaccessible material, why it is absent, how it may be
@@ -408,7 +408,7 @@ integrity and replay but are not the professional-facing explanation by themselv
 
 ## 9. Review prompts
 
-Review only this artifact as a Professional Genealogist. Do not consult graver's
+Review only this artifact as a Professional Genealogist. Do not consult Graver's
 source code, schema, roadmap, or intended implementation.
 
 1. Can you distinguish the record creator, repository, access surface, source class,
@@ -427,7 +427,7 @@ source code, schema, roadmap, or intended implementation.
 7. Can every material conflict remain visible through assessment, conclusion,
    supersession, and export?
 8. Would the minimum audit projection let another qualified researcher understand
-   what was observed, transformed, selected, and concluded without querying graver's
+   what was observed, transformed, selected, and concluded without querying Graver's
    database?
 9. Which proposed fields or distinctions are unnecessary, overly technical, or
    premature? Which indispensable distinctions are missing?

@@ -1,16 +1,16 @@
 # Database upgrades and recovery
 
-graver research databases can contain work that is difficult or impossible to
+Graver research databases can contain work that is difficult or impossible to
 recreate. Database upgrades are therefore explicit, backed up, transactional, and
 separate from ordinary research commands.
 
-This guide applies to databases created by older graver development versions,
+This guide applies to databases created by older Graver development versions,
 including the early `0.1.0` database shape and summary-only databases populated by
-cemetery searches. It does not turn an unrelated SQLite file into a graver database.
+cemetery searches. It does not turn an unrelated SQLite file into a Graver database.
 
 ## Before upgrading
 
-1. Stop other graver commands or applications using the database.
+1. Stop other Graver commands or applications using the database.
 2. Confirm the exact database path. `graver use --show` can help identify a saved
    default, but the upgrade command does not use that preference or `GRAVER_DB`.
 3. Preserve any separate backup you already rely on. The automatic upgrade backup
@@ -32,9 +32,9 @@ upgrade command never falls back to the saved selection or `GRAVER_DB`; omitting
 the path fails with command usage help before any database is opened.
 
 The command inspects the file before writing. It recognizes supported legacy,
-unversioned, and older versioned graver schemas. It refuses missing files,
+unversioned, and older versioned Graver schemas. It refuses missing files,
 directories, symbolic links, unrelated or malformed SQLite files, unknown schema
-shapes, and databases created by a newer graver schema.
+shapes, and databases created by a newer Graver schema.
 
 If the database is already current, the command reports a no-op and creates no
 backup. Otherwise it creates a verified sibling backup before beginning. For the
@@ -44,7 +44,7 @@ current schema version 5, the backup name is:
 research.db.pre-upgrade-v5.backup
 ```
 
-graver will not overwrite an existing backup with that name. This is a deliberate
+Graver will not overwrite an existing backup with that name. This is a deliberate
 safe refusal, not database corruption. Stop and inspect the reported source and
 backup paths. Preserve both files until you understand why the backup exists, then
 follow your normal reviewed file-recovery procedure or ask for help before changing
@@ -58,16 +58,16 @@ timestamps. Later schemas add research subjects, immutable task and subject even
 offline evidence structures, source observations, and task revision numbers.
 
 Migration-created subject associations and events are labeled as mechanical
-organization. They do not assert that two records identify the same person. graver
+organization. They do not assert that two records identify the same person. Graver
 does not invent source observations, acquisition dates, detail levels, candidates,
 relationships, confidence, assessments, or identity conclusions when older data
 cannot support them.
 
 ## Successful completion
 
-After applying every ordered migration in one transaction, graver validates the
+After applying every ordered migration in one transaction, Graver validates the
 current schema, SQLite integrity, and foreign keys. Only then does the upgrade
-complete. The backup remains beside the database; graver does not delete it
+complete. The backup remains beside the database; Graver does not delete it
 automatically.
 
 Keep that backup until you have opened the upgraded database, inspected important
@@ -82,19 +82,19 @@ original database.
 - A failure before migration leaves the source database unchanged.
 - A migration failure rolls back its transaction. The verified backup remains.
 - A final validation failure leaves the backup in place and reports its path.
-- graver never restores a backup automatically over research data.
+- Graver never restores a backup automatically over research data.
 
-Record the complete error, the graver version (`graver --version`), the operating
+Record the complete error, the Graver version (`graver --version`), the operating
 system, the source classification shown by the command, and both file paths. Report
 the problem through the project's support or security channel as appropriate. Do
 not upload a research database publicly; it may contain personal or sensitive data.
 
-Restoration is a deliberate manual recovery operation and is not currently a graver
+Restoration is a deliberate manual recovery operation and is not currently a Graver
 command. Before replacing any file, close all applications using it and make another
 copy of both the failed database and verified backup. If you are uncertain, ask for
 help before moving or replacing either file.
 
-## After upgrading from pre-1.0 graver
+## After upgrading from pre-1.0 Graver
 
 Database migration does not restore removed command names or option spellings. See
 the [pre-1.0 command-line migration](cli-migration.md) for those replacements and

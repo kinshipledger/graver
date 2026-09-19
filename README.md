@@ -7,16 +7,16 @@
 [![Lint: Ruff](https://img.shields.io/badge/lint-Ruff-D7FF64?logo=ruff&logoColor=261230)](https://docs.astral.sh/ruff/)
 [![Package manager: uv](https://img.shields.io/badge/package%20manager-uv-DE5FE9?logo=uv)](https://docs.astral.sh/uv/)
 
-graver
+Graver
 ======
 
-graver is a local, provenance-aware research engine: it keeps each saved observation
+Graver is a local, provenance-aware research engine: it keeps each saved observation
 tied to where and when it was found. It has a supported command-line interface and a
 documented Python application API. Its current workflow builds a research database
 from [Find a Grave](https://www.findagrave.com/) memorials, then lets researchers
 review and enrich records one person at a time.
 
-graver preserves summary and selected full-page observations separately, maintains
+Graver preserves summary and selected full-page observations separately, maintains
 a durable research queue, and records acquisition history without treating a
 memorial as a proven genealogical identity. Its documented Python API also provides
 offline, fixture-driven evidence comparison, researcher assessment, and reviewed
@@ -29,7 +29,7 @@ New to command-line tools? Start with the
 [researcher tutorial](docs/tutorial.md) for a small, safe workflow from database
 creation through one approved memorial enrichment.
 
-graver supports responsible, researcher-directed acquisition and
+Graver supports responsible, researcher-directed acquisition and
 provider-authorized data workflows. It is not designed to bypass access controls or
 conceal automated activity. Users remain responsible for complying with applicable
 laws, provider terms, and access policies. See the project
@@ -40,7 +40,7 @@ to check one stable public memorial after parser or transport changes. It is an
 explicit, one-request diagnostic—not part of the ordinary test suite or a bulk
 acquisition tool.
 
-## What graver does
+## What Graver does
 
 - Saves narrow Find a Grave search results as summary observations in SQLite.
 - Queues acquired memorials for researcher-directed review.
@@ -53,17 +53,17 @@ acquisition tool.
 - Records Find a Grave redirects for review without silently merging people or
   transferring research.
 
-The command line is the current researcher and maintenance interface to the graver
+The command line is the current researcher and maintenance interface to the Graver
 engine. It is useful for technically comfortable researchers, scripting,
 administration, recovery, and precise API-parity testing. It is not presented as the
 complete graphical workspace intended for everyday professional-research use, nor
-is graver yet a cross-platform identity-matching or family-tree publishing system.
+is Graver yet a cross-platform identity-matching or family-tree publishing system.
 
 ## Current status and direction
 
 The published `1.0.0rc1` release candidate provides the local Find a Grave
 acquisition, research-queue, provenance, CLI, and typed application foundations
-described above. Final 1.0 stabilizes the **graver engine**: its core behavior,
+described above. Final 1.0 stabilizes the **Graver engine**: its core behavior,
 workflow rules, database lifecycle, CLI, current application API, and architectural
 guardrails for later integrations.
 It does not claim completion of the later professional desktop product or live
@@ -149,7 +149,7 @@ With no argument, `init` creates `./graves.db`. A supplied path creates the name
 database. Initialization refuses to overwrite any existing path, and it selects the
 new database only after creation and validation succeed.
 
-Choose an existing graver database once, then use ordinary research commands
+Choose an existing Graver database once, then use ordinary research commands
 without repeating its path:
 
 ```shell
@@ -169,7 +169,7 @@ Genealogy has enough mysteries; the active database should not be one of them.
 
 ### Upgrade an older database
 
-Selection and ordinary reads never migrate a database. If graver reports that an
+Selection and ordinary reads never migrate a database. If Graver reports that an
 older database needs an upgrade, run the specialist maintenance command explicitly:
 
 ```shell
@@ -177,7 +177,7 @@ graver admin database upgrade /path/to/research.db
 ```
 
 Upgrade first inspects the database, then creates a verified backup before changing
-it. A current database is left untouched. graver refuses to overwrite an existing
+it. A current database is left untouched. Graver refuses to overwrite an existing
 backup and reports recovery guidance if an upgrade fails.
 
 Use `graver init` only to create a new database. Use `graver use DATABASE` to select
@@ -244,9 +244,9 @@ Redirects do not merge people or move, complete, or delete research tasks.
 
 ### Basic CSV export
 
-graver does not yet provide a dedicated export command. The SQLite command-line
+Graver does not yet provide a dedicated export command. The SQLite command-line
 tool can export the current `graves` table to CSV. `sqlite3` is a separate system
-utility and is not installed with graver. Confirm the selected database with
+utility and is not installed with Graver. Confirm the selected database with
 `graver use --show`, then pass that exact path rather than assuming `graves.db`:
 
 ```shell
@@ -295,7 +295,7 @@ Longer-term ideas—including GEDCOM interchange—are indexed with the other
 architecture documents in [docs](docs/README.md). They are not part of the current
 researcher workflow.
 
-Research stays in the local database you select; graver has no telemetry, account,
+Research stays in the local database you select; Graver has no telemetry, account,
 or cloud synchronization. Local genealogy can still be sensitive—especially when
 it includes living people, private notes, or inferred relationships—so read the
 [privacy and data-handling guide](docs/privacy-and-data-handling.md) before sharing
@@ -314,7 +314,7 @@ environment can be installed with `uv sync --all-groups --locked`.
 ## License
 
 This is intended as a convenient tool for personal genealogy research. Review and
-comply with the current terms of any external service you use through graver.
+comply with the current terms of any external service you use through Graver.
 
-graver is distributed under the [MIT License](LICENSE). The license file retains
+Graver is distributed under the [MIT License](LICENSE). The license file retains
 the applicable historical copyright notices.

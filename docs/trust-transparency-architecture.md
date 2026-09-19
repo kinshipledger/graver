@@ -10,7 +10,7 @@ what was observed, understand every transformation and comparison that affected 
 workflow, retain conflicts and limitations, control the conclusion, and reconstruct
 the evidence and reasoning later.
 
-graver therefore distinguishes:
+Graver therefore distinguishes:
 
 - **computational reproducibility:** identical inputs, software, rules, and
   configuration produce the same comparison and review order; and
@@ -98,10 +98,10 @@ and provider terms remain governed by the access and privacy policies.
 
 Researchers must not depend on hidden database knowledge to recover the meaning of
 their work. Before a production evidence workflow claims professional readiness,
-graver should define a versioned, privacy-conscious audit bundle capable of carrying
+Graver should define a versioned, privacy-conscious audit bundle capable of carrying
 the observations, citations, comparison context, assessments, conclusions, selected
 evidence, conflicts, and history required to interpret that work. It is an
-audit/export projection, not graver's internal database schema or a new universal
+audit/export projection, not Graver's internal database schema or a new universal
 genealogy format.
 
 The source-neutral evidence-packet prototype should test this minimum bundle before

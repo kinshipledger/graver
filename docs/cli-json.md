@@ -1,6 +1,6 @@
 # Command-line JSON contract
 
-graver provides versioned JSON for commands that advertise `--json` and for the
+Graver provides versioned JSON for commands that advertise `--json` and for the
 specialist alias-recording commands whose result is already machine-readable. This
 document defines schema version 1 of that output.
 
@@ -62,7 +62,7 @@ must use the documented `work` and `admin aliases` command identifiers.
 
 ## Compatibility policy
 
-Within schema version 1, graver may add optional fields to a command's `data` value.
+Within schema version 1, Graver may add optional fields to a command's `data` value.
 It will not remove or rename documented fields, change their meaning, or change a
 documented value type without a new schema version. Consumers should ignore unknown
 fields and handle documented optional values.

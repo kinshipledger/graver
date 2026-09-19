@@ -1,6 +1,6 @@
-# Pre-1.0 command-line migration
+# Command-line migration before 1.0
 
-graver intentionally removed its hidden compatibility commands and normalized the
+Graver intentionally removed its hidden compatibility commands and normalized the
 Find a Grave search options before freezing the 1.0 CLI. This page maps the removed
 spellings to the supported researcher-facing interface.
 

@@ -27,7 +27,7 @@ caption says; a diagram cannot quietly claim more than the underlying workflow.
 
 Researcher-facing reviews also test plain-language comprehension. At least one
 review perspective must represent a capable genealogist who is not highly technical,
-does not know graver's internal vocabulary, and describes ordinary research without
+does not know Graver's internal vocabulary, and describes ordinary research without
 software or database terminology. The reviewer first explains the workflow in their
 own words without a supplied glossary, then identifies unfamiliar, ambiguous, or
 needlessly technical language and the action they believe each control or step will
@@ -42,7 +42,7 @@ onboarding material.
 
 ## Future full-workflow governance
 
-Before graver freezes post-engine case, question, target, conclusion, deliverable,
+Before Graver freezes post-engine case, question, target, conclusion, deliverable,
 or decision-support contracts, the project must validate them against real
 professional research work rather than derive them only from software, standards,
 or provider records. The review must examine how researchers frame and prioritize
@@ -120,7 +120,7 @@ schema knowledge. Exit requires a dated report, resolution or explicit acceptanc
 of every blocking finding, and reconciliation of the trust, evidence, source-
 adapter, API, and roadmap documents.
 
-## R1 — Evidence contract review
+## R1 — evidence contract review
 
 **Current status:** Passed. The initial
 [23 August 2026 review](professional-researcher-r1-review-2026-08-23.md) identified
@@ -175,7 +175,7 @@ expensive to change.
 - Accepted terminology and decision rules are reflected in the evidence architecture.
 - The GitHub gate issue links the report and resolution changes.
 
-## R2 — Offline workflow validation
+## R2 — offline workflow validation
 
 **Current status:** Passed. The
 [23 August 2026 review](professional-researcher-r2-review-2026-08-23.md) found two
@@ -246,7 +246,7 @@ review subject
   been frozen before resolution.
 - The GitHub gate issue links the report, findings, and resolution changes.
 
-## R3 — Evidence-workflow acceptance
+## R3 — evidence-workflow acceptance
 
 ### Objective
 
@@ -348,7 +348,7 @@ Do not engage the professional researcher merely to validate internal refactors,
 dependency changes, migration mechanics, CI, test organization, or adapter changes
 that preserve visible behavior.
 
-## Final-1.0 technical-publications gate
+## Final 1.0 technical-publications gate
 
 Tracking issue [#95](https://github.com/kinshipledger/graver/issues/95) defines a bounded
 professional technical-publications review before final `1.0.0`. It begins only

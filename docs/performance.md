@@ -1,6 +1,6 @@
 # Performance and responsiveness
 
-graver tracks a small offline performance baseline so growth in the core application
+Graver tracks a small offline performance baseline so growth in the core application
 does not quietly become future desktop-interface sluggishness. The baseline is
 observability, not a scorecard: correctness, provenance, and research-data safety
 remain more important than shaving milliseconds from synthetic work.
@@ -30,7 +30,7 @@ uv run python benchmarks/performance_baseline.py --sizes 100 10000 --repetitions
 ```
 
 On a system with a compatible `make` installation, `make performance` is a
-convenience shortcut for the same baseline. Make is not required by graver or
+convenience shortcut for the same baseline. Make is not required by Graver or
 installed by uv.
 
 For an occasional capacity probe, explicitly request a larger dataset:
@@ -58,7 +58,7 @@ to a real user workflow.
 
 The report's memory value is Python allocation observed by `tracemalloc`, not total
 process memory. Provider latency is external-service behavior and is not reported as
-graver performance.
+Graver performance.
 
 ## Provisional GUI responsiveness budgets
 
@@ -74,7 +74,7 @@ criteria:
 | Cancellation acknowledged | At the next documented safe boundary, without UI-thread blocking |
 
 Network retrieval and substantial database work must never execute on the GUI
-thread. The GUI should translate graver's toolkit-neutral progress and cancellation
+thread. The GUI should translate Graver's toolkit-neutral progress and cancellation
 contracts into interface state, and measure time-to-interactive, navigation latency,
 long-task progress, cancellation, and memory with the real toolkit and representative
 workflows.
