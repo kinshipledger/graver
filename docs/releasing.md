@@ -16,7 +16,7 @@ Before requesting another candidate or the final `1.0.0` release, confirm:
   documented and tested;
 - migration tests cover every recognized older schema, backup collision, rollback,
   newer/unknown refusal, integrity, and foreign keys;
-- the researcher tutorial and installed-wheel consumer workflow pass offline;
+- the command-line quickstart and installed-wheel consumer workflow pass offline;
 - Python 3.11 through 3.14, macOS, and the Windows portability contract pass;
 - branch coverage remains at or above the documented floor;
 - the required CI dependency audit and production security-rule checks pass, and no
@@ -78,7 +78,7 @@ artifact—not the source tree—that:
 - `graver init`, `use`, read-only inspection, and explicit upgrade behave as
   documented in isolated paths;
 - a generated legacy database upgrades through the verified-backup workflow;
-- the tutorial's offline steps and injected consumer workflow remain valid; and
+- the quickstart's offline steps and injected consumer workflow remain valid; and
 - `graver.application` exposes only the documented public names.
 
 Record supported-platform results and any accepted limitation in the GitHub Release.

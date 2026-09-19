@@ -1,59 +1,108 @@
-# Research one Find a Grave memorial with Graver
+# Command-line quickstart: research one Find a Grave memorial
 
-This tutorial is for genealogical researchers who are comfortable entering
-commands but do not need to know Python or SQLite. If those terms or the terminal
-are unfamiliar, begin with the [plain-language setup guide](first-time-setup.md).
-This tutorial creates a dedicated
-database, acquires a deliberately small summary result set, and observes one
-memorial's full page only after you approve it.
+This quickstart is for developers, integrators, and genealogical researchers who
+are comfortable entering commands in a terminal. You do not need to know Python,
+SQLite, or Graver's internal design. If Graver is not installed yet, begin with
+the [installation guide for researchers](first-time-setup.md).
 
-Commands below assume the installed command is named `graver`. If you are
-working from a source checkout, use `uv run graver` anywhere the examples say
-`graver`. `python -m graver` is also available as an equivalent troubleshooting
-fallback when Graver is installed in the active Python environment.
+This is a walkthrough of the Graver backend engine. It is not a preview of the
+planned Kinship Ledger graphical application.
+
+You will create a practice research file, search Find a Grave for one memorial,
+and save selected details from its full page only after you approve that step.
+
+The examples use the installed command `graver`.
+
+## Before you begin
+
+This quickstart uses two kinds of steps:
+
+- **On your computer:** the step reads or changes only your local Graver research
+  file. It does not contact Find a Grave.
+- **Contacts Find a Grave:** the step asks the website for information. The
+  quickstart clearly labels these steps before they happen.
+
+Graver saves its work in a **research database**. Despite the name, this is one
+file on your computer. The practice file in this quickstart is named `tutorial.db`.
+
+Graver also uses two terms for its saved history:
+
+- An **observation** is a dated copy of the supported details Graver saw during
+  one search or full-page lookup.
+- An **acquisition receipt** is the summary Graver shows after that operation. It
+  explains what Graver saved.
+
+A receipt records what happened. It does not prove that a website statement is
+correct.
 
 ## The workflow
 
 ```text
-Choose a research database
-  → search narrowly for a memorial
-  → save the search result and add the person to your work list
-  → review the person before making another request
-  → approve one memorial-page lookup
-  → see which supported details were added or changed
-  → keep both the earlier and later dated snapshots
+Create and select a practice research file
+  → search Find a Grave for one memorial
+  → add the person to your work list
+  → review the person
+  → approve one full memorial-page lookup
+  → see what Graver saved or changed
+  → keep both the earlier and later dated observations
 ```
 
-Graver does not automatically retrieve every full memorial page. Summary
-searches can establish a useful research queue with fewer requests; a researcher
-then decides which one person merits a full retrieval. This reduces load on Find
-a Grave and prevents unattended bulk enrichment. In Graver's exact vocabulary, a
-dated saved snapshot is an **observation**, and the summary of what one operation
-stored is an **acquisition receipt**.
+Graver does not automatically open every full memorial page. The researcher
+chooses which memorial Graver may open. This limits requests to Find a Grave and
+prevents Graver from gathering full-page details for an unattended list.
 
 ![The researcher journey from choosing a research file through deliberate retrieval and researcher evaluation](assets/researcher-journey.svg)
 
-Step labels and notes distinguish local work, live website contact, retained history,
-and researcher decisions. Color is only a visual aid.
+The diagram labels steps that stay on your computer, steps that contact Find a
+Grave, saved history, and researcher decisions. Color is only a visual aid.
 
-## 1. Verify the installation
+## 1. Check the installation
 
-These commands are offline:
+**On your computer**
+
+Run:
 
 ```shell
 graver --version
 graver --help
 ```
 
-Success means the first command reports Graver's installed version and the
-second lists commands including `init`, `use`, `search`, and `work`. At any point,
-append `--help` at the level you need, for example `graver work --help` or
-`graver work enrich --help`.
+Look for:
 
-## 2. Create an isolated tutorial database
+- a Graver version number after the first command; and
+- a command list after the second, including `init`, `use`, `search`, and `work`.
 
-Create a new directory yourself, enter it, and initialize the database. The
-directory name is only an example; use a location you can identify later.
+If either command fails, stop and use the [troubleshooting section](#troubleshooting).
+
+## 2. Record your current research file
+
+**On your computer**
+
+Graver remembers which research file to use. Before selecting the practice file,
+check whether another file is already selected:
+
+```shell
+graver use --show
+```
+
+If Graver displays a file location, copy it somewhere safe. You will need it to
+restore your earlier selection at the end of the quickstart. If Graver says that no
+database is selected, continue.
+
+A **complete file location** shows exactly where a file is stored. For example:
+
+```text
+/Users/your-name/Documents/graver-tutorial/tutorial.db
+```
+
+Windows displays file locations differently, often beginning with a drive letter,
+such as `C:\Users\your-name\Documents\graver-tutorial\tutorial.db`.
+
+## 3. Create the practice research file
+
+**On your computer**
+
+Run these commands one at a time:
 
 ```shell
 mkdir graver-tutorial
@@ -62,63 +111,58 @@ graver init tutorial.db
 graver use --show
 ```
 
-`mkdir` creates the new folder inside the folder where the terminal is currently
-located. `cd` moves the terminal into it, so `tutorial.db` is created there. If you
-prefer another location, first navigate to a familiar folder such as Documents, or
-use a full path you recognize and intend to back up.
+The first command creates a folder named `graver-tutorial`. The second command
+moves the terminal into that folder. The third creates `tutorial.db` there and
+selects it as Graver's current research file.
 
-The `init` success message identifies the absolute path:
+Look for the complete location of `tutorial.db` in the last two command results.
+Copy that location somewhere safe. It tells you which file contains this practice
+work and lets you return to it later.
 
-```text
-Initialized and selected research database: /.../graver-tutorial/tutorial.db
-```
+`graver init` will not replace a file that already exists. If Graver says
+`tutorial.db` already exists, stop and see [Troubleshooting](#troubleshooting).
 
-`use --show` should report that same absolute path. Both Graver commands are
-offline. Keep the path: it distinguishes this practice database from other
-research databases.
+You will not need Graver's database-upgrade command in this quickstart. Creating,
+selecting, upgrading, and deleting a database are separate actions. Merely
+selecting a database does not create, upgrade, or delete it.
 
-The three database commands have deliberately separate jobs:
+## 4. Search for one memorial
 
-- `graver init DATABASE` creates a new current-schema database and selects it.
-  It refuses every existing path. With no argument, it creates `./graves.db`.
-- `graver use DATABASE` selects an existing compatible database without creating
-  or upgrading it.
-- `graver admin database upgrade DATABASE` creates a required sibling backup and
-  explicitly upgrades a recognized older database. Selection and ordinary reads
-  never migrate a database.
+**Contacts Find a Grave**
 
-You should not need the upgrade command for the newly initialized tutorial
-database.
-
-## 3. Acquire one small summary result set
-
-The following recommended example contacts Find a Grave. It asks for memorial
-ID `1075`, the public George Washington memorial, and caps processing at one
-result:
+This example searches for memorial number `1075`, the public George Washington
+memorial, and stops after one result:
 
 ```shell
 graver search --memorial-id 1075 --max-results 1
 ```
 
-Success prints an acquisition receipt—a plain summary of what Graver just saved:
-summaries observed, new and existing
-memorial counts, and confirmation that dated snapshots were retained without
-replacing earlier snapshots. If a new observation changed the current displayed
-representation of an existing memorial, the receipt lists each changed field with
-its earlier and new value. Find a Grave is a changing live service, so the memorial
-is not promised to appear first—or to be returned at all. You will identify it after queueing by
-looking for literal memorial ID `1075`. If this example stops being reliable,
-substitute a memorial ID you already know, or use a narrow cemetery query shown
-by `graver search --help`; keep `--max-results` small.
+This quickstart uses `1075` in every later command. If you choose another memorial,
+write its number here and replace `1075` every time it appears:
 
-Search results are summary records. They may contain a name, dates, source URL,
-and cemetery context, but they are not evidence that Graver observed the full
-memorial page. A receipt describes what Graver stored; it does not certify that the
+```text
+My memorial number: ____________________
+```
+
+Look for a receipt that says what Graver saved. It should report the number of
+new or previously known memorials and confirm that Graver kept a dated observation.
+
+Find a Grave changes over time. Memorial `1075` may eventually be unavailable. If
+the search returns no result, stop here or repeat the quickstart later with a memorial
+number you already know. Keep `--max-results 1` so the search remains small.
+
+This search saves only the summary details returned by the search page. It does
+not mean that Graver opened the full memorial page. It also does not mean that the
 website's statements are correct.
 
-## 4. Queue and inspect a person
+## 5. Add and inspect the person
 
-These commands are offline:
+**On your computer**
+
+The commands below use `1075`. If you searched for a different memorial, replace
+`1075` with your memorial number before running each command.
+
+Run:
 
 ```shell
 graver work queue
@@ -127,94 +171,118 @@ graver work next
 graver work show 1075
 ```
 
-`work queue` should say how many people were added and how many were already
-present. Repeating it is safe. `work list` identifies people by memorial ID;
-look for `1075`, or choose another literal ID returned by your search and use it
-in place of `1075` below. `work next` normally selects the next `unprocessed`
-person. `work show` should identify the person, the `unprocessed` research state,
-the cemetery context, `summary` acquisition level, and an acquisition-observation
-count.
+Look for:
 
-All research-state changes are offline. See the
-[research-state guide](research-states.md) for every accepted value, its plain-
-language meaning, and what later action it permits.
+- a message saying how many people were added to the work list;
+- memorial number `1075` in the list; and
+- the expected person's name and cemetery in the displayed details.
 
-In the commands that follow, `1075` is literal only if that memorial was acquired.
-In generic examples, `MEMORIAL_ID` is a placeholder and must be replaced with the
-number you selected.
+The displayed status should be `Unprocessed [unprocessed]`. This means that the
+person is on your work list, but Graver has not recorded this item as started. The
+acquisition level should be `summary`, meaning Graver has saved search-result details
+but has not yet opened the full memorial page.
 
-## 5. Approve and enrich exactly one memorial
+The [research-state guide](research-states.md) explains the other human-readable
+statuses and the exact labels shown beside them.
 
-Approval is offline:
+## 6. Approve one full-page lookup
+
+Approving the lookup and performing it are separate steps.
+
+### Record your approval
+
+**On your computer**
+
+Run this as one line:
 
 ```shell
-graver work mark 1075 --status ready_for_full_scrape \
-  --note "Approved during the tutorial"
+graver work mark 1075 --status ready_for_full_scrape --note "Approved during the quickstart"
+```
+
+Then inspect the person again:
+
+```shell
 graver work show 1075
 ```
 
-Success means Graver reports that the status and note were updated. The second
-command should show `Approved for enrichment [ready_for_full_scrape]` and offer
-the live `graver work enrich 1075` command as the next action. Only this one task
-was approved; marking it did not make a request.
+Look for `Approved for enrichment [ready_for_full_scrape]`. This status means that
+you approved a later full-page lookup for this one memorial. Recording the approval
+did not contact Find a Grave and did not approve any other person.
 
-Enrichment is the tutorial's second live Find a Grave operation:
+### Perform the approved lookup
+
+**Contacts Find a Grave**
+
+Run:
 
 ```shell
 graver work enrich 1075
 ```
 
-Success reports that selected fields from the memorial's full page were retained as
-a dated observation and that this is not a complete page archive. Its acquisition
-receipt links the earlier and new selected-field observations, lists newly retained
-and different retained values, separately identifies earlier values for which
-nothing was retained in the new observation, summarizes equal non-null values
-without treating equality as corroboration, and counts retained Find a
-Grave-displayed relationship links with an explicit non-proof warning. A missing
-later value does not establish whether the information was not displayed, not
-collected, not retained, or not examined, and a difference does not supersede the
-earlier value. Graver retrieves only the approved memorial—no related memorials and
-no other queued people.
+Graver opens only the approved memorial. It does not open relatives' memorials or
+process other people in the work list.
 
-Inspect the result offline:
+Look for a receipt describing what Graver saved from the full memorial page. The
+receipt may report:
+
+- details that appeared for the first time;
+- details whose displayed values differ from the earlier search result;
+- details that appeared earlier but were not saved from the later page;
+- displayed values that agree; and
+- relationship links displayed by Find a Grave.
+
+Interpret the receipt carefully:
+
+- Graver keeps the earlier and later observations. A later value does not erase
+  or automatically replace an earlier value.
+- Matching values show agreement between the saved observations. They are not
+  automatically independent support for the claim.
+- A missing later value does not tell you whether Find a Grave omitted it, Graver
+  did not collect or save it, or it was not examined.
+- A relationship displayed by Find a Grave is a provider claim. It does not prove
+  identity or kinship.
+- The receipt explains what Graver saved. It does not decide which claim is true.
+
+If the live request fails, stop rather than repeatedly retrying. The approval and
+earlier search result remain in your research file. Inspect them safely with
+`graver work show 1075 --history`, then try the live request later.
+
+## 7. Review the saved result
+
+**On your computer**
+
+Run:
 
 ```shell
 graver work show 1075
 graver work show 1075 --history
 ```
 
-Verify the following researcher-facing facts rather than exact borders, spacing,
-paths, or timestamps:
+Look for:
 
-- the research state is `Enrichment complete [full_scrape_complete]`;
-- the acquisition level says that full-page fields were retained;
-- source history (called provenance) includes both the earlier summary and
-  successful full-page observations; and
-- the acquisition receipt identifies those retained observations and explains any
-  displayed-value changes without presenting the newer value as verified; and
-- the memorial and cemetery context still identify the person you approved.
+- the expected person's name and cemetery;
+- `Enrichment complete [full_scrape_complete]`;
+- an acquisition level of `full`; and
+- both the earlier search observation and the later full-page observation in the
+  saved history.
 
-`--history` intentionally reveals immutable observation detail. Optional values
-such as plot, coordinates, biography presence, and birth or death places may
-legitimately be absent. The machine value `full` means that Graver observed the
-full memorial page and retained its supported structured fields. It does **not**
-mean that every optional field was populated or that Graver saved the page,
-biography text, images, contributor details, or every displayed element. The
-[acquisition-scope guide](acquisition-scope.md) lists the retained categories,
-known exclusions, and responsible citation boundary.
+Here, `full` has a narrow meaning: Graver opened the full memorial page and saved
+the supported fields it found there. It does not mean that research is complete.
+It also does not mean that every field had a value or that Graver saved the entire
+page, biography text, images, contributor details, or every displayed item.
 
-### Optional technical verification
+Optional details such as plot, coordinates, biography presence, and birth or death
+places may be absent. An absent optional detail does not by itself mean that the
+lookup failed. The
+[acquisition-scope guide](acquisition-scope.md) explains exactly which categories
+Graver saves and what remains outside its scope.
 
-When troubleshooting a script or integration, `graver work show 1075 --json`
-returns the complete machine-readable record. Its envelope uses `schema_version` 1,
-the command identifier is `work.show`, and the record is under `data`. These details
-are documented in the [command-line JSON contract](cli-json.md); researchers do not
-need them for the ordinary workflow.
+## 8. Stop and return later
 
-## 6. Stop and resume safely
+Graver saves the work list, statuses, current memorial details, dated observations,
+and notes in `tutorial.db`. You may close the terminal at any time.
 
-Graver persists the queue, task state, current memorial data, and observations in
-`tutorial.db`. You may close the terminal and later resume with:
+Later, run:
 
 ```shell
 graver use --show
@@ -223,61 +291,78 @@ graver work list --limit 10
 graver work show 1075
 ```
 
-If you selected another database in the meantime, return to the tutorial with
-`graver use /absolute/path/to/graver-tutorial/tutorial.db`. The saved selection is
-shared across terminals and working directories. A global one-command option, such
-as `graver --db /absolute/path/to/graver-tutorial/tutorial.db work next`,
-temporarily overrides the selection but does not replace it.
+If `graver use --show` displays the practice file, you are ready to continue. If
+another research file is selected, use the complete location you copied earlier.
+Put it inside quotation marks, as in this macOS example:
 
-## 7. Optional cleanup
+```shell
+graver use "/Users/your-name/Documents/graver-tutorial/tutorial.db"
+```
 
-Keeping `tutorial.db` for later practice is safe. If you decide to remove it,
-first display and record the exact absolute path, then clear only Graver's saved
-preference:
+On Windows, the same command may look like:
+
+```shell
+graver use "C:\Users\your-name\Documents\graver-tutorial\tutorial.db"
+```
+
+Replace the example with the complete location Graver displayed on your computer.
+Quotation marks keep a location containing spaces together.
+
+## 9. Finish or clean up
+
+Keeping `tutorial.db` for later practice is safe and is the simplest choice.
+
+If another research file was selected before the quickstart, restore it with
+`graver use`, followed by the complete location you recorded in step 2. Put the
+location inside quotation marks. Confirm the restored selection with:
 
 ```shell
 graver use --show
+```
+
+If no research file was selected before the quickstart and you do not want Graver
+to keep using the practice file, run:
+
+```shell
 graver use --clear
 ```
 
-`use --clear` does not delete or alter the database. Delete the file only with a
-specific, non-recursive operation appropriate to your operating system after you
-have verified the exact path. Never use a broad wildcard or recursive deletion
-for tutorial cleanup. If you changed an existing saved selection to follow the
-tutorial, either restore that earlier selection explicitly or leave the preference
-cleared before returning to other research.
+This clears Graver's saved selection. It does not delete or change `tutorial.db`.
 
-## Live-service safety
+To remove the practice file, first restore or clear the selection as described
+above. Then open the folder shown in the complete file location and move only
+`tutorial.db` to the Trash or Recycle Bin. Do not delete the whole folder if it
+contains anything else.
 
-Only `search` and `work enrich` contact Find a Grave; initialization, selection,
-queueing, inspection, approval, and cleanup of the preference are offline. This
-tutorial intentionally makes a very small number of requests. Cloudflare may
-block, challenge, or delay access, and Find a Grave may time out or be unavailable.
-Stop rather than repeatedly retrying. A live-site failure does not necessarily
-mean the local installation or tutorial database is broken.
+## When Graver contacts Find a Grave
 
-The automated tutorial workflow test uses deterministic mocks, rejects unexpected
-network access, and never contacts Find a Grave.
+Only `graver search` and `graver work enrich` contact Find a Grave in this
+quickstart. Every other step stays on your computer.
+
+Find a Grave may be slow, unavailable, or may refuse an automated request. The site
+may display a verification page or block the request. You do not need to change
+Graver's settings when this happens. Stop and try again later rather than repeatedly
+retrying. A website failure does not necessarily mean that Graver or your research
+file is broken.
 
 ## Troubleshooting
 
-| Symptom | Safe next step |
+| What you see | Safe next step |
 | --- | --- |
-| `graver: command not found` | Run `uv tool update-shell`, restart the terminal, and try `graver --help`. In a source checkout, try `uv run graver --help`. |
-| Unsupported Python or incomplete installation | Reinstall using the project's documented uv workflow, then rerun `graver --version`. Retain the Python, uv, and Graver versions if asking for help. |
-| `tutorial.db` already exists | `init` will not overwrite it. Keep it and select it with `graver use tutorial.db` if it is compatible, or choose a new explicit filename. |
-| No selected database | Run `graver use --show`, then `graver use /absolute/path/to/tutorial.db`. |
-| Missing or invalid database path | Check the exact path and filename. `use` requires an existing, usable Graver database and will not silently fall back. |
-| Database requires explicit upgrade | Preserve the reported path and run `graver admin database upgrade DATABASE` only when you intend to create a backup and migrate that database. |
-| Backup collision during upgrade | Stop and inspect the reported database and backup paths. Graver will not overwrite the existing backup or begin migration. Preserve both files and consult the upgrade guide before deliberately changing either one. |
-| No search results | Recheck the current `graver search --help`, try a known memorial ID or narrow cemetery query, and keep the result limit small. Do not loop rapid retries. |
-| Search reports repeated memorial IDs | No summaries were saved. A mutable provider order may have crossed page boundaries. Preserve the error, then deliberately choose a different `--order-by` value or a smaller `--max-results`; do not assume that dropping repeated rows would yield a complete result. |
-| Cloudflare challenge or access block | Stop. Wait and use Find a Grave normally in a browser if appropriate; do not repeatedly automate retries. |
-| Timeout or Find a Grave outage | Stop and try later. Offline commands can still inspect already persisted work. |
-| Empty work queue | Confirm the search persisted a summary, confirm the selected database with `use --show`, then run `work queue`. |
-| No actionable `work next` result | `work next` defaults to `unprocessed`. Use `work list` to see other states or `work next --status STATUS` when you intentionally want another state. |
-| Task state prevents enrichment | Inspect the person, then explicitly run `work mark MEMORIAL_ID --status ready_for_full_scrape` if approval is appropriate. |
-| Enrichment succeeds but optional fields are absent | This is valid: full acquisition records what the page supplied; it does not invent missing facts. |
-| Unsure whether failure is local or live | If `init`, `use --show`, and `work show` succeed but `search` or `enrich` fails, the problem may be live access or a site/schema change. If offline commands fail, retain their exact error and selected database path. |
-| Need command details | Use `graver --help`, `graver COMMAND --help`, or nested help such as `graver work show --help`. |
-| Reporting a problem | Retain the command (remove secrets), Graver/Python versions, semantic error text, selected database path, whether the step was offline or live, and whether Cloudflare appeared. Do not publish private genealogy data or configuration contents. |
+| `graver: command not found` or “`graver` is not recognized” | Return to the [installation guide for researchers](first-time-setup.md), complete the command-path step, close the terminal, open it again, and run `graver --version`. |
+| `tutorial.db` already exists | Graver will not overwrite it. If it is an earlier practice file, select it with `graver use tutorial.db`. Otherwise choose another name, such as `tutorial-2.db`, and use that name throughout the quickstart. |
+| No database is selected | Run `graver use` followed by the complete location of `tutorial.db` in quotation marks, then confirm with `graver use --show`. |
+| Graver cannot find or use the database | Check that the complete location and filename exactly match what you copied. Graver will not quietly choose another file. |
+| Graver says the database needs an upgrade | Stop. Do not continue this quickstart with that file. Read the [database-upgrade guide](database-upgrades.md) before deciding whether to make a backup copy and upgrade it. |
+| The search returns no memorial | Stop or try later with a memorial number you already know. Keep `--max-results 1`. Do not run rapid repeated searches. |
+| Find a Grave shows a verification page, blocks access, or times out | Stop and try later. You may still use the commands marked **On your computer** to inspect saved work. |
+| `work next` shows no person | Run `graver work list --limit 10`. If the list is empty, confirm that the search saved a memorial, then run `graver work queue`. |
+| Graver refuses the full-page lookup | Run `graver work show` followed by your memorial number. If you intend to approve that memorial, repeat step 6 before running `graver work enrich` followed by the same number. |
+| The full-page lookup succeeds but some details are absent | A successful full-page lookup may still leave optional details blank. Graver does not invent missing facts. |
+| Anything else fails | Stop and copy the complete error message. Also record the result of `graver --version`, the selected research file from `graver use --show`, and whether the failed step was marked **On your computer** or **Contacts Find a Grave**. Do not publish private genealogy data. |
+
+For more command detail, run `graver --help`, `graver COMMAND --help`, or a more
+specific command such as `graver work show --help`.
+
+Software developers who need Graver's machine-readable output can use
+`graver work show 1075 --json` and the [command-line JSON contract](cli-json.md).

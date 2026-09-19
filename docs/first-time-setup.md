@@ -88,7 +88,7 @@ Then close the terminal, open it again, and retry `graver --version`.
 ## Choose where the research database will live
 
 Before creating a database, use the terminal to enter a folder you recognize and
-intend to back up. For a practice run, the tutorial uses a new folder named
+intend to back up. For a practice run, the quickstart uses a new folder named
 `graver-tutorial`. Running this command there:
 
 ```shell
@@ -113,7 +113,7 @@ forgets the saved selection but does not delete the database.
 
 ## Continue with the guided workflow
 
-The [researcher tutorial](tutorial.md) walks through a small practice project from
+The [command-line quickstart](tutorial.md) walks through a small practice project from
 database creation through one deliberately approved memorial enrichment. It labels
 every step as offline or live and includes symptom-oriented troubleshooting.
 

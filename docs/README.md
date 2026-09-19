@@ -26,7 +26,7 @@ The [first-time setup guide](first-time-setup.md) explains the terminal, uv,
 command path, installation boundary, and local research database for readers who
 do not routinely use developer tools.
 
-The [researcher tutorial](tutorial.md) is the canonical end-to-end guide for
+The [command-line quickstart](tutorial.md) is the canonical end-to-end guide for
 using the implemented command-line workflow.
 
 The [research-state guide](research-states.md) explains every workflow state in
@@ -40,7 +40,7 @@ The [advanced research model](evidence-assessment-architecture.md) explains how
 candidate hypotheses, comparisons, conflicts, researcher assessments, and identity
 conclusions remain separate. Its opening availability summary distinguishes the
 current researcher workflow from an implemented internal contract and future work;
-it is not an additional engine-1.0 tutorial step.
+it is not an additional engine-1.0 quickstart step.
 
 ## Trust, privacy, and responsible access
 
@@ -158,5 +158,5 @@ confirmed both corrections with no new blockers, so R2 passes.
 The outer project-level `docs/*.md` paths are local compatibility symbolic links
 for tools and conversations that begin at the parent project root. Future
 inventory, context, and roadmap changes must be made only in this directory.
-The same rule applies to the tutorial and access policy: link to their canonical
+The same rule applies to the quickstart and access policy: link to their canonical
 paths in this directory rather than creating independent copies.
