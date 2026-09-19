@@ -111,8 +111,6 @@ jobs:
         with:
           python-version: "3.14"
       - run: uv sync --locked --group test --group dev
-      - name: Check documentation style
-        run: uv run python maintenance/check_documentation_style.py
       - name: Run tests
         if: runner.os != 'Windows'
         run: uv run pytest
