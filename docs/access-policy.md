@@ -2,11 +2,11 @@
 
 Reviewed: 2026-08-24
 
-This document governs acquisition behavior in project-maintained graver code and
+This document governs acquisition behavior in project-maintained Graver code and
 accepted contributions. It is a conservative project policy, not legal advice. It
 cannot guarantee or control every downstream modification or user action.
 
-graver supports responsible, researcher-directed acquisition and
+Graver supports responsible, researcher-directed acquisition and
 provider-authorized data workflows. Researchers remain responsible for applicable
 law, provider terms, robots policies, and access instructions. Public availability
 of data does not by itself authorize systematic retrieval or redistribution.
@@ -24,7 +24,7 @@ quiet hours, scheduling, and resumability are resource-management and reliabilit
 safeguards used only after an authorization basis exists. No request rate is
 inherently acceptable.
 
-The conventional Requests-backed transport improves graver's architecture and
+The conventional Requests-backed transport improves Graver's architecture and
 alignment with this policy, but it does not authorize access. Unattended Find a
 Grave full-record acquisition remains disabled until a documented authorization
 basis permits it. The [Ancestry Terms and
@@ -50,7 +50,7 @@ stop conditions, bounded retries, auditable outcomes, and explicit cancellation.
 
 ## Prohibited behavior and contributions
 
-graver will not implement or accept contributions intended to provide:
+Graver will not implement or accept contributions intended to provide:
 
 - CAPTCHA or automated challenge solving;
 - browser or TLS fingerprint manipulation;
@@ -84,7 +84,7 @@ before provider integration and applicable releases.
 
 Import-first acquisition from authorized sources should precede unattended live
 retrieval. Provider-neutral queues, scheduling, resumability, and GUI/CLI progress
-are planned architecture only; graver currently has no background-job engine,
+are planned architecture only; Graver currently has no background-job engine,
 scheduler, import service, or unattended full-record acquisition mode.
 
 The dated [provider acquisition and import decision](provider-import-decision.md)

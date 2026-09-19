@@ -107,7 +107,7 @@ The full Find a Grave observation also captured the page's dedicated family pane
 
 Each entry preserves the displayed group label, related memorial ID and URL, name,
 life text, any separately parseable dates, and observation timestamp. It means only
-that Find a Grave displayed the relationship on Eleanor's page at that time. graver
+that Find a Grave displayed the relationship on Eleanor's page at that time. Graver
 has not yet retrieved the linked pages, verified reciprocity, or concluded that the
 people are related. A later observation may add, remove, or relabel links without
 rewriting this snapshot.

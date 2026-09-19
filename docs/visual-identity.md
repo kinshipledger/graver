@@ -1,6 +1,6 @@
 # Visual identity and documentation graphics
 
-graver's visual system should make engine behavior, research flow, provenance, and
+Graver's visual system should make engine behavior, research flow, provenance, and
 human decision points easier to understand. Graphics are part of the documented
 contract when they teach workflow or evidence meaning; they are not decoration
 applied after the text is finished.
@@ -8,12 +8,13 @@ applied after the text is finished.
 ## Brand relationship
 
 - **Kinship Ledger** is the publishing and community identity.
-- **graver** is the research engine, command, Python package, and distinct
-  application identity.
+- **Graver** is the open-source project, research engine, and distinct application
+  identity. Its literal command and Python import root are `graver`; its published
+  distribution is `graver-genealogy`.
 - The future professional desktop experience is a separate product layer over the
-  graver engine and earns its own readiness claim and acceptance gates.
-- The graver mark should support the name's “digger” sense: patient research that
-  uncovers and preserves evidence. It should not imply that graver proves facts,
+  Graver engine and earns its own readiness claim and acceptance gates.
+- The Graver mark should support the name's “digger” sense: patient research that
+  uncovers and preserves evidence. It should not imply that Graver proves facts,
   manages cemeteries, or limits its future to grave records.
 - The shared verbal direction is archival fieldwork: evidence tags, ink, paper,
   ledger marks, restrained earth tones, and one warm accent. The Kinship Ledger
@@ -59,7 +60,7 @@ The first visual slice contains three small, purposeful diagrams:
    researcher-authored conclusion, with ordering explicitly separated from
    confidence and proof.
 3. **Client architecture:** the supported operational CLI and future preferred
-   desktop product sharing the typed graver engine application layer without
+   desktop product sharing the typed Graver engine application layer without
    implying equal user-experience roles.
 
 The SVG sources live in `docs/assets/` and are embedded beside their

@@ -1,6 +1,32 @@
 repos:
+  # Vale v3.22.0. The immutable revision keeps local and CI behavior aligned.
+  - repo: https://github.com/vale-cli/vale
+    rev: e109c06297dc58a513f10691a275f3a9465584a1
+    hooks:
+      - id: vale
+        alias: vale
+        name: Vale documentation style
+        files: \.md$
+        exclude: ^maintenance/vale-fixtures/fail\.md$
+        stages: [manual]
+      - id: vale
+        alias: vale-version
+        name: Vale pinned-source executable
+        entry: vale --version
+        pass_filenames: false
+        stages: [manual]
+      - id: vale
+        alias: vale-fixture
+        name: Vale documentation rule fixtures
+        stages: [manual]
   - repo: local
     hooks:
+      - id: documentation-style
+        name: Documentation style policy
+        entry: uv run --locked --group dev python maintenance/check_documentation_style.py
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: black
         name: Black check
         entry: uv run --locked --group dev black --check

@@ -1,0 +1,93 @@
+{
+  "active_authored": {
+    "enforced": true,
+    "reason": "Current project-authored documentation and maintained reference material.",
+    "files": [
+      "CONTRIBUTING.md",
+      "README.md",
+      "ROADMAP.md",
+      "SECURITY.md",
+      "STYLEGUIDE.md",
+      "docs/README.md",
+      "docs/access-policy.md",
+      "docs/acquisition-scope.md",
+      "docs/api.md",
+      "docs/cli-json.md",
+      "docs/cli-migration.md",
+      "docs/database-upgrades.md",
+      "docs/evidence-assessment-architecture.md",
+      "docs/evidence-contract-review-prototype.md",
+      "docs/existing-system-inventory.md",
+      "docs/first-time-setup.md",
+      "docs/gedcom-integration.md",
+      "docs/initial-inspection.md",
+      "docs/live-canary.md",
+      "docs/performance.md",
+      "docs/privacy-and-data-handling.md",
+      "docs/project-context.md",
+      "docs/provider-import-decision.md",
+      "docs/r2-offline-workflow-review-guide.md",
+      "docs/releasing.md",
+      "docs/research-states.md",
+      "docs/researcher-review-gates.md",
+      "docs/security-threat-model.md",
+      "docs/source-adapter-strategy.md",
+      "docs/source-neutral-evidence-packet-prototype.md",
+      "docs/trust-transparency-architecture.md",
+      "docs/tutorial.md",
+      "docs/visual-identity.md"
+    ]
+  },
+  "generated": {
+    "enforced": false,
+    "reason": "Release Please owns this generated release history; its headings follow the generator.",
+    "review_trigger": "Review when the release generator or changelog format changes.",
+    "files": [
+      "CHANGELOG.md"
+    ]
+  },
+  "upstream_external": {
+    "enforced": false,
+    "reason": "The document preserves an upstream governed title and text.",
+    "review_trigger": "Review when the upstream source is replaced or locally rewritten.",
+    "files": [
+      "CODE_OF_CONDUCT.md"
+    ]
+  },
+  "historical_review_evidence": {
+    "enforced": false,
+    "reason": "Dated review and release records preserve the wording accepted at their historical gate.",
+    "review_trigger": "Reclassify only when a record is intentionally reopened as maintained guidance.",
+    "files": [
+      "docs/professional-genealogist-usability-review-2026-08-22.md",
+      "docs/professional-researcher-r1-rereview-2026-08-23.md",
+      "docs/professional-researcher-r1-review-2026-08-23.md",
+      "docs/professional-researcher-r2-final-verification-2026-08-23.md",
+      "docs/professional-researcher-r2-rereview-2026-08-23.md",
+      "docs/professional-researcher-r2-review-2026-08-23.md",
+      "docs/professional-researcher-s1-rereview-2026-08-23.md",
+      "docs/professional-researcher-s1-review-2026-08-23.md",
+      "docs/professional-usability-feedback-analysis-2026-08-22.md",
+      "docs/rc1-readiness-audit.md",
+      "docs/release-notes-1.0.0rc1.md",
+      "docs/technical-publications-review-2026-08-25.md"
+    ]
+  },
+  "templates_and_fixtures": {
+    "enforced": true,
+    "reason": "Maintained contributor templates and positive rule fixtures follow the current style.",
+    "files": [
+      ".github/pull_request_template.md",
+      "docs/templates/professional-researcher-review-report.md",
+      "maintenance/vale-fixtures/pass.md"
+    ]
+  },
+  "negative_fixtures": {
+    "enforced": false,
+    "reason": "This file deliberately violates every blocking custom rule.",
+    "review_trigger": "Review whenever a blocking custom rule is added, removed, or changed.",
+    "files": [
+      "maintenance/vale-fixtures/fail.md"
+    ]
+  }
+}

@@ -95,7 +95,7 @@ The documents below explain future boundaries and preserve dated validation
 evidence. Prototypes and review reports are not instructions for using the current
 product unless a current guide above links to them for a specific purpose.
 
-The [source-neutral integration strategy](source-adapter-strategy.md) defines graver's
+The [source-neutral integration strategy](source-adapter-strategy.md) defines Graver's
 scope boundary, adapter roles, admission gates, prioritization scorecard, and
 professional-review cadence. It is a guardrail against both source-specific core
 design and unfocused expansion into a universal genealogy application.

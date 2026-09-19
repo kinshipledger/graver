@@ -1,6 +1,6 @@
-# Contributing to graver
+# Contributing to Graver
 
-Thank you for helping improve graver. Please read the
+Thank you for helping improve Graver. Please read the
 [access policy](docs/access-policy.md) before proposing acquisition or provider
 integration changes. Participation in project spaces is governed by the
 [Code of Conduct](CODE_OF_CONDUCT.md).
@@ -40,6 +40,7 @@ Install the locked environment and run the offline checks:
 uv sync --locked --group test --group dev
 uv run pre-commit install
 uv run pre-commit run --all-files
+uv run python maintenance/check_documentation_style.py
 uv run --group dev pip-audit
 uv run --group dev ruff check --select S --ignore S608 src/graver maintenance
 uv run pytest
@@ -49,9 +50,9 @@ uv lock --check
 
 These commands are the cross-platform validation path and do not require an
 activated virtual environment. On systems with a compatible `make` installation,
-`make lint`, `make security`, `make typecheck`, and `make doccheck` are equivalent
-convenience shortcuts for the corresponding static and security checks. GNU Make
-is an external system tool and is not installed by uv or required by graver.
+`make lint`, `make security`, `make typecheck`, `make doccheck`, and `make
+stylecheck` are equivalent convenience shortcuts for the corresponding checks. GNU
+Make is an external system tool and is not installed by uv or required by Graver.
 
 `make lint` runs the required Black formatting check and Ruff lint/import-order
 check over production, test, review, consumer-spike, and benchmark Python. `make
@@ -64,6 +65,10 @@ supported application boundary in `graver.application`, `graver.database`,
 `graver.evidence`, and `graver.research`. `make doccheck` enforces Google-style
 public docstring coverage over that same boundary, excluding redundant magic-method
 and constructor docstrings where the class contract already carries the meaning.
+`make stylecheck` verifies that every Markdown file has an explicit scope,
+exercises the passing and deliberately failing rule fixtures, and checks maintained
+documentation with the pinned Vale version. Pre-commit builds Vale in its isolated
+cache on the first run; contributors do not need a system Vale or Go installation.
 The installed pre-commit hooks run the same checks. CI is authoritative and repeats
 the full required scope.
 
@@ -124,7 +129,7 @@ Put disposable JSON and other researcher-generated exports under `scratch/` or
 
 [Release Please](https://github.com/googleapis/release-please) is the sole tool for
 preparing versions, changelog sections, tags, and GitHub Releases. Its workflow is
-manual while graver is pre-1.0. A maintainer reviews the generated release pull
+manual while Graver is pre-1.0. A maintainer reviews the generated release pull
 request for meaningful user and developer notes before merging it. Package-index
 publication uses a separate OIDC trusted-publishing job in that manually triggered
 workflow; the release-candidate package is published as `graver-genealogy` while the
@@ -132,16 +137,15 @@ command and import package remain `graver`.
 
 ## Project name and terminology
 
-The canonical project name is **graver**, styled in lowercase even at the start
-of a sentence. Use backticks when referring to the literal command, package,
-module, or another code identifier—for example, `graver init`—but ordinary prose
-does not need code styling simply because it names graver.
-
-The name graver covers the research engine, core library, application services, and
-command-line tool. Kinship Ledger is the broader project and publishing context.
-The future professional desktop application is a separate product layer and may
-have a separate name; do not assume or establish that name in graver documentation
-before it is chosen.
+Use **Graver** for the project and research engine. Use inline code for the literal
+`graver` command, Python import root, namespace, or other exact machine identifier;
+for example, `graver init`. The published distribution is `graver-genealogy`.
+**Kinship Ledger** is the broader publisher and product family, including the later
+professional researcher application. Follow the complete terminology and heading
+rules in the
+[documentation style guide](STYLEGUIDE.md); the
+[visual identity guide](docs/visual-identity.md) remains authoritative for brand
+meaning and assets.
 
 ## Documentation voice
 

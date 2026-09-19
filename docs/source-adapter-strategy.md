@@ -1,13 +1,13 @@
 # Source-neutral integration strategy
 
 Status: architectural guardrail and selection process. This document does not
-commit graver to a particular provider, record class, import format, or new
+commit Graver to a particular provider, record class, import format, or new
 pre-1.0 feature.
 
 ## Integration architecture terminology
 
 **Integration architecture** is the umbrella term for the post-1.0 contracts that
-connect graver's research engine to other components. It contains three boundaries
+connect Graver's research engine to other components. It contains three boundaries
 that must not be collapsed into a generic “adapter layer”:
 
 1. The **client boundary** serves command-line, desktop, and other user experiences
@@ -29,7 +29,7 @@ to make future diagrams look tidy.
 
 ## Product boundary
 
-graver remains a focused, evidence-aware research workflow—not a general-purpose
+Graver remains a focused, evidence-aware research workflow—not a general-purpose
 genealogy suite, universal record harvester, tree editor, document-management
 system, or replacement for specialist research tools. Its core value is preserving
 observations, comparing attributed assertions, managing reviewable research work,
@@ -41,7 +41,7 @@ assuming that every subject originates in a cemetery or that every useful source
 arrives through a live provider. Source neutrality is an incremental design
 constraint, not a promise to support every conceivable genealogical source.
 
-The engine name records graver's origin; it does not grant memorials permanent
+The engine name records Graver's origin; it does not grant memorials permanent
 priority in the research model. Any admitted discovery, observation, or import
 adapter may provide the first useful lead for a new or existing subject. Once
 captured, every representation is evaluated under the same provenance, attribution,
@@ -111,11 +111,11 @@ separate:
    identities.
 4. **Export adapters** project deliberately selected research for another consumer
    and disclose omissions, transformations, privacy filtering, and representational
-   loss. They preserve researcher authorship and must not make graver appear to own
+   loss. They preserve researcher authorship and must not make Graver appear to own
    the conclusions being projected.
 
 Provider, parser, OCR, SQLite, terminal, and GUI types do not cross the public
-application boundary. Adapters return graver-owned typed results and errors. The
+application boundary. Adapters return Graver-owned typed results and errors. The
 core must preserve the observed representation, provenance, individual assertions,
 known roles and informants, explicit versus inferred relationships, missing or
 uncaptured information, search scope, snapshot changes, warnings, and inspectable

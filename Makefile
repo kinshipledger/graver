@@ -1,4 +1,4 @@
-.PHONY: help init sync run test performance canary canary-json lint security typecheck doccheck release-check format clean
+.PHONY: help init sync run test performance canary canary-json lint security typecheck doccheck stylecheck release-check format clean
 
 # Default goal when running just `make`
 .DEFAULT_GOAL := help
@@ -50,6 +50,9 @@ typecheck: ## Type-check the supported application boundary
 
 doccheck: ## Check public application docstring coverage and style
 	uv run --group dev ruff check --select D --ignore D105,D107 src/graver/acquisition.py src/graver/application.py src/graver/database.py src/graver/errors.py src/graver/evidence.py src/graver/progress.py src/graver/research.py src/graver/workspace.py
+
+stylecheck: ## Check documentation inventory, terminology, and heading style
+	uv run --locked --group dev python maintenance/check_documentation_style.py
 
 release-check: ## Build and smoke-test publishable wheel and source archive
 	rm -rf dist

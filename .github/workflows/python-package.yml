@@ -45,11 +45,28 @@ jobs:
           format: cobertura
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+  documentation:
+    name: Documentation style
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
+        with:
+          python-version: "3.14"
+      - run: uv sync --locked --group dev
+      - run: uv run python maintenance/check_documentation_style.py
+
   quality:
     name: Quality and package
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    needs: documentation
+    if: ${{ always() }}
     steps:
+      - name: Require documentation style prerequisite
+        if: needs.documentation.result != 'success'
+        run: exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
         with:

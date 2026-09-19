@@ -1,6 +1,6 @@
 # Maintainer release process
 
-graver uses Conventional Commit pull-request titles, squash merges, and a manually
+Graver uses Conventional Commit pull-request titles, squash merges, and a manually
 triggered Release Please workflow. Release Please is the sole mechanism for updating
 the package version, finalizing the changelog section, creating the Git tag, and
 creating the GitHub Release. The same workflow builds and tests the tagged source

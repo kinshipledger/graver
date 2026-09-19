@@ -5,7 +5,7 @@
 The repository is on the single long-lived `main` branch with only
 `https://github.com/kinshipledger/graver.git` configured as `origin`. The obsolete
 `pirtleshell/scrape-a-grave` upstream remote has been removed. Historical MIT
-copyright provenance remains preserved, while the README makes clear that graver is
+copyright provenance remains preserved, while the README makes clear that Graver is
 independently maintained and has no ongoing upstream affiliation.
 
 The implemented foundation includes schema version 5, subject-owned research tasks,
@@ -87,7 +87,7 @@ Find a Grave cemetery
 Find a Grave observations must remain preserved as original provenance. Later research conclusions must be stored separately rather than replacing the original record.
 
 This operating model describes the first proven workflow, not a permanent
-requirement that every research subject originate with a cemetery memorial. graver
+requirement that every research subject originate with a cemetery memorial. Graver
 should become source-neutral only where demonstrated researcher workflows require
 it. It is not intended to become a universal genealogy suite, tree editor, document
 repository, or adapter for every available provider and format. The governing
@@ -205,7 +205,7 @@ semantically without depending on terminal layout. Re-evaluate Typer after this
 cleanup. Replace it with direct Click before 1.0 if the cleaned adapter still
 requires unsupported option behavior, produces recurring cross-platform rendering
 failures, or imposes disproportionate upgrade work. Do not undertake a framework
-rewrite merely to reduce dependencies; `argparse` is not preferred while graver
+rewrite merely to reduce dependencies; `argparse` is not preferred while Graver
 retains a substantial nested command hierarchy.
 
 ## Safety principles
@@ -218,9 +218,9 @@ retains a substantial nested command hierarchy.
 - Do not automate external writes without user approval.
 - Confirm Find a Grave, FamilySearch, and WikiTree access rules before scaling collection or integrations.
 
-## graver 1.0 contract decisions
+## Graver 1.0 contract decisions
 
-graver 1.0 defines the stable research-engine finish line: core behavior, workflow
+Graver 1.0 defines the stable research-engine finish line: core behavior, workflow
 rules, Find a Grave acquisition, research-database lifecycle, CLI, documented Python
 facade, configuration format, explicit migration policy, versioned machine-readable
 output, the current application boundary and architectural guardrails, and Python
@@ -359,13 +359,13 @@ FamilySearch or WikiTree persistence.
 
 ### Naming convention
 
-The canonical name of the research engine, core library, application services, and
-command-line tool is **graver**, styled in lowercase in prose as well as in
-identifiers. Backticks identify literal commands, imports, packages, and other
-code—not the engine name in ordinary prose. **Kinship Ledger** is the broader
-project and publishing context. The future professional desktop application is a separate product layer
-and may use a separate name, which remains an open decision and must not alter
-graver's package or public API identity.
+The canonical project and research-engine name is **Graver** in ordinary prose.
+Use `graver` for the literal command, Python import root, namespace, and related
+machine identifiers; use `graver-genealogy` for the published distribution.
+**Kinship Ledger** is the broader publisher and product family, including the later
+professional desktop application. That product may have a separate application
+name, which remains an open decision and must not alter Graver's package or public
+API identity.
 
 Kinship Ledger is expected to contain a separate installable,
 researcher-facing desktop application. PyQt6 is the leading toolkit candidate, but
@@ -375,10 +375,10 @@ versioned. Whether it lives in another nested repository or a future top-level
 monorepo is a separate repository-governance decision; no repository restructuring
 is part of this plan.
 
-The desktop application will be a sibling component that depends on graver as an
-installed library. It must not be part of `graver.cli`, and graver must never depend
+The desktop application will be a sibling component that depends on Graver as an
+installed library. It must not be part of `graver.cli`, and Graver must never depend
 on it. The GUI owns windows, widgets, navigation, dialogs, presentation state, and
-GUI-specific background-worker integration. It imports only graver's documented
+GUI-specific background-worker integration. It imports only Graver's documented
 public facade and must not access SQLite schema details, private SQL helpers, Typer
 commands, Rich output, parsers, or transport implementation.
 
@@ -391,13 +391,13 @@ Other clients    ┘        → domain rules
                           → SQLite persistence
 ```
 
-The CLI and GUI share the graver application contract; this does not imply equal
+The CLI and GUI share the Graver application contract; this does not imply equal
 product or usability roles. Domain rules,
 transactions, provenance, and acquisition semantics must not be reimplemented
 independently in either adapter. The CLI remains a supported administration,
 automation, recovery, advanced-use, and API-parity surface; it is not intended to be
 the preferred everyday professional-researcher experience. The professional desktop
-product should begin after graver engine 1.0 with a stable database and work-queue
+product should begin after Graver engine 1.0 with a stable database and work-queue
 vertical slice, then grow as compatible evidence, FamilySearch, and WikiTree services
 arrive. Another desktop toolkit or non-desktop client must remain possible.
 
@@ -413,7 +413,7 @@ consumer needs have been demonstrated.
 
 ### Workspace facade
 
-The leading graver 1.0 application-API shape is a synchronous, typed workspace
+The leading Graver 1.0 application-API shape is a synchronous, typed workspace
 facade. Its first work-queue slice is now validated by a small consumer spike:
 
 ```python
@@ -456,7 +456,7 @@ it remains an open decision driven by a concrete integration.
 
 ### Public API contract
 
-Before `1.0.0rc1`, graver must document supported import paths; typed domain models;
+Before `1.0.0rc1`, Graver must document supported import paths; typed domain models;
 typed command and query objects for nontrivial operations; typed results; a stable
 exception taxonomy; explicit database and transaction ownership; deterministic
 ordering and pagination; stable identifier semantics; nullability and enum-
@@ -536,7 +536,7 @@ Application services should follow researcher goals rather than mirror tables:
 - future family work packets.
 
 Future source work distinguishes discovery, observation, import, and export adapter
-roles. Provider or format integrations must project into graver-owned source,
+roles. Provider or format integrations must project into Graver-owned source,
 snapshot, assertion, relationship, provenance, comparison, and evidence-reference
 concepts without creating accepted facts or conclusions. This is an incremental
 compatibility requirement for the public boundary, not a commitment to design a
@@ -577,7 +577,7 @@ verification; the canonical inventory records only behavior actually implemented
 ### API hygiene and documentation milestone
 
 This milestone is implemented and must remain green when the workspace facade is
-frozen as graver's 1.0 contract. The `graver.application` boundary,
+frozen as Graver's 1.0 contract. The `graver.application` boundary,
 explicit exports, typed request/result services, developer guide, bounded mypy and
 Google-convention docstring checks, workspace composition, optimistic task
 concurrency, a stable application-error contract, thread-isolation coverage, and an
@@ -589,14 +589,14 @@ top-level document, and brought maintenance scripts into CI quality checks.
 The supported boundary uses Google-style docstrings. Every supported public
 module, class, protocol, exception, function, method, typed command, query, and
 result object needs a useful docstring describing its purpose, arguments, return
-value, raised graver-owned exceptions, side effects, transaction behavior, thread
+value, raised Graver-owned exceptions, side effects, transaction behavior, thread
 and cancellation expectations, and a short example where useful. Self-explanatory
 private helpers, tests, and trivial accessors do not need verbose documentation.
 Docstrings must explain contracts rather than merely repeat names or annotations.
 
 Type annotations, an explicit `graver.application` import path, and contract-tested
 `__all__` exports now protect the initial boundary. Public exceptions and results are
-graver-owned.
+Graver-owned.
 CLI and presentation types, Typer, Rich, SQLite connections and rows, SQL helpers,
 parsers, Requests objects, and internal transport implementations stay outside the
 facade. The API guide will document stability expectations and additive enum
@@ -667,7 +667,7 @@ transport injection; CLI use of application services; Python and JSON projection
 of the same results; wheel installation and public API use; and compatibility of the
 documented facade after 1.0.
 
-The top-level `consumer_spike` now installs graver from its built wheel and imports
+The top-level `consumer_spike` now installs Graver from its built wheel and imports
 only documented APIs. It is not the production GUI and adds no Qt dependency. The
 initial slice creates and opens an isolated workspace, inspects it, queries empty
 work, and queues idempotently without importing persistence or adapter internals.
@@ -680,7 +680,7 @@ adding `MemorialDetailInput` and `DisplayedRelationshipInput` to the supported
 application boundary. Its findings may continue to refine the facade before the
 release candidate.
 
-After graver 1.0, the production GUI should grow incrementally through workspace
+After Graver 1.0, the production GUI should grow incrementally through workspace
 selection, initialization and upgrade guidance; work queue and subject detail; one-
 person acquisition and provenance review; status, notes, and conflict handling;
 FamilySearch candidate discovery and evidence assessment; reviewed identity
@@ -699,7 +699,7 @@ This section records an architectural policy finding, not legal advice. On
 identified there as effective 2026-05-12, and the
 [Ancestry Community Rules](https://www.ancestry.com/c/legal/community-rules).
 Both apply to services that include Find a Grave. Without extensively quoting or
-attempting a definitive legal interpretation, graver adopts the conservative policy
+attempting a definitive legal interpretation, Graver adopts the conservative policy
 that unattended acquisition is unavailable unless its intended use has an explicit
 authorization basis. Current terms, technical documentation, robots policies, and
 provider instructions must be reviewed again before implementation, before enabling
@@ -709,9 +709,9 @@ Request spacing does not establish permission. Rate limits, randomized jitter,
 exponential backoff, resumability, quiet hours, and request budgets are operational
 safeguards only. They do not override terms of service, robots policies, access
 controls, or provider instructions. A user's acknowledgement of provider terms does
-not authorize graver to implement access the provider prohibits.
+not authorize Graver to implement access the provider prohibits.
 
-graver distinguishes three possible acquisition modes:
+Graver distinguishes three possible acquisition modes:
 
 1. Interactive person-at-a-time or small supervised acquisition.
 2. Bulk import from authorized files, exports, or datasets.
@@ -723,7 +723,7 @@ import, licensed dataset, or documented or written permission covering the inten
 use. Find a Grave unattended full-record acquisition remains disabled pending that
 authorization. Ordinary researcher-directed single-record acquisition remains a
 separate capability and is still subject to the applicable terms and instructions.
-graver must not implement CAPTCHA or challenge solving, proxy or IP rotation,
+Graver must not implement CAPTCHA or challenge solving, proxy or IP rotation,
 browser-fingerprint manipulation, user-agent cycling, credential sharing, or other
 circumvention.
 
@@ -737,7 +737,7 @@ accepted.
 
 ### `cloudscraper25` dependency and transport audit
 
-On 2026-08-21, a no-network audit reviewed graver's source, lockfile, tests, and the
+On 2026-08-21, a no-network audit reviewed Graver's source, lockfile, tests, and the
 installed `cloudscraper25` 2.7.0 distribution metadata and license. Primary package
 references are the
 [`cloudscraper25` source repository](https://github.com/zinzied/cloudscraper25) and
@@ -749,16 +749,16 @@ security advisories, and supported-Python claims must be rechecked from those
 primary sources before dependency changes because this offline audit did not query
 current hosting-service state.
 
-At the time of the audit, graver imported `cloudscraper25` in `graver.api`. The default
+At the time of the audit, Graver imported `cloudscraper25` in `graver.api`. The default
 `Driver` calls `cloudscraper25.create_scraper()` without restrictive options and
 then uses the resulting Requests-compatible session only through `get`, including
 query parameters, ordinary redirect behavior, response status, headers, and body.
-graver implements its own status retry loop and `Retry-After` handling. It does not
+Graver implements its own status retry loop and `Retry-After` handling. It does not
 set an explicit request timeout at this boundary. Session cookies and generated
-headers may be inherited from the dependency, but graver has no documented need for
+headers may be inherited from the dependency, but Graver has no documented need for
 Cloudflare-specific cookies or headers.
 
-No graver source configures proxy rotation, stealth mode, CAPTCHA services,
+No Graver source configures proxy rotation, stealth mode, CAPTCHA services,
 fingerprint settings, browser impersonation, or a challenge interpreter explicitly.
 However, the default scraper itself automatically detects and handles supported
 challenges. The installed package also ships Cloudflare challenge and Turnstile
@@ -766,18 +766,18 @@ handling, JavaScript interpreters, browser/user-agent emulation, stealth and pro
 management, fingerprint behavior, and CAPTCHA-service integrations. Its transitive
 runtime dependencies include Requests, requests-toolbelt, js2py, PyCryptodome,
 pyOpenSSL, pyparsing, and websocket-client. Those unused capabilities and their
-dependency surface are inconsistent with graver's fail-closed provider policy even
-though graver does not explicitly configure most of them.
+dependency surface are inconsistent with Graver's fail-closed provider policy even
+though Graver does not explicitly configure most of them.
 
 Current tests inject a Betamax Requests session for recorded parser contracts and
 use `requests-mock` for retry and failure behavior. Some `Driver` tests construct
 the default session, but assertions exercise ordinary Requests-compatible HTTP
 semantics rather than challenge solving or other unique `cloudscraper25` behavior.
-No test establishes that graver requires browser impersonation, challenge handling,
+No test establishes that Graver requires browser impersonation, challenge handling,
 proxy rotation, CAPTCHA support, fingerprint manipulation, or another capability a
 conventional client cannot provide.
 
-Audit result: **remove**, now implemented. graver's demonstrated requirements are a
+Audit result: **remove**, now implemented. Graver's demonstrated requirements are a
 conventional session, cookies where legitimately supplied, explicit transparent
 headers, redirects, explicit timeouts, conservative bounded retries, and injectable
 transports. A maintained conventional client such as Requests or httpx can
@@ -785,9 +785,9 @@ reasonably provide those capabilities without the unused circumvention-oriented
 surface. The approved replacement occurred before provider-governed background
 acquisition and `1.0.0rc1`, with transport and parser contract tests kept offline.
 The replacement decision does not authorize automated access; provider
-authorization remains an independent gate. graver now uses an internal synchronous
-transport boundary backed by Requests, with an explicit graver user agent, finite
-connect and read timeouts, graver-owned response and error types, bounded transient
+authorization remains an independent gate. Graver now uses an internal synchronous
+transport boundary backed by Requests, with an explicit Graver user agent, finite
+connect and read timeouts, Graver-owned response and error types, bounded transient
 retries, and fail-closed handling for access challenges, `403`, and repeated `429`
 responses.
 The broader transport remains internal and injectable; Requests types do not define
@@ -871,7 +871,7 @@ scheduler invokes bounded job runner
 ```
 
 Cron, launchd, Task Scheduler, a local CI-like scheduler, or a future GUI scheduler
-can invoke the same service without requiring graver to ship a permanent daemon.
+can invoke the same service without requiring Graver to ship a permanent daemon.
 Exact CLI names remain provisional; a progressive-disclosure `graver jobs ...`
 surface is plausible, with ordinary help focused on goals and status and advanced
 policy diagnostics kept under administrative surfaces.
@@ -994,7 +994,7 @@ Test infrastructure must also follow these rules:
 - Test frameworks, Faker, record/replay tools, mocks, and coverage tools belong only
   in test dependency groups, not the installed application's runtime dependencies.
 - Vestigial tool smoke tests, empty tests, and commented-out test bodies should be
-  removed or replaced by assertions about graver behavior.
+  removed or replaced by assertions about Graver behavior.
 - Register meaningful `unit`, `integration`, `recorded`, and `slow` markers and
   enable strict marker checking. Evaluate pytest importlib mode against the current
   `src` layout before adopting it.
@@ -1009,7 +1009,7 @@ Test infrastructure must also follow these rules:
 
 The separate, explicitly invoked `make canary` maintenance probe answers a different
 question from recorded tests: whether the current Find a Grave site still satisfies
-graver's minimum full-memorial parsing contract. It is not part of ordinary local
+Graver's minimum full-memorial parsing contract. It is not part of ordinary local
 tests, pull-request validation, cassette recording, release automation, or the
 researcher-facing CLI. The designated canary is the stable public George Washington
 memorial:
@@ -1064,7 +1064,7 @@ Initial work states may include `unprocessed`, `researching`, `familysearch_matc
 ## GEDCOM and relationship-aware research
 
 GEDCOM is an exploratory nice-to-have rather than a pre-1.0 dependency or committed
-feature milestone. Its potential first value to graver is immutable import and
+feature milestone. Its potential first value to Graver is immutable import and
 repeatable comparison, not bulk creation of
 accepted people or conversion into a general-purpose tree editor. Imported people,
 facts, families, and relationships are external assertions until they are mapped
@@ -1093,7 +1093,7 @@ roadmap; implementation facts belong in the existing-system inventory; private
 commercial, scheduling, and critical-path planning remains outside this repository.
 
 The [visual identity and documentation graphics guide](visual-identity.md) governs
-the distinct Kinship Ledger publisher and graver product identities, the initial
+the distinct Kinship Ledger publisher and Graver product identities, the initial
 icon brief, the first three explanatory diagrams, asset provenance, and recurring
 visual review. Visual meaning is treated as part of the researcher-facing contract
 rather than post-implementation decoration.
@@ -1170,7 +1170,7 @@ Pre-1.0 sequence:
    findings, and require deterministic replay while keeping evidence-integrity
    safeguards non-configurable. This validates shared distinctions and adapter
    seams; it does not add a live provider, public interchange format, universal
-   ontology, or new 1.0 product workflow. Then define and freeze the public graver
+   ontology, or new 1.0 product workflow. Then define and freeze the public Graver
    workspace facade, typed requests and results,
    documented imports and stability policy, exception taxonomy, transaction and
    threading contract, progress, cancellation, stale-update handling, injectable
@@ -1266,7 +1266,7 @@ Pre-1.0 sequence:
     the ordinary researcher path. Correct blocking findings, then obtain a short
     professional-genealogist semantic verification rather than repeating the full
     workflow unless behavior materially changed. Re-evaluate whether GEDCOM has
-    demonstrated enough value for later implementation, and release graver `1.0.0`
+    demonstrated enough value for later implementation, and release Graver `1.0.0`
     only after these gates pass. Reconcile the source-adapter strategy, API guide,
     access policy, review gates, inventory, roadmap, tutorial, and README; confirm
     that scope and non-goals remain achievable. GEDCOM is not a release criterion.
@@ -1357,4 +1357,4 @@ concurrency token, whether concrete later acquisition needs asyncio, GUI packagi
 and distribution, and cross-platform installer strategy. GEDCOM parser selection,
 comparison scoring, file retention, and GEDZIP scope remain conditional questions,
 not active design dependencies. The approved dependency
-direction remains a separate GUI component using only graver's documented API.
+direction remains a separate GUI component using only Graver's documented API.

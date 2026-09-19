@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-graver has published `1.0.0rc1` for release-candidate testing. Security fixes are
+Graver has published `1.0.0rc1` for release-candidate testing. Security fixes are
 developed on `main`; a reported vulnerability is assessed for a corrected
 prerelease when it affects the published candidate. Versions older than the latest
 published prerelease are not maintained as separate supported lines during pre-1.0

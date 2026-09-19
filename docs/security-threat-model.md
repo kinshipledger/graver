@@ -1,6 +1,6 @@
 # Security threat model
 
-This document records graver's final-`1.0.0` engine security boundaries,
+This document records Graver's final-`1.0.0` engine security boundaries,
 assumptions, and known risks. It follows the practical threat-modeling pattern of identifying
 assets, trust boundaries, threats, controls, and residual risk. It is a living
 engineering record, not a certification.
@@ -13,12 +13,12 @@ tests, and public privacy/security documentation.
 
 ## Current scope and assumptions
 
-graver is a local, single-researcher command-line application. It has no hosted
+Graver is a local, single-researcher command-line application. It has no hosted
 service, accounts, telemetry, remote synchronization, or production GUI. It reads
 public web representations through HTTPS when the researcher explicitly requests
 acquisition and stores research in a local SQLite database.
 
-The current model trusts the operating-system account that runs graver. It does
+The current model trusts the operating-system account that runs Graver. It does
 not defend a database from an attacker who already controls that account or the
 machine. Hosted services, shared databases, untrusted plugin execution, and a GUI
 would create new boundaries and require a new review before release. Any future

@@ -1,16 +1,16 @@
 # GEDCOM integration architecture
 
 Status: exploratory nice-to-have; not implemented and not on the engine 1.0 critical
-path. Re-evaluate after graver's core subject, work, provenance, API, and GUI
+path. Re-evaluate after Graver's core subject, work, provenance, API, and GUI
 assumptions have been tested through real researcher workflows.
 
 ## Purpose
 
-If demonstrated research needs justify it, GEDCOM should extend graver's evidence-
-centered research workflow, not turn graver
+If demonstrated research needs justify it, GEDCOM should extend Graver's evidence-
+centered research workflow, not turn Graver
 into a general-purpose family-tree editor or make an interchange file authoritative.
 GEDCOM contributes portable people, family relationships, events, sources, notes,
-identifiers, and media references. graver contributes source-aware comparison,
+identifiers, and media references. Graver contributes source-aware comparison,
 repeatable research queues, discrepancy detection, reviewed mappings, reasoning,
 explicit uncertainty, researcher-authored conclusions, and immutable decision
 history.
@@ -18,7 +18,7 @@ history.
 The central product proposition is:
 
 > GEDCOM supplies a portable relationship graph and genealogical assertions;
-> graver compares those assertions with observed evidence and supports reviewable
+> Graver compares those assertions with observed evidence and supports reviewable
 > conclusions.
 
 ## Re-evaluation gates
@@ -31,7 +31,7 @@ reported. Each review should ask:
 - Which current researcher problem would GEDCOM solve better than existing work?
 - Is the need import, comparison, research seeding, selective export, or merely file
   conversion better handled by another tool?
-- Can graver preserve provenance and uncertainty without complicating its core API?
+- Can Graver preserve provenance and uncertainty without complicating its core API?
 - Are representative privacy-safe files and independent consumer applications
   available for testing?
 - Does the expected value justify parser, compatibility, privacy, and maintenance
@@ -52,7 +52,7 @@ grant it roadmap priority.
    and producer, validate its structure, preserve its file hash and import metadata,
    and report unsupported structures without changing research conclusions.
 2. **Repeatable comparison.** Compare imported people, facts, and relationships with
-   graver subjects and evidence. Reimporting a changed file creates a new snapshot
+   Graver subjects and evidence. Reimporting a changed file creates a new snapshot
    and comparison run; it never overwrites earlier imports.
 3. **Research seeding.** Allow reviewed imported assertions to create candidate
    subjects, facts, relationships, and work—not accepted identity conclusions.
@@ -67,7 +67,7 @@ grant it roadmap priority.
 
 ## Domain boundaries
 
-GEDCOM does not define graver's internal database or public API. The provider-neutral
+GEDCOM does not define Graver's internal database or public API. The provider-neutral
 domain must be able to represent:
 
 - research subjects that do not originate with Find a Grave memorials;
@@ -80,7 +80,7 @@ domain must be able to represent:
 - reviewed conclusions that remain distinct from imported assertions.
 
 A GEDCOM cross-reference such as `@I42@` is meaningful only within one imported
-dataset snapshot and must never become a graver subject identifier. Importing a
+dataset snapshot and must never become a Graver subject identifier. Importing a
 family record does not establish that its relationships are correct. Imported
 values do not overwrite memorial observations, subject history, or conclusions.
 
@@ -121,7 +121,7 @@ shows that an existing maintained implementation is unsuitable.
 
 GEDCOM operations belong behind the same synchronous, typed application workspace
 used by the CLI and future GUI. Public services should accept explicit paths or
-streams and return graver-owned results and errors; they must not expose parser
+streams and return Graver-owned results and errors; they must not expose parser
 nodes, SQLite rows, or toolkit types. Import, comparison, mapping, and export are
 separate operations with progress, cancellation, deterministic ordering, and stale-
 update protection where applicable.

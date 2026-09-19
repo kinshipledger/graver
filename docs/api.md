@@ -19,7 +19,7 @@ policy; any correction required before publication will be called out in release
 notes. The package root deliberately re-exports no application symbols; clients
 must choose the documented `graver.application` boundary explicitly.
 
-![The command line and planned desktop application sharing the documented graver application boundary](assets/client-architecture.svg)
+![The command line and planned desktop application sharing the documented Graver application boundary](assets/client-architecture.svg)
 
 The desktop layer is planned as the preferred everyday researcher interface after
 engine 1.0. The command line remains the supported operational, administration,
@@ -31,7 +31,7 @@ The diagram's layers mean:
   research, evidence, or database rules.
 - Shared services open workspaces, manage the queue, acquire and compare
   observations, support evidence evaluation, and preserve history.
-- graver owns local database transactions and receives observations through
+- Graver owns local database transactions and receives observations through
   provider-governed source access. A provider never creates a research conclusion.
 
 Pre-1.0 code that imported parser or persistence objects directly from `graver`
@@ -150,8 +150,8 @@ and conclusion inputs. Candidate ordering remains distinct from researcher asses
 and reviewed identity conclusions. Client adapters must not reinterpret ordering as
 confidence or silently convert candidate data into accepted facts.
 
-Evidence and research services return graver-owned immutable result objects or raise
-graver-owned exceptions. Presentation adapters translate those outcomes into CLI
+Evidence and research services return Graver-owned immutable result objects or raise
+Graver-owned exceptions. Presentation adapters translate those outcomes into CLI
 exit codes, JSON, dialogs, or future GUI state; the services themselves do not emit
 terminal or toolkit-specific output.
 
@@ -181,7 +181,7 @@ print(receipt.observations_appended, receipt.memorials_created)
 
 Tests and authorized adapters may inject a callable returning a
 `MemorialSummaryBatch` of `MemorialSummaryInput` values. Persistence remains owned
-by graver and occurs only after acquisition and cancellation checks succeed. A
+by Graver and occurs only after acquisition and cancellation checks succeed. A
 batch containing duplicate memorial IDs raises
 `MemorialSearchResultConflict` before mutation. Its bounded context reports result
 and unique-result counts, repeated IDs, requested ordering, and result limit. This
@@ -268,7 +268,7 @@ result = workspace.acquisition.enrich(
 
 A workspace may be retained by an application and invoked from different worker
 threads, but a single operation runs synchronously in its calling thread. Every
-operation opens, uses, and closes its own SQLite connection in that thread. graver
+operation opens, uses, and closes its own SQLite connection in that thread. Graver
 never returns a connection to clients or moves one between threads. A GUI should run
 potentially blocking work in a worker thread and marshal results, progress events,
 and typed errors back through its toolkit adapter.
@@ -276,7 +276,7 @@ and typed errors back through its toolkit adapter.
 Transactions belong to one service operation. Cancellation is honored only at the
 documented safe boundaries outside a transaction; optimistic versions protect task
 updates from stale views. A `DatabaseBusy` result is retryable only after the client
-or researcher decides how and when to retry—graver does not silently loop behind the
+or researcher decides how and when to retry—Graver does not silently loop behind the
 interface.
 
 ## Required checks

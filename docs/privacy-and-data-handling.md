@@ -5,9 +5,9 @@ was found on a public website. Correlation, private notes, living-person details
 and inferred relationships can make a local research collection more sensitive
 than any single source.
 
-## What graver handles
+## What Graver handles
 
-graver may retain memorial observations, names, dates, places, displayed website
+Graver may retain memorial observations, names, dates, places, displayed website
 relationship links, citations, research notes, candidate assessments, negative
 searches, identity conclusions, provenance, and immutable history. Researchers may
 also enter information about living people or sensitive family circumstances.
@@ -21,17 +21,17 @@ to its most sensitive content.
 - Verified upgrade backups are stored beside that database.
 - The saved default-database preference is stored in the operating system's user
   configuration directory.
-- graver has no telemetry, cloud account, hosted synchronization, or analytics.
+- Graver has no telemetry, cloud account, hosted synchronization, or analytics.
 - Live acquisition sends the requested URL, query parameters, IP/network metadata,
-  and a transparent graver user agent to the external provider over HTTPS.
+  and a transparent Graver user agent to the external provider over HTTPS.
 - The CLI does not create a persistent log by default. Explicit diagnostic output
   goes to the terminal's standard-error stream and may include query details at
   debug level.
 
 New databases, backups, and temporary configuration writes use owner-only file
-permissions where the operating system supports them. graver does not silently
+permissions where the operating system supports them. Graver does not silently
 change permissions on an existing database. SQLite files are not encrypted by
-graver; use a protected user account, full-disk encryption, secure backups, and an
+Graver; use a protected user account, full-disk encryption, secure backups, and an
 appropriately protected device.
 
 ## Safe research and sharing practices
@@ -48,19 +48,19 @@ appropriately protected device.
 
 Immutable provenance protects research integrity, but it also means a correction
 does not silently erase earlier observations. Backups and filesystem copies may
-retain deleted content. graver therefore does not claim secure erasure. If a
+retain deleted content. Graver therefore does not claim secure erasure. If a
 privacy deletion is required, identify and handle the working database, backups,
 exports, logs created by other tools, and storage-provider copies together.
 
 ## Regulatory posture
 
-graver is open-source software, not a declaration that every use is compliant with
+Graver is open-source software, not a declaration that every use is compliant with
 privacy law or professional ethics. Applicability depends on who operates it, whose
 data is handled, location, purpose, scale, sharing, and whether a hosted or
 commercial service is involved. The project does not claim blanket GDPR, CCPA, or
 other regulatory compliance.
 
-Seek qualified advice before operating graver as a service, processing living-
+Seek qualified advice before operating Graver as a service, processing living-
 person data at scale, combining sensitive datasets, serving users across
 jurisdictions, selling or sharing personal information, or introducing accounts,
 telemetry, cloud storage, collaboration, or automated decision-making.
