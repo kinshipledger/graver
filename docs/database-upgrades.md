@@ -98,5 +98,5 @@ help before moving or replacing either file.
 
 Database migration does not restore removed command names or option spellings. See
 the [pre-1.0 command-line migration](cli-migration.md) for those replacements and
-the [researcher tutorial](tutorial.md) for the supported workflow. Machine-readable
+the [command-line quickstart](tutorial.md) for the supported workflow. Machine-readable
 command output uses the [versioned JSON contract](cli-json.md).

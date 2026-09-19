@@ -25,8 +25,8 @@ ordinary workspace or CLI, connected to live FamilySearch, or presented through 
 production desktop interface.
 
 New to command-line tools? Start with the
-[plain-language setup guide](docs/first-time-setup.md). Then follow the
-[researcher tutorial](docs/tutorial.md) for a small, safe workflow from database
+[installation guide for researchers](docs/first-time-setup.md). Then follow the
+[command-line quickstart](docs/tutorial.md) for a small, safe workflow from database
 creation through one approved memorial enrichment.
 
 Graver supports responsible, researcher-directed acquisition and
@@ -201,7 +201,7 @@ positive number when a smaller or larger bounded result set is intentional.
 
 Search is a live operation. Keep queries narrow, stop if the provider reports an
 access restriction, and consult `graver search --help` for the current filters.
-The [researcher tutorial](docs/tutorial.md) explains the complete recommended
+The [command-line quickstart](docs/tutorial.md) explains the complete recommended
 workflow. Review the [access policy](docs/access-policy.md) before using any live
 acquisition command.
 
@@ -267,7 +267,7 @@ that provenance matters.
 For researchers:
 
 - [First-time setup in plain language](docs/first-time-setup.md)
-- [Researcher tutorial](docs/tutorial.md)
+- [Command-line quickstart](docs/tutorial.md)
 - [Acquisition scope and citation limits](docs/acquisition-scope.md)
 - [Database upgrades and recovery](docs/database-upgrades.md)
 - [Access policy](docs/access-policy.md)
