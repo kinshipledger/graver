@@ -22,6 +22,15 @@ from graver.database import (
 )
 from graver.errors import ApplicationError, DatabaseBusy, DatabaseOperationError
 from graver.progress import CancellationToken, ProgressObserver
+from graver.records import (
+    MemorialFetchRequest,
+    MemorialFetchResult,
+    MemorialRecordDetail,
+    MemorialRecordQuery,
+    MemorialRecordService,
+    MemorialRecordSummary,
+    MemorialRedirectInput,
+)
 from graver.research import (
     MemorialDetailInput,
     ResearchEnrichmentRequest,
@@ -44,7 +53,8 @@ class WorkItemNotFound(ApplicationError, LookupError):
 
     def __init__(self, memorial_id: int):
         self.memorial_id = memorial_id
-        super().__init__(
+        ApplicationError.__init__(
+            self,
             f"Work item {memorial_id} does not exist",
             context={"memorial_id": memorial_id},
         )
@@ -120,10 +130,38 @@ class WorkspaceWork:
 
 
 @dataclass(frozen=True)
+class WorkspaceRecords:
+    """Expose stored memorials independently of research workflow state."""
+
+    _service: MemorialRecordService
+
+    def list(
+        self, query: MemorialRecordQuery = MemorialRecordQuery()
+    ) -> tuple[MemorialRecordSummary, ...]:
+        """Return one deterministically ordered page of stored memorials."""
+        try:
+            return self._service.list_records(query)
+        except sqlite3.Error as error:
+            raise _translate_database_error(
+                error, Path(self._service.database_name), "list stored records"
+            ) from error
+
+    def show(self, memorial_id: int) -> MemorialRecordDetail:
+        """Return one stored memorial and its saved versions."""
+        try:
+            return self._service.get_record(memorial_id)
+        except sqlite3.Error as error:
+            raise _translate_database_error(
+                error, Path(self._service.database_name), "show stored record"
+            ) from error
+
+
+@dataclass(frozen=True)
 class WorkspaceAcquisition:
     """Expose researcher-directed single-record acquisition to application clients."""
 
     _research_service: ResearchService
+    _record_service: MemorialRecordService
     _summary_service: SummaryAcquisitionService
 
     def search(
@@ -174,6 +212,31 @@ class WorkspaceAcquisition:
                 error, Path(self._research_service.database_name), "enrich memorial"
             ) from error
 
+    def fetch(
+        self,
+        command: MemorialFetchRequest,
+        *,
+        progress: Optional[ProgressObserver] = None,
+        cancellation: Optional[CancellationToken] = None,
+        acquire: Optional[
+            Callable[[str], MemorialDetailInput | MemorialRedirectInput]
+        ] = None,
+    ) -> MemorialFetchResult:
+        """Retrieve and save one full record without changing task workflow."""
+        try:
+            return self._record_service.fetch(
+                command,
+                acquire=acquire,
+                progress=progress,
+                cancellation=cancellation,
+            )
+        except sqlite3.Error as error:
+            raise _translate_database_error(
+                error,
+                Path(self._record_service.database_name),
+                "fetch stored record",
+            ) from error
+
 
 @dataclass(frozen=True)
 class GraverWorkspace:
@@ -197,11 +260,18 @@ class GraverWorkspace:
         return WorkspaceWork(ResearchService(str(self.path)))
 
     @property
+    def records(self) -> WorkspaceRecords:
+        """Return stored-record reads that do not require workflow state."""
+        return WorkspaceRecords(MemorialRecordService(str(self.path)))
+
+    @property
     def acquisition(self) -> WorkspaceAcquisition:
         """Return researcher-directed single-record acquisition operations."""
         database_name = str(self.path)
         return WorkspaceAcquisition(
-            ResearchService(database_name), SummaryAcquisitionService(database_name)
+            ResearchService(database_name),
+            MemorialRecordService(database_name),
+            SummaryAcquisitionService(database_name),
         )
 
 
