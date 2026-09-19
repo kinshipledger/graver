@@ -1,0 +1,8 @@
+extends: existence
+message: "Use 'Graver' for the project or engine, or mark the literal identifier as code."
+level: error
+scope: text
+ignorecase: false
+nonword: false
+tokens:
+  - '\bgraver\b'
