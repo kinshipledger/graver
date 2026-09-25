@@ -769,10 +769,10 @@ pyOpenSSL, pyparsing, and websocket-client. Those unused capabilities and their
 dependency surface are inconsistent with Graver's fail-closed provider policy even
 though Graver does not explicitly configure most of them.
 
-Current tests inject a Betamax Requests session for recorded parser contracts and
-use `requests-mock` for retry and failure behavior. Some `Driver` tests construct
-the default session, but assertions exercise ordinary Requests-compatible HTTP
-semantics rather than challenge solving or other unique `cloudscraper25` behavior.
+Current tests inject synthetic provider responses through `requests-mock` for parser,
+search, retry, and failure behavior. Some `Driver` tests construct the default
+session, but assertions exercise ordinary Requests-compatible HTTP semantics rather
+than challenge solving or other unique `cloudscraper25` behavior.
 No test establishes that Graver requires browser impersonation, challenge handling,
 proxy rotation, CAPTCHA support, fingerprint manipulation, or another capability a
 conventional client cannot provide.
@@ -954,29 +954,24 @@ The offline suite should distinguish four complementary layers:
    removed and merged pages, source variants, and summary-to-full behavior.
 2. Transport tests use explicit HTTP mocks to verify methods, URLs, query and POST
    parameters, headers, redirects, retry policy, timeouts, and failures. Request
-   construction should not require a recorded cassette.
+   construction should not require a captured provider response.
 3. Persistence and researcher-workflow tests use isolated temporary SQLite
    databases and exercise schema, migrations, transactions, provenance,
    configuration precedence, and CLI behavior.
-4. A small recorded-contract suite replays sanitized interactions actually observed
-   from external platforms to verify the complete transport-to-domain pipeline.
+4. Synthetic provider-contract tests pass compact generated HTML through the ordinary
+   Requests transport adapter to verify the complete offline transport-to-domain
+   pipeline without storing a captured provider page.
 
-Ordinary tests and CI must deny live network access. Recorded tests must default to
-replay-only and fail when an interaction is absent; recording or refreshing a
-cassette requires an explicit maintainer workflow and authorization. Recorded
-fixtures must remove credentials, cookies, Cloudflare and session identifiers,
-personal data not needed by the test, and other sensitive or unstable metadata.
-Authenticated FamilySearch or WikiTree traffic requires an especially strict review
-before any sanitized fixture may be committed.
+Ordinary tests and CI must deny live network access. An undefined synthetic request
+must fail rather than contact a provider. Capturing a real page requires an explicit,
+authorized private maintainer workflow; captures are diagnostic inputs and must not
+be committed. Any public regression specimen must be deliberately reduced to the
+minimum synthetic structure needed to express the supported parser contract.
 
-Betamax remains a temporary compatibility mechanism for the existing cassette
-inventory, not the foundation for new tests. It is now locked to replay-only and
-its consumers are marked as recorded contracts. Next migrate parser coverage to
-static response fixtures and transport behavior to `requests-mock`. Trial a small conversion of the
-remaining contract cases to the actively maintained VCR.py/pytest-recording stack;
-complete that migration only if it is demonstrably simpler and stable. Remove the
-cassette layer entirely if static fixtures and transport mocks provide the same
-useful coverage.
+The former Betamax cassette layer has been removed. Parser coverage uses curated
+static or generated HTML, while transport behavior uses `requests-mock`. VCR.py is
+not needed because full-response replay adds opacity and publication risk without
+useful coverage beyond these explicit contracts.
 
 Test infrastructure must also follow these rules:
 
@@ -991,11 +986,11 @@ Test infrastructure must also follow these rules:
   autouse per-test fixture; Windows filesystem synchronization makes that pattern
   disproportionately expensive. Copied databases must remain independent and must
   never be shared for mutation between tests.
-- Test frameworks, Faker, record/replay tools, mocks, and coverage tools belong only
-  in test dependency groups, not the installed application's runtime dependencies.
+- Test frameworks, Faker, mocks, and coverage tools belong only in test dependency
+  groups, not the installed application's runtime dependencies.
 - Vestigial tool smoke tests, empty tests, and commented-out test bodies should be
   removed or replaced by assertions about Graver behavior.
-- Register meaningful `unit`, `integration`, `recorded`, and `slow` markers and
+- Register meaningful `unit`, `integration`, and `slow` markers and
   enable strict marker checking. Evaluate pytest importlib mode against the current
   `src` layout before adopting it.
 - Branch-coverage reporting now runs once per CI workflow on Ubuntu/Python 3.14.
@@ -1008,9 +1003,9 @@ Test infrastructure must also follow these rules:
 ### Live Find a Grave contract probe
 
 The separate, explicitly invoked `make canary` maintenance probe answers a different
-question from recorded tests: whether the current Find a Grave site still satisfies
+question from synthetic offline tests: whether the current Find a Grave site still satisfies
 Graver's minimum full-memorial parsing contract. It is not part of ordinary local
-tests, pull-request validation, cassette recording, release automation, or the
+tests, pull-request validation, fixture generation, release automation, or the
 researcher-facing CLI. The designated canary is the stable public George Washington
 memorial:
 
@@ -1154,11 +1149,10 @@ Pre-1.0 sequence:
    as dated observations rather than release criteria; `1.0.0rc1` requires no
    unresolved known vulnerability without an explicit, documented risk decision.
 11. Continue the offline test modernization. Default socket denial, strict marker
-   registration, replay-only recorded contracts, deterministic Faker seeding,
-   temporary database/configuration isolation, and the bounded live-contract probe
-   are complete. Remaining work is clearer layer classification, additional static
-   parser/domain fixtures, and a small evidence-based cassette-tool trial before any
-   decision to migrate or remove Betamax.
+   registration, synthetic provider contracts, deterministic Faker seeding,
+   temporary database/configuration isolation, removal of Betamax and captured-page
+   fixtures, and the bounded live-contract probe are complete. Remaining work is
+   clearer layer classification and additional static parser/domain fixtures.
 12. Before freezing source-facing public types, prototype a small internal,
    source-neutral evidence packet with privacy-safe marriage/death, census, and
    probate examples. The packet must also exercise the minimum privacy-conscious

@@ -93,18 +93,6 @@ wheels = [
 ]
 
 [[package]]
-name = "betamax"
-version = "0.9.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "requests" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c2/a2/b5a47f7c57ef30337503bf7ea959e498a314018eb74dd833d4bd4a689e03/betamax-0.9.0.tar.gz", hash = "sha256:82316e1679bc6879e3c83318d016b54b7c9225ff08c4462de4813e22038d5f94", size = 79957, upload-time = "2024-02-08T13:13:37.546Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ac/80/84dfae1dea86beb985c9aeaf907a7c98e1dd9de2156c8dd2e336d868f38a/betamax-0.9.0-py2.py3-none-any.whl", hash = "sha256:880d6da87eaf7e61c42bdc4240f0ac04ab5365bd7f2798784c18d37d8cf747bc", size = 33418, upload-time = "2024-02-08T13:13:23.888Z" },
-]
-
-[[package]]
 name = "black"
 version = "26.5.1"
 source = { registry = "https://pypi.org/simple" }
@@ -548,7 +536,6 @@ dev = [
     { name = "types-tqdm" },
 ]
 test = [
-    { name = "betamax" },
     { name = "click" },
     { name = "faker" },
     { name = "packaging" },
@@ -580,7 +567,6 @@ dev = [
     { name = "types-tqdm", specifier = ">=4.66.0.5,<5" },
 ]
 test = [
-    { name = "betamax", specifier = ">=0.8.1,<1" },
     { name = "click", specifier = ">=8.1,<9" },
     { name = "faker", specifier = ">=21" },
     { name = "packaging", specifier = ">=24,<27" },

@@ -38,7 +38,7 @@ Each invocation:
 - uses no authentication and reads no user configuration;
 - creates or changes no research database;
 - stops when access is denied or challenged;
-- never solves a challenge, rotates a proxy, or refreshes a recorded fixture; and
+- never solves a challenge, rotates a proxy, or updates an offline fixture; and
 - reports a response hash and limited structural metadata, never response content,
   cookies, credentials, or provider control identifiers.
 

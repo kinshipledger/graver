@@ -25,6 +25,17 @@ compatibility, security, deprecation, or known-issue notes before merging it.
 - Summary parsing accepts the current provider's plot label with or without a space
   after the colon, preventing presentation text from entering the stored plot value.
 
+### Changed
+
+- Offline provider parser and search contracts now use compact synthetic HTML
+  responses through `requests-mock`, preserving deterministic no-network coverage
+  without replaying captured provider pages.
+
+### Removed
+
+- Removed Betamax, 61 full-response cassettes, and the copied provider search-form
+  fixture from the public test suite.
+
 ## [1.0.0-rc.1](https://github.com/kinshipledger/graver/compare/v0.1.0...v1.0.0-rc.1) (2026-08-25)
 
 This is graver's first public release candidate. It is intended for careful

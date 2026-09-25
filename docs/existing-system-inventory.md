@@ -105,7 +105,8 @@ contracts.
   bypass behavior.
 - Full memorial parsing handles canonical URLs, ordinary 404s, removed memorials, and merged memorial redirects.
 - Cemetery search supports counting results and follows 20-result pages.
-- The test suite uses recorded HTTP cassettes rather than live Find a Grave requests.
+- The test suite uses compact synthetic HTML responses and explicit HTTP mocks rather
+  than live Find a Grave requests or captured provider pages.
 
 A no-network dependency audit on 2026-08-21 reviewed the source usage, lockfile,
 tests, and installed package metadata and MIT license. The primary references are
@@ -168,8 +169,8 @@ longer a runtime dependency or production/test import. Requests is an explicit
 runtime dependency behind a small Graver-owned transport protocol and response
 model; third-party session, response, and exception types do not form the planned
 public application contract. Tests can inject the internal transport directly or
-continue supplying Requests-compatible Betamax sessions. The replacement does not
-authorize automated provider access.
+supply Requests-compatible synthetic responses through `requests-mock`. The
+replacement does not authorize automated provider access.
 
 ## Current SQLite databases
 
@@ -301,19 +302,17 @@ the operation boundary, protected by a focused regression test.
 
 The inherited suite still mixes several responsibilities, but its external-access
 boundary is now explicit. Pytest disables socket access by default through
-`pytest-socket`; existing sanitized Betamax interactions are replay-only and are
-automatically marked `recorded`; and strict marker registration covers the planned
-`unit`, `integration`, `recorded`, and `slow` layers. A missing cassette interaction
+`pytest-socket`; provider parser and search integration tests receive compact
+synthetic HTML through `requests-mock`; and strict marker registration covers the
+planned `unit`, `integration`, and `slow` layers. An undefined synthetic request
 fails rather than contacting a provider. The duplicate inherited Faker smoke test,
 empty assertions, and obsolete commented test bodies have been removed.
-`requests-mock` remains the preferred boundary for method, parameter, retry, and
-error-path tests. Betamax is retained temporarily for 61 existing replay contracts;
-new tests should prefer static parser fixtures and explicit transport mocks while a
-small, evidence-based replacement trial determines whether another cassette tool is
-actually simpler.
+`requests-mock` is also the preferred boundary for method, parameter, retry, and
+error-path tests. The former 61 Betamax replay contracts and their captured provider
+pages have been removed.
 
 Runtime dependencies are limited to packages imported by the installed application.
-Pytest, Faker, Betamax, and typing support are isolated in test or development
+Pytest, Faker, Requests Mock, and typing support are isolated in test or development
 groups, and the unused `dill` dependency has been removed. The unused
 `pytest-integration` plugin and `types-python-dateutil` stub have also been
 removed after repository, marker, import, and mypy-scope checks found no active role.
@@ -747,19 +746,16 @@ empty database with the current schema. They no longer migrate recognized legacy
 databases implicitly. Removing that remaining implicit creation behavior is still a
 separate roadmap milestone.
 
-The testing-modernization milestone deliberately avoids a large cassette rewrite.
-Default socket denial, replay-only recorded contracts, strict marker registration,
-sanitization, fixed Faker seeding, isolated temporary database/configuration
-fixtures, test-only dependency grouping, and obsolete-test cleanup are implemented.
-The suite retains 61 recorded contracts while new parser cases favor curated static
-HTML/JSON and new transport cases favor `requests-mock`.
+The testing-modernization milestone now includes default socket denial, strict marker
+registration, fixed Faker seeding, isolated temporary database/configuration
+fixtures, test-only dependency grouping, obsolete-test cleanup, and removal of the
+record/replay layer. Compact generated HTML specimens exercise the parser and search
+integration contracts; transport cases use `requests-mock` directly.
 
 Remaining work is to classify more tests by layer, introduce clearer domain fixture
-factories with an explicit locale, evaluate importlib mode for the `src` layout, and
-trial VCR.py through pytest-recording on a few representative contracts before
-deciding whether to migrate the remaining cassettes or eliminate record/replay
-entirely. Branch coverage now measures 94.45% locally against the 90% non-regression
-floor; future increases should come only from meaningful behavioral tests.
+factories with an explicit locale, and evaluate importlib mode for the `src` layout.
+Branch coverage now measures 94.45% locally against the 90% non-regression floor;
+future increases should come only from meaningful behavioral tests.
 
 The implemented `make canary` maintenance probe retrieves the public George
 Washington memorial at
@@ -770,7 +766,7 @@ invariants rather than mutable page content, and classifies results as `compatib
 `probe_error`. `make canary-json` emits the versioned machine-readable result.
 
 The probe is excluded from ordinary tests, pull-request checks, release automation,
-cassette recording, and the human CLI. It uses short timeouts, no database writes,
+fixture generation, and the human CLI. It uses short timeouts, no database writes,
 no fixture refresh, no user configuration, and sanitized diagnostics. It is manually
 invoked before releases and after material parser or transport changes. It is not
 scheduled; current provider terms, robots directives, and automation guidance must

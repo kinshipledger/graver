@@ -49,7 +49,6 @@ test = [
     "packaging>=24,<27",
     "python-dateutil>=2.9,<3",
     "requests-mock>=1.11.0,<2",
-    "betamax>=0.8.1,<1",
     "faker>=21",
 ]
 dev = [
@@ -104,14 +103,12 @@ strict_markers = true
 markers = [
     "unit: isolated domain behavior without storage or recorded HTTP",
     "integration: multiple graver components using isolated local resources",
-    "recorded: sanitized replay-only provider interaction; never records or contacts live services",
     "slow: deliberately longer maintenance test excluded only by an explicit workflow",
 ]
 filterwarnings = [
     "error::ResourceWarning",
     "error::pytest.PytestUnraisableExceptionWarning",
     "error::DeprecationWarning:typer.*",
-    "ignore::DeprecationWarning:betamax.*",
 ]
 
 [tool.coverage.run]
