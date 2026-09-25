@@ -82,13 +82,13 @@ database, configuration, entry-point, workspace, error, progress, and public-con
 tests because its full fixture-heavy suite is disproportionately slow without adding
 equivalent platform evidence.
 
-Pytest disables socket access for the entire ordinary suite. Tests that consume the
-existing sanitized provider cassettes are marked `recorded` automatically and run in
-replay-only mode; a missing interaction fails instead of contacting the provider.
-Use `uv run pytest -m recorded` to run that contract layer alone. The registered
-`unit`, `integration`, `recorded`, and `slow` markers are checked strictly. Recording
-or refreshing provider fixtures is a separate, explicitly authorized maintainer
-activity—not part of an ordinary test run or pull request.
+Pytest disables socket access for the entire ordinary suite. Parser and search
+integration tests receive compact synthetic provider responses through
+`requests-mock`; they never contact a provider or replay captured pages. The
+registered `unit`, `integration`, and `slow` markers are checked strictly. Real-page
+capture is a separate, explicitly authorized and private maintainer activity. A
+maintainer may use a private capture to diagnose a provider change, but public tests
+must express the resulting contract as a deliberately curated synthetic specimen.
 
 Required CI jobs have a five-minute ceiling and should normally provide pull-request
 feedback in under four minutes. Review the workflow when a required job exceeds four
@@ -121,7 +121,7 @@ implementation objects through it.
 
 Tests and ordinary CI must not contact genealogy providers. Use temporary databases
 and configuration paths; never commit research databases, credentials, cookies,
-logs, cassettes containing sensitive data, or local configuration.
+logs, captured provider pages, or local configuration.
 Put disposable JSON and other researcher-generated exports under `scratch/` or
 `exports/`; both directories are ignored without hiding legitimate project JSON.
 

@@ -1,10 +1,10 @@
 import os
+import re
 import shlex
 import shutil
 from types import SimpleNamespace
 
 import pytest
-from betamax import Betamax
 from click.testing import Result
 from faker import Faker
 from typer.testing import CliRunner
@@ -13,30 +13,16 @@ from graver import config as graver_config
 from graver.api import Driver, Memorial
 from graver.cli import app
 from tests.memorial_provider import MemorialProvider, ResultSetProvider
+from tests.synthetic_provider import response_for
 
 pytest_plugins = ["pytest_helpers_namespace"]
 
 
 def pytest_collection_modifyitems(items):
-    """Classify every replay-session consumer before marker selection occurs."""
+    """Classify every synthetic provider-contract consumer."""
     for item in items:
         if "driver" in item.fixturenames:
-            item.add_marker(pytest.mark.recorded)
-
-
-def sanitize_cassette_interaction(interaction, _cassette):
-    """Remove session- and location-identifying headers before recording."""
-    request_headers = interaction.data["request"]["headers"]
-    response_headers = interaction.data["response"]["headers"]
-
-    for name in list(request_headers):
-        if name.casefold() == "cookie":
-            request_headers.pop(name)
-
-    for name in list(response_headers):
-        normalized_name = name.casefold()
-        if normalized_name == "set-cookie" or normalized_name.startswith("cf-"):
-            response_headers.pop(name)
+            item.add_marker(pytest.mark.integration)
 
 
 @pytest.fixture(autouse=True)
@@ -77,21 +63,24 @@ def database_template(tmp_path_factory):
     return template
 
 
-# configure Betamax
-with Betamax.configure() as config:
-    path = os.path.dirname(os.path.abspath(__file__))
-    config.cassette_library_dir = os.path.join(path, "fixtures/cassettes")
-    config.before_record(callback=sanitize_cassette_interaction)
-    config.default_cassette_options["record_mode"] = "none"
-
 runner = CliRunner()
 
 
 @pytest.fixture(scope="function")
-def driver(betamax_parametrized_session):
-    """Provide a replay-only recorded transport and classify its consumer."""
-    d = Driver(session=betamax_parametrized_session)
+def driver(requests_mock):
+    """Provide offline HTTP responses from maintained synthetic specimens."""
+
+    def respond(request, context):
+        status, body = response_for(request.url)
+        context.status_code = status
+        context.reason = "OK" if status < 400 else "Not Found"
+        context.headers["Content-Type"] = "text/html; charset=utf-8"
+        return body
+
+    requests_mock.get(re.compile(r"https://www\.findagrave\.com/.*"), text=respond)
+    d = Driver()
     yield d
+    d.close()
 
 
 # configure Faker

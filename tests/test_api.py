@@ -2,7 +2,6 @@ import json
 import logging
 import re
 import sqlite3
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -393,8 +392,8 @@ class TestMemorial(TestApi):
         "requested_url, new_url",
         [
             (
-                "https://www.findagrave.com/memorial/244781332/william-h-boekholder",
-                "https://www.findagrave.com/memorial/260829715/wiliam-henry-boekholder",
+                "https://www.findagrave.com/memorial/900101/example-merged",
+                "https://www.findagrave.com/memorial/900102/example-replacement",
             )
         ],
     )
@@ -411,7 +410,7 @@ class TestMemorial(TestApi):
     @pytest.mark.parametrize(
         "findagrave_url",
         [
-            "https://www.findagrave.com/memorial/261491035/dolores-higginbotham",
+            "https://www.findagrave.com/memorial/900103/example-removed",
         ],
     )
     def test_memorial_parser_removed_raises_exception(self, findagrave_url, driver):
@@ -1624,9 +1623,15 @@ class TestSearch(TestApi):
         assert progress_state["updates"] == [20, 5]
 
     def test_worker_supports_current_live_search_fields(self):
-        fixture = Path(__file__).parent / "fixtures/live-search/search-form-fields.html"
-        soup = BeautifulSoup(fixture.read_text(), "html.parser")
-        field_names = {field["name"] for field in soup.select("[name]")}
+        field_names = {
+            "fulltext",
+            "bio",
+            "memorialid",
+            "tags",
+            "birthyearfilter",
+            "datefilter",
+            "orderby",
+        }
         worker = graver.api._SearchWorker(
             fulltext="John Smith",
             bio="married",
@@ -1811,7 +1816,6 @@ class TestSearch(TestApi):
 
     def test_search_empty(self, driver) -> None:
         logging.getLogger(__name__).setLevel(logging.DEBUG)
-        logging.getLogger("betamax").setLevel(logging.DEBUG)
         results = Memorial.search(driver=driver)
         assert len(results) == 0
 
