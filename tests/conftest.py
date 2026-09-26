@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2023-2026 Larry McQueary
+# SPDX-FileCopyrightText: 2023, 2026 Larry McQueary
 # SPDX-License-Identifier: MIT
 
 import os
