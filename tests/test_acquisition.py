@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Contract tests for typed memorial-summary acquisition receipts."""
 
 import dataclasses

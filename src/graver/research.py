@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Internal subject-oriented research task repositories and services."""
 
 from __future__ import annotations

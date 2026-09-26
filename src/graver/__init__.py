@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023-2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Top-level package for graver.
 
 Application clients should import the supported typed API from

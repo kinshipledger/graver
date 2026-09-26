@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Synchronous typed workspace composition for non-CLI application clients."""
 
 from __future__ import annotations

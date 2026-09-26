@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Internal implementation of the explicitly invoked live provider canary."""
 
 from __future__ import annotations

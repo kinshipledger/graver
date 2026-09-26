@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023-2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 APP_NAME = "graver"
 DISTRIBUTION_NAME = "graver-genealogy"
 FINDAGRAVE_BASE_URL: str = "https://www.findagrave.com"

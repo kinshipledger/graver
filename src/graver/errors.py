@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Stable, presentation-neutral application error contracts."""
 
 from __future__ import annotations

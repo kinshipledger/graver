@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Typed researcher-directed acquisition services and receipts."""
 
 from __future__ import annotations

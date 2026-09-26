@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Internal SQLite connection lifecycle helpers."""
 
 from __future__ import annotations

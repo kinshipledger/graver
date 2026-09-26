@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Project existing evidence-domain records into validated internal packets."""
 
 from __future__ import annotations

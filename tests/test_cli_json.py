@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 import pytest
 
 from graver.cli_json import SCHEMA_VERSION, result_envelope

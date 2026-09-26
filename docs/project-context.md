@@ -5,8 +5,9 @@
 The repository is on the single long-lived `main` branch with only
 `https://github.com/kinshipledger/graver.git` configured as `origin`. The obsolete
 `pirtleshell/scrape-a-grave` upstream remote has been removed. Historical MIT
-copyright provenance remains preserved, while the README makes clear that Graver is
-independently maintained and has no ongoing upstream affiliation.
+copyright provenance remains preserved. The README's Origins and acknowledgment
+section explains the original fork and identifies Graver's current maintainer
+without implying Robert Pirtle's endorsement or responsibility.
 
 The implemented foundation includes schema version 5, subject-owned research tasks,
 explicit backed-up database upgrades, person-at-a-time acquisition, fail-closed

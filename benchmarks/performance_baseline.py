@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Measure repeatable offline application-service performance baselines."""
 
 from __future__ import annotations
