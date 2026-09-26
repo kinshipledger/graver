@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Contract tests for the completely offline evidence vertical slice."""
 
 import json

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Explicit database creation, read-only inspection, and ordered upgrades."""
 
 import json

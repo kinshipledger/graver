@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Typed application services for graver clients.
 
 This module is the supported pre-1.0 import boundary for application code. It

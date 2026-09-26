@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Validate documentation scope and run the pinned Vale policy."""
 
 from __future__ import annotations

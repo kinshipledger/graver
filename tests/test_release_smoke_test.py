@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Tests for release-artifact verification helpers."""
 
 from maintenance.release_smoke_test import versions_match

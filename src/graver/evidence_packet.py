@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Internal source-neutral evidence packet types and validation.
 
 The packet is an offline application-domain boundary. It preserves evidence needed

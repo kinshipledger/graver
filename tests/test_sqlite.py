@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Connection lifecycle tests for graver's internal SQLite boundary."""
 
 import sqlite3

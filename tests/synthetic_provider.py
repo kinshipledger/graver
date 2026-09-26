@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Readable offline specimens for the Find a Grave parser contract.
 
 These responses are deliberately generated from small, maintained domain fixtures.

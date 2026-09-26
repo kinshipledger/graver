@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Offline evidence discovery, assessment, and conclusion application services."""
 
 from __future__ import annotations

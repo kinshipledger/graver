@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Contract tests for toolkit-neutral progress and cancellation."""
 
 import threading

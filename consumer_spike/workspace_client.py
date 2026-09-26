@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Exercise the documented workspace API from an installed graver wheel."""
 
 from __future__ import annotations

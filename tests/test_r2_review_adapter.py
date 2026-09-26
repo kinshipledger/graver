@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Exercise the local R2 review adapter against the real evidence service."""
 
 from review.r2_adapter import ReviewScenario

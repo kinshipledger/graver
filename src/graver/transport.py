@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Internal synchronous HTTP transport for graver acquisition.
 
 Third-party client and response types stop at this module.  The application and

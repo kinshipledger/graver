@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Local-only experiential adapter for the R2 professional-researcher review.
 
 This module is deliberately not part of graver's installed package or public API.

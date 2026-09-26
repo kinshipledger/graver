@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Run graver's one-request live Find a Grave compatibility canary."""
 
 from __future__ import annotations

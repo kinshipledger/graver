@@ -40,6 +40,18 @@ to check one stable public memorial after parser or transport changes. It is an
 explicit, one-request diagnostic—not part of the ordinary test suite or a bulk
 acquisition tool.
 
+## Origins and acknowledgment
+
+Graver originated in 2023 as a fork of Robert Pirtle's 2016 MIT-licensed
+[`scrape-a-grave`](https://github.com/pirtleshell/scrape-a-grave) project.
+Robert's original commits remain in Graver's Git history, and his copyright
+notice remains in the project [LICENSE](LICENSE). The original `db.py` and
+`getgraveids.py` files were removed in 2023; the current Python implementation
+has since been extensively rewritten and the project expanded. The Kinship
+Ledger project maintains Graver today. This acknowledgment does not imply Robert
+Pirtle's participation in, sponsorship of, endorsement of, or responsibility for
+current Graver.
+
 ## What Graver does
 
 - Saves narrow Find a Grave search results as summary observations in SQLite.

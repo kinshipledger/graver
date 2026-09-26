@@ -38,9 +38,9 @@ The only configured Git remote is `origin`, pointing to
 an independent repository rather than a fork. The Git history nevertheless begins
 with Robert Pirtle's 2016 MIT-licensed commits and later refactors descend from that
 work. The applicable historical copyright notice therefore remains in `LICENSE`;
-the README describes the historical inspiration while explicitly disclaiming an
-ongoing affiliation or upstream relationship. Rewriting history or removing the
-notice is not planned.
+the README describes the original fork and identifies current maintenance while
+disclaiming any implied participation, sponsorship, endorsement, or responsibility
+by Robert Pirtle. Rewriting history or removing the notice is not planned.
 
 ## Current behavior
 

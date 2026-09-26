@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Typed stored-memorial reads and immediate foreground acquisition."""
 
 from __future__ import annotations

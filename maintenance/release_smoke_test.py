@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Larry McQueary
+# SPDX-License-Identifier: MIT
+
 """Smoke-test an installed graver release artifact outside its source tree."""
 
 from __future__ import annotations
